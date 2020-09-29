@@ -1,0 +1,32 @@
+{
+  "name": "gigya-cdp-cli",
+  "version": "1.0.0",
+  "description": "gigya cdp cli",
+  "main": "index.ts",
+  "scripts": {
+    "start": "tsc && node example.js",
+    "build": "tsc",
+    "test": "tsc && jasmine specs/*.js",
+    "prepublish": "npm run test"
+  },
+  "keywords": [
+    "gigya",
+    "cdp",
+    "cli"
+  ],
+  "author": "Baryo",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/terminal-kit": "^1.28.2",
+    "typescript": "^4.0.3"
+  },
+  "dependencies": {
+    "@types/json-schema": "^7.0.6",
+    "@types/json-schema-faker": "^0.5.1",
+    "@types/yargs": "^15.0.7",
+    "async-bulk-map": "^1.0.0",
+    "json-schema-fakify": "^1.0.3",
+    "terminal-kit": "^1.43.0",
+    "yargs": "^16.0.3"
+  }
+}
