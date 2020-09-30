@@ -6,7 +6,7 @@ import {asyncBulkMap, createDelay, logBulk} from "async-bulk-map";
 import {CDP} from "./SDK/cdp";
 import {Application, Event} from "./SDK/interfaces";
 import {requestNumber, showMenu} from "./utils/terminal";
-import {getFakers, getFields} from "./utils/schema";
+import {createArray, getFakers, getFields} from "./utils/schema";
 
 export interface CliArgs {
     userKey: string,
@@ -30,24 +30,28 @@ const sdk = new CDP({userKey, secret});
 
     const fakified = fakify(selectedEvent.schema);
     const fields = getFields(fakified);
-    fields.forEach(f => {
-        terminal.white(f);
-        terminal('\n');
-    });
 
-    terminal.cyan(`would you like to change? (y|N)`);
-    const shouldEditSchema = await terminal.yesOrNo({yes: 'y', no: ['n', 'ENTER']}).promise;
+    let shouldEditSchema = true;
+    while (shouldEditSchema) {
+        fields.forEach(f => {
+            terminal.white(f);
+            terminal('\n');
+        });
 
-    if (shouldEditSchema) {
-        const field = await showMenu(`select a field:`, fields);
-        const faker = await showMenu(`select a faker:`, getFakers());
-        field.schema.faker = faker;
+        terminal.cyan(`would you like to change fakers for schema fields? (y|N)`);
+        shouldEditSchema = await terminal.yesOrNo({yes: 'y', no: ['n', 'ENTER']}).promise;
+
+        if (shouldEditSchema) {
+            const field = await showMenu(`select a field:`, fields);
+            field.schema.faker = await showMenu(`select a faker:`, getFakers());
+            terminal.green(`done: ${field.toString()}`)
+        }
     }
 
-    const quantity = await requestNumber(`number of events:`);
+    const quantity = await requestNumber(`number of events:`, 10);
     const batch = await requestNumber(`batch size:`, 50);
 
-    const fakeEvents = new Array(quantity).fill(0).map(() => jsf.generate(fakified));
+    const fakeEvents = createArray(quantity, () => jsf.generate(fakified));
 
     function ingest(event: object) {
         return sdk.post(

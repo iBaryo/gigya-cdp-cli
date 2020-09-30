@@ -15,7 +15,7 @@ export function getFields(schema: JSONSchemaFaker, path = ''): Array<{ field: st
         default:
             return [{
                 field: path,
-                faker: schema.faker,
+                get faker() { return this.schema.faker; },
                 schema: schema,
                 toString() {
                     return `${this.field}\t${this.faker || '(None)'}`
@@ -26,4 +26,8 @@ export function getFields(schema: JSONSchemaFaker, path = ''): Array<{ field: st
 
 export function getFakers() {
     return [''];
+}
+
+export function createArray<T>(size: number, fn: (i: number)=> T): T[] {
+    return new Array(size).fill(0).map((_, i) => fn(i));
 }
