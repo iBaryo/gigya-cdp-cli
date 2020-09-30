@@ -1,6 +1,6 @@
 import {AuthRequestSigner, isCredentials, UserKeyCredentials} from "./AuthRequestSigner";
-import {Req} from "../cdp";
 import {clone} from "../util";
+import {Req} from "../request";
 
 export interface RSACredentials extends UserKeyCredentials {
     privateKey: string;

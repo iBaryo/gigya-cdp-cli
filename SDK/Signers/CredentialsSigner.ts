@@ -1,8 +1,7 @@
 import {SecretCredentials, SimpleRequestSigner} from "./SimpleRequestSigner";
-import {calcSignature} from "../util";
+import {calcSignature, toQueryString} from "../util";
 import {HttpMethod, Req} from "../request";
-
-const strictUriEncode = require('strict-uri-encode') as (str: string) => string;
+import strictUriEncode from "strict-uri-encode";
 
 interface SignedRequestParams {
     timestamp: number;
@@ -12,7 +11,7 @@ interface SignedRequestParams {
 
 export class CredentialsSigner extends SimpleRequestSigner {
     constructor(creds: SecretCredentials,
-                private calcSignature = calcSignature) {
+                private _calcSignature = calcSignature) {
         super(creds);
     }
 
@@ -40,12 +39,8 @@ export class CredentialsSigner extends SimpleRequestSigner {
     }
 
     protected createRequestSignature(secret: string, uri: string, httpMethod: HttpMethod, requestParams: object) {
-        const queryString =
-            Object.keys(requestParams)
-                .sort()
-                .map(key => `${key}=${strictUriEncode((requestParams[key] || '').toString())}`)
-                .join('&');
+        const queryString = toQueryString(requestParams);
         const baseString = `${httpMethod.toUpperCase()}&${strictUriEncode(uri)}&${strictUriEncode(queryString)}`;
-        return this.calcSignature(baseString, secret);
+        return this._calcSignature(baseString, secret);
     }
 }

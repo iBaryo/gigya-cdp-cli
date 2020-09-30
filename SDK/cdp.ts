@@ -1,7 +1,7 @@
 import request, {Headers, Response} from "request";
-import {CredentialsType, getSigner} from "./Signers/factory";
-import {ISigner} from "./Signers/ISigner";
+import {CredentialsType, getSigner, ISigner} from "./Signers";
 import {HttpMethod, HttpProtocol, Req} from "./request";
+import {toQueryString} from "./util";
 
 export type DataCenter = 'eu5';
 
@@ -11,18 +11,19 @@ export class CDP {
         dataCenter: 'eu5' as DataCenter,
         baseDomain: 'gigya.com',
         proxy: undefined as string,
+        ignoreCertError: false,
         verboseLog: false,
         anonymousPaths: [] as RegExp[]
     };
 
     private _signer: ISigner;
 
-    constructor(credentials: { userKey: string, secret: string }, public options?: Partial<typeof CDP.DefaultOptions>) {
+    constructor(credentials: CredentialsType, public options?: Partial<typeof CDP.DefaultOptions>) {
         this.setCredentials(credentials);
         this.options = Object.assign({}, CDP.DefaultOptions, this.options);
     }
 
-    public send<T>(path: string, method: HttpMethod, params?: object, headers?: Headers): Promise<T & { errCode?: number }> {
+    public send<T>(path: string, method: HttpMethod, params: object = {}, headers: Headers = {}): Promise<T & { errCode?: number }> {
         let req: Req = {
             protocol: this.options.protocol,
             domain: `cdp.${this.options.dataCenter}.${this.options.baseDomain}`,
@@ -36,6 +37,7 @@ export class CDP {
             req = this.sign(req);
         }
 
+        this.log(`sending `, req);
         return this.httpSend<T>(req);
     }
 
@@ -54,21 +56,37 @@ export class CDP {
 
     public httpSend<T>(req: Req) {
         const start = Date.now();
-        const uri = `${req.protocol}://${req.domain}/${req.path}`;
+        let uri = `${req.protocol}://${req.domain}/api/${req.path}`;
+        let body = undefined;
 
-        return new Promise<T>((resolve, reject) => request.post(
+        switch (req.method) {
+            case "get":
+            case "delete":
+                const qs = toQueryString(req.params);
+                if (qs)
+                    uri += `?${qs}`;
+                break;
+            default:
+                body = req.params;
+        }
+
+        if (this.options.ignoreCertError) {
+            process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0 as any; // todo: restore it?
+        }
+
+        return new Promise<T>((resolve, reject) => request[req.method](
             uri,
             {
-                method: req.method,
                 headers: req.headers,
-                body: req.params,
+                body,
                 proxy: this.options.proxy
                 // ca: ''
             }, (error: any, response: Response, body: any) => {
-                this.log(`request to ${uri} took ${(Date.now() - start) / 1000} seconds`);
+                this.log(`request to ${req.method.toUpperCase()} ${uri} took ${(Date.now() - start) / 1000} seconds`);
                 if (error) {
-                    this.log(error);
+                    this.log(`error:`, error, response, body);
                     reject({error, body});
+                    return;
                 }
                 try {
                     resolve(JSON.parse(body));
@@ -79,24 +97,24 @@ export class CDP {
             }));
     }
 
-    private log(msg: string) {
+    private log(msg: string, ...args: any[]) {
         if (this.options.verboseLog)
-            console.log(msg);
+            console.log(msg, ...args);
     }
 
-    public get<T>(method: string, params?: object, headers?: Headers) {
-        return this.send<T>(method, 'get', params, headers);
+    public get<T>(path: string, params?: object, headers?: Headers) {
+        return this.send<T>(path, 'get', params, headers);
     }
 
-    public post<T>(method: string, params?: object, headers?: Headers) {
-        return this.send<T>(method, 'post', params, headers);
+    public post<T>(path: string, params?: object, headers?: Headers) {
+        return this.send<T>(path, 'post', params, headers);
     }
 
-    public put<T>(method: string, params?: object, headers?: Headers) {
-        return this.send<T>(method, 'put', params, headers);
+    public put<T>(path: string, params?: object, headers?: Headers) {
+        return this.send<T>(path, 'put', params, headers);
     }
 
-    public delete<T>(method: string, params?: object, headers?: Headers) {
-        return this.send<T>(method, 'delete', params, headers);
+    public delete<T>(path: string, params?: object, headers?: Headers) {
+        return this.send<T>(path, 'delete', params, headers);
     }
 }

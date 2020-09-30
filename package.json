@@ -24,10 +24,13 @@
     "@types/json-schema": "^7.0.6",
     "@types/json-schema-faker": "^0.5.1",
     "@types/request": "^2.48.5",
+    "@types/strict-uri-encode": "^2.0.0",
     "@types/yargs": "^15.0.7",
     "async-bulk-map": "^1.0.0",
+    "jose": "^2.0.2",
     "json-schema-fakify": "^1.0.5",
     "request": "^2.88.2",
+    "strict-uri-encode": "^2.0.0",
     "terminal-kit": "^1.43.0",
     "yargs": "^16.0.3"
   }
