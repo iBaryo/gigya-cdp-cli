@@ -16,7 +16,7 @@ export function getSigner(credentials: CredentialsType): ISigner | null {
     } else if (isRSACreds(credentials)) {
         return new AuthBearerSigner(credentials);
     } else if (isSecretCredentials(credentials)) {
-        return new SimpleRequestSigner(credentials); //return new CredentialsSigner(credentials);
+        return new SimpleRequestSigner(credentials); //todo: return new CredentialsSigner(credentials);
     } else {
         throw 'missing credentials secret/privateKey';
     }

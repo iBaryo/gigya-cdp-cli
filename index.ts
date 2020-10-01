@@ -11,20 +11,28 @@ import {createArray, getFakers, getFields} from "./utils/schema";
 export interface CliArgs {
     userKey: string,
     secret: string,
-    bUnitId: string
 }
 
-const {userKey, secret, bUnitId} = argv as Argv<CliArgs>['argv'];
+const {userKey, secret} = argv as Argv<CliArgs>['argv'];
 
 const sdk = new CDP({userKey, secret});
 
 (async () => {
+    terminal.bgMagenta.black('Welcome to CDP CLI!\n');
 
-    const apps = await sdk.get<Application[]>(`/businessUnits/${bUnitId}/applications`);
+    const wss = await sdk.get<Array<{ id: string; name: string; }>>(`workspaces`);
+    const selectedWs =
+        await showMenu(`select workspace:`, wss, ws => ws.name);
+
+    const bUnits = await sdk.get<Array<{ id: string; name: string; }>>(`workspaces/${selectedWs.id}/businessunits`);
+    const selectedBUnit =
+        await showMenu(`select business unit:`, bUnits, bu => bu.name);
+
+    const apps = await sdk.get<Application[]>(`workspaces/${selectedWs.id}/businessunits/${selectedBUnit.id}/applications`);
     const selectedApp =
         await showMenu(`select application:`, apps, app => app.name);
 
-    const events = await sdk.get<Event[]>(`/businessUnits/${bUnitId}/applications/${selectedApp.id}/events`);
+    const events = await sdk.get<Event[]>(`workspaces/${selectedWs.id}/businessunits/${selectedBUnit.id}/applications/${selectedApp.id}/data    events`);
     const selectedEvent =
         await showMenu(`select event:`, events, event => event.name);
 
@@ -55,7 +63,7 @@ const sdk = new CDP({userKey, secret});
 
     function ingest(event: object) {
         return sdk.post(
-            `/businessUnits/${bUnitId}/applications/${selectedApp.id}/events/${selectedEvent.id}`,
+            `workspaces/${selectedWs.id}/businessunits/${selectedBUnit.id}/applications/${selectedApp.id}/dataevents/${selectedEvent.id}`,
             event).catch();
     }
 

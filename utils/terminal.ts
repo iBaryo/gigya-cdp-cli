@@ -2,8 +2,16 @@ import {terminal} from "terminal-kit";
 
 export function showMenu<T>(title: string, items: T[], keyFn: (i: T) => string = String): Promise<T> {
     terminal.cyan(title);
-    return terminal.gridMenu(items.map(keyFn)).promise.then(res => {
-        terminal.green(`selected: ${res.selectedText}`);
+    if (!items.length) {
+        terminal.red(`\n<empty>\n`);
+    }
+    return terminal.gridMenu(items.map(keyFn), {exitOnUnexpectedKey: true}).promise.then(res => {
+        if (res.selectedIndex == undefined) {
+            terminal.grey(`\n<cancel>\n`);
+            return undefined;
+        }
+
+        terminal.green(`selected: ${res.selectedText}\n`);
         return items[res.selectedIndex];
     });
 }

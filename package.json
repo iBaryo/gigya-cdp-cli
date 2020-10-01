@@ -4,7 +4,7 @@
   "description": "gigya cdp cli",
   "main": "index.ts",
   "scripts": {
-    "start": "tsc && node example.js",
+    "start": "tsc && node index.js",
     "build": "tsc",
     "test": "tsc && jasmine specs/*.js",
     "prepublish": "npm run test"
@@ -28,6 +28,7 @@
     "@types/yargs": "^15.0.7",
     "async-bulk-map": "^1.0.0",
     "jose": "^2.0.2",
+    "json-schema-faker": "^0.5.0-rcv.29",
     "json-schema-fakify": "^1.0.5",
     "request": "^2.88.2",
     "strict-uri-encode": "^2.0.0",
