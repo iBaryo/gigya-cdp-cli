@@ -3,7 +3,7 @@ import {terminal} from "terminal-kit";
 import {fakify} from "json-schema-fakify";
 import * as jsf from "json-schema-faker";
 import {asyncBulkMap, createDelay, logBulk} from "async-bulk-map";
-import {CDP} from "./SDK/cdp";
+import {CDP} from "./SDK";
 import {Application, Event} from "./SDK/interfaces";
 import {requestNumber, showMenu} from "./utils/terminal";
 import {createArray, getFakers, getFields} from "./utils/schema";
@@ -15,7 +15,7 @@ export interface CliArgs {
 
 const {userKey, secret} = argv as Argv<CliArgs>['argv'];
 
-const sdk = new CDP({userKey, secret});
+const sdk = new CDP({userKey, secret, forceSimple: true});
 
 (async () => {
     terminal.bgMagenta.black('Welcome to CDP CLI!\n');

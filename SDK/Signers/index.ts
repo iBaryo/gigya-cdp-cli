@@ -6,7 +6,7 @@ import {isSecretCredentials, SecretCredentials, SimpleRequestSigner} from "./Sim
 import {CredentialsSigner} from "./CredentialsSigner";
 
 export {ISigner} from "./ISigner";
-export type CredentialsType = NoCredentials | SecretCredentials | RSACredentials;
+export type CredentialsType = NoCredentials | (SecretCredentials & {forceSimple?: boolean}) | RSACredentials;
 
 export function getSigner(credentials: CredentialsType): ISigner | null {
     if (isAnonymous(credentials)) {
@@ -16,7 +16,9 @@ export function getSigner(credentials: CredentialsType): ISigner | null {
     } else if (isRSACreds(credentials)) {
         return new AuthBearerSigner(credentials);
     } else if (isSecretCredentials(credentials)) {
-        return new SimpleRequestSigner(credentials); //todo: return new CredentialsSigner(credentials);
+        return credentials.forceSimple ?
+            new SimpleRequestSigner(credentials)
+            : new CredentialsSigner(credentials);
     } else {
         throw 'missing credentials secret/privateKey';
     }
