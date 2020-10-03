@@ -1,5 +1,5 @@
 import {ISigner} from "./ISigner";
-import {clone} from "../util";
+import {clone} from "../utils";
 import {Req} from "../request";
 
 export type NoCredentials = false;

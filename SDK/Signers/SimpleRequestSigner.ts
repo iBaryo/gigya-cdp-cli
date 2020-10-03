@@ -1,5 +1,5 @@
 import {AuthRequestSigner, isCredentials, UserKeyCredentials} from "./AuthRequestSigner";
-import {clone} from "../util";
+import {clone} from "../utils";
 import {Req} from "../request";
 
 export interface SecretCredentials extends UserKeyCredentials {

@@ -1,5 +1,5 @@
 import {SecretCredentials, SimpleRequestSigner} from "./SimpleRequestSigner";
-import {calcSignature, toQueryString} from "../util";
+import {calcSignature, toQueryString} from "../utils";
 import {HttpMethod, Req} from "../request";
 import strictUriEncode from "strict-uri-encode";
 

@@ -1,7 +1,7 @@
 import request, {Headers, Response} from "request";
 import {CredentialsType, getSigner, ISigner} from "./Signers";
 import {HttpMethod, HttpProtocol, Req} from "./request";
-import {toQueryString} from "./util";
+import {toQueryString} from "./utils";
 
 export type DataCenter = 'eu5';
 
@@ -106,12 +106,12 @@ export class CDP {
         return this.send<T>(path, 'get', params, headers);
     }
 
-    public post<T>(path: string, params?: object, headers?: Headers) {
-        return this.send<T>(path, 'post', params, headers);
+    public post<T>(path: string, body?: object, query?: object, headers?: Headers) {
+        return this.send<T>(path, 'post', body, headers);
     }
 
-    public put<T>(path: string, params?: object, headers?: Headers) {
-        return this.send<T>(path, 'put', params, headers);
+    public put<T>(path: string, body?: object, query?: object, headers?: Headers) {
+        return this.send<T>(path, 'put', body, headers);
     }
 
     public delete<T>(path: string, params?: object, headers?: Headers) {
