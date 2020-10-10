@@ -1,8 +1,9 @@
 import {JSONSchema7} from "json-schema";
 
 export type JSONSchemaFaker = JSONSchema7 & {faker?: string}; // TODO: import from fakify
+export type JSONSchemaFieldFaker = { field: string, faker: string, schema: JSONSchemaFaker, toString(): string };
 
-export function getFields(schema: JSONSchemaFaker, path = ''): Array<{ field: string, faker: string, schema: JSONSchemaFaker, toString(): string }> {
+export function getFields(schema: JSONSchemaFaker, path = ''): Array<JSONSchemaFieldFaker> {
     switch (schema.type) {
         case "object":
             return Object.entries(schema.properties)

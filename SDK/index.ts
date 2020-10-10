@@ -23,7 +23,7 @@ export class CDP {
         this.options = Object.assign({}, CDP.DefaultOptions, this.options);
     }
 
-    public send<T>(path: string, method: HttpMethod, params: object = {}, headers: Headers = {}): Promise<T & { errCode?: number }> {
+    public send<T>(path: string, method: HttpMethod, params: object = {}, headers: Headers = {}): Promise<T & { errorCode?: number }> {
         let req: Req = {
             protocol: this.options.protocol,
             domain: `cdp.${this.options.dataCenter}.${this.options.baseDomain}`,

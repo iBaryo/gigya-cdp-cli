@@ -1,120 +1,199 @@
-import {Argv, argv} from "yargs";
 import {terminal} from "terminal-kit";
 import {CDP} from "./SDK";
 import {Application, Event} from "./SDK/interfaces";
-import {ErrorAndEnd, Menu, RequestNumber, TerminalApp} from "./terminal/TerminalApp";
+import {
+    Cancel, Continue, End,
+    errorAndEnd,
+    requestNumber,
+    requestText,
+    requestTextStep,
+    showMenu,
+    showYesOrNo,
+    TerminalApp
+} from "./terminal/TerminalApp";
 import {JSONSchema7} from "json-schema";
-
-export interface CliArgs {
-    userKey: string,
-    secret: string,
-}
-
-const {userKey, secret} = argv as Argv<CliArgs>['argv'];
-
-const sdk = new CDP({userKey, secret, forceSimple: true});
+import {fakify} from "json-schema-fakify";
+import {createArray, getFakers, getFields, JSONSchemaFieldFaker} from "./utils/schema";
+import * as jsf from "json-schema-faker";
+import {asyncBulkMap, createDelay} from "async-bulk-map";
+import {init} from "./secure-store";
+import {CredentialsType} from "./SDK/Signers";
 
 interface AppContext {
+    sdk: CDP;
     ws: { id: string; name: string; };
     bu: { id: string; name: string; };
     app: { id: string; name: string; };
     event: { id: string; name: string; schema: JSONSchema7; },
     shouldEditSchema: boolean;
+    fakifiedEventSchema: JSONSchema7;
     eventsNum: number;
     batchSize: number;
+    delay: number;
     sentEvents: any[];
 }
 
+type Creds = { userKey: string; secret: string; };
+const sStore = init<Creds>('./creds.json');
+
 (async () => {
     terminal.bgMagenta.black('Welcome to CDP CLI!\n');
+    terminal('\n');
     await new TerminalApp<AppContext>().show([
-        ['ws', async () => {
-            const wss = await sdk.get<Array<{ id: string; name: string; }>>(`workspaces`);
-            if (!wss.length)
-                return new ErrorAndEnd(`no available workspaces`);
+        ['sdk', async () => {
+            let creds: Creds;
+            if (sStore.exists()) {
+                const pw = await requestText(`password:`);
+                if (pw == Cancel)
+                    return Cancel;
 
-            return new Menu(`select workspace:`, wss, ws => ws.name);
+                creds = sStore.get(pw);
+                if (!creds) {
+                    return errorAndEnd(`wrong password\n`);
+                }
+
+            } else {
+                const res = await new TerminalApp<Creds>().show([
+                    requestTextStep(`userKey`),
+                    requestTextStep(`secret`),
+                    [async context => {
+                        terminal.cyan(`verifying...`);
+                        const res = await new CDP({...context, forceSimple: true}).get(`workspaces`);
+                        if (res.errorCode) {
+                            console.log(res);
+                            terminal.red(`invalid credentials.\n`)
+                            return End;
+                        }
+
+                        terminal.green(`valid credentials!`);
+                        terminal('\n');
+                        return showYesOrNo(`remember?`, 'y', {
+                            y: () => requestText(`new password:`).then(pw => sStore.set(context, pw)).then(() => Continue)
+                        });
+                    }]
+                ]);
+
+                if (res == Cancel)
+                    return Cancel;
+
+                creds = res;
+            }
+
+            return new CDP({...creds, forceSimple: true});
+        }],
+        ['ws', async context => {
+            const wss = await context.sdk.get<Array<{ id: string; name: string; }>>(`workspaces`);
+            if (!wss.length)
+                return errorAndEnd(`no available workspaces`);
+
+            return showMenu(`select workspace:`, wss, ws => ws.name);
         }],
         ['bu', async (context) => {
-            const bUnits = await sdk.get<Array<{ id: string; name: string; }>>(`workspaces/${context.ws.id}/businessunits`);
-            return new Menu(`select business unit:`, bUnits, bu => bu.name);
+            const bUnits = await context.sdk.get<Array<{ id: string; name: string; }>>(`workspaces/${context.ws.id}/businessunits`);
+            return showMenu(`select business unit:`, bUnits, bu => bu.name);
         }],
         ['app', async context => {
-            const apps = await sdk.get<Application[]>(`workspaces/${context.ws.id}/businessunits/${context.bu.id}/applications`);
-            return new Menu(`select application:`, apps, app => app.name);
+            const apps = await context.sdk.get<Application[]>(`workspaces/${context.ws.id}/businessunits/${context.bu.id}/applications`);
+            return showMenu(`select application:`, apps, app => app.name);
         }],
         ['event', async context => {
-            const events = await sdk.get<Event[]>(`workspaces/${context.ws.id}/businessunits/${context.bu.id}/applications/${context.app.id}/dataevents`);
-            return new Menu(`select event:`, events, event => event.name);
+            const events = await context.sdk.get<Event[]>(`workspaces/${context.ws.id}/businessunits/${context.bu.id}/applications/${context.app.id}/dataevents`);
+            return showMenu(`select event:`, events, event => event.name);
         }],
-        // TODO: While Terminal component
-        // ['shouldEditSchema', async context => {
-        //     const fakified = fakify(context.event.schema);
-        //     const fields = getFields(fakified);
-        //
-        //     let shouldEditSchema = true;
-        //     while (shouldEditSchema) {
-        //         fields.forEach(f => {
-        //             terminal.white(f);
-        //             terminal('\n');
-        //         });
-        //
-        //         terminal.cyan(`would you like to change fakers for schema fields? (y|N)`);
-        //         shouldEditSchema = await terminal.yesOrNo({yes: 'y', no: ['n', 'ENTER']}).promise;
-        //
-        //         if (shouldEditSchema) {
-        //             const field = await showMenu(`select a field:`, fields);
-        //             field.schema.faker = await showMenu(`select a faker:`, getFakers());
-        //             terminal.green(`done: ${field.toString()}`)
-        //         }
-        //     }
-        // }],
+        ['fakifiedEventSchema', async context => {
+            if (!context.event.schema) {
+                console.log(context.event);
+                return errorAndEnd(`corrupted event with no schema\n`);
+            }
+
+            const fakified = fakify(context.event.schema);
+            const fields = getFields(fakified);
+
+            let shouldEditSchema = true;
+            while (shouldEditSchema) {
+                fields.forEach(f => {
+                    terminal.white(f);
+                    terminal('\n');
+                });
+
+                await showYesOrNo(`would you like to change fakers for schema fields?`, 'n', {
+                    n: async () => shouldEditSchema = false,
+                    y: async () => new TerminalApp<{ field: JSONSchemaFieldFaker; faker: string; }>().show([
+                        ['field', ctx => showMenu(`select a field:`, fields)],
+                        ['faker', ctx => showMenu(`select a faker:`, getFakers())],
+                        [async ctx => {
+                            ctx.field.schema.faker = ctx.faker;
+                            terminal.green(`done: ${ctx.field.toString()}`)
+                        }]
+                    ])
+                });
+            }
+
+            return fakified;
+        }],
         ['eventsNum', async context => {
-            return new RequestNumber(`number of events:`, 10);
+            return requestNumber(`number of events:`, 10);
         }],
         ['batchSize', async context => {
-            return new RequestNumber(`batch size:`, 50);
+            return requestNumber(`batch size:`, 50).then(batchSize =>
+                batchSize == Cancel ? Cancel : context.eventsNum <= batchSize ? 0 : batchSize);
         }],
-        // TODO: Operation Terminal component
-        // ['sentEvents', async context => {
-        //     // const fakeEvents = createArray(quantity, () => jsf.generate(fakified));
-        //     //
-        //     // function ingest(event: object) {
-        //     //     return sdk.post(
-        //     //         `workspaces/${selectedWs.id}/businessunits/${selectedBUnit.id}/applications/${selectedApp.id}/dataevents/${selectedEvent.id}`,
-        //     //         event).catch();
-        //     // }
-        //     //
-        //     // let ingestResponses: Array<{ errCode?: number }>;
-        //     // if (quantity >= batch) {
-        //     //     ingestResponses = await Promise.all(fakeEvents.map(ingest));
-        //     // } else {
-        //     //     const delay = await requestNumber(`batch delay ms:`, 1000);
-        //     //
-        //     //     ingestResponses = await asyncBulkMap(fakeEvents, batch, {
-        //     //         beforeBulk: logBulk,
-        //     //         map: ingest,
-        //     //         afterBulk: createDelay(delay)
-        //     //     });
-        //     // }
-        //     return null;
-        // }],
-        // TODO: final step
-        // ['sentEvents', async context => {
-        //     //
-        //     // const failed = ingestResponses.filter(r => r.errCode != 0);
-        //     //
-        //     // if (!failed.length) {
-        //     //     terminal.green(`all ingest requests passed successfully!`);
-        //     // } else {
-        //     //     terminal.yellow(`${failed.length} failed out of ${ingestResponses.length} requests (${failed.length / ingestResponses.length * 100})`);
-        //     //     terminal.white(`log failed? [Y|n]`);
-        //     //     if (await terminal.yesOrNo({yes: ['y', 'ENTER'], no: 'n'}).promise) {
-        //     //         terminal.white(failed);
-        //     //     }
-        //     // }
-        //     return null;
-        // }]
+        ['delay', async context => {
+            if (!context.batchSize)
+                return 0;
+            else
+                return requestNumber('delay in ms:', 1000)
+        }],
+        [async context => {
+            const fakeEvents = createArray(context.eventsNum, () => jsf.generate(context.fakifiedEventSchema));
+
+            function ingest(event: object) {
+                return context.sdk.post(
+                    `workspaces/${context.ws.id}/businessunits/${context.bu.id}/applications/${context.app.id}/dataevents/${context.event.id}`,
+                    event).catch();
+            }
+
+            let ingestResponses: Array<{ errorCode?: number }>;
+            if (!context.batchSize) {
+                terminal.cyan(`Ingesting ${context.eventsNum} fake events`);
+                ingestResponses = await Promise.all(fakeEvents.map(ingest));
+            } else {
+                const progressBar = terminal.progressBar({
+                    width: 80,
+                    title: `Ingesting ${context.eventsNum} fake events (${context.batchSize} batches):`,
+                    eta: true,
+                    percent: true,
+                    items: context.batchSize
+                });
+
+                let i = 1;
+                ingestResponses = await asyncBulkMap(fakeEvents, context.batchSize, {
+                    beforeBulk: (bulk, bulkIndex) => {
+                        progressBar.startItem(`batch #${i}`);
+                    },
+                    map: ingest,
+                    afterBulk: bulkRes => {
+                        progressBar.itemDone(`batch #${i++}`);
+                        return createDelay(context.delay)();
+                    }
+                });
+            }
+
+            const failed = ingestResponses.filter(r => r.errorCode != 0);
+
+            if (!failed.length) {
+                terminal.green(`all ingest requests passed successfully!`);
+            } else {
+                terminal.yellow(`${failed.length} failed out of ${ingestResponses.length} requests (${failed.length / ingestResponses.length * 100})`);
+                await showYesOrNo('log failed?', 'y', {
+                    n: async () => {
+                    },
+                    y: async () => {
+                        terminal.white(failed);
+                    }
+                })
+            }
+        }]
     ])
         .then(() => terminal.bgMagenta.black('Thanks for using CDP CLI!'));
 })();
