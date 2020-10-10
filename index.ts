@@ -132,17 +132,17 @@ const sStore = init<Creds>('./creds.json');
             return fakified;
         }],
         ['eventsNum', async context => {
-            return requestNumber(`number of events:`, 10);
+            return requestNumber(`number of events to send:`, 10);
         }],
         ['batchSize', async context => {
-            return requestNumber(`batch size:`, 50).then(batchSize =>
+            return requestNumber(`events per batch:`, 50).then(batchSize =>
                 batchSize == Cancel ? Cancel : context.eventsNum <= batchSize ? 0 : batchSize);
         }],
         ['delay', async context => {
             if (!context.batchSize)
                 return 0;
             else
-                return requestNumber('delay in ms:', 1000)
+                return requestNumber('delay between batches in ms:', 1000)
         }],
         [async context => {
             const fakeEvents = createArray(context.eventsNum, () => jsf.generate(context.fakifiedEventSchema));
@@ -179,12 +179,12 @@ const sStore = init<Creds>('./creds.json');
                 });
             }
 
-            const failed = ingestResponses.filter(r => r.errorCode != 0);
+            const failed = ingestResponses.filter(r => r.errorCode);
 
             if (!failed.length) {
-                terminal.green(`all ingest requests passed successfully!`);
+                terminal.green(`all ingest requests passed successfully!\n`);
             } else {
-                terminal.yellow(`${failed.length} failed out of ${ingestResponses.length} requests (${failed.length / ingestResponses.length * 100})`);
+                terminal.yellow(`${failed.length} failed out of ${ingestResponses.length} requests (${failed.length / ingestResponses.length * 100})\n`);
                 await showYesOrNo('log failed?', 'y', {
                     n: async () => {
                     },
@@ -195,6 +195,6 @@ const sStore = init<Creds>('./creds.json');
             }
         }]
     ])
-        .then(() => terminal.bgMagenta.black('Thanks for using CDP CLI!'));
+        .then(() => terminal.bgMagenta.black('Thanks for using CDP CLI!\n'));
 })();
 
