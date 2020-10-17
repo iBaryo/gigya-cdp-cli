@@ -13,11 +13,11 @@ import {
 } from "./terminal/TerminalApp";
 import {JSONSchema7} from "json-schema";
 import {fakify} from "json-schema-fakify";
-import {createArray, getFakers, getFields, JSONSchemaFieldFaker} from "./utils/schema";
-import * as jsf from "json-schema-faker";
+import {createArray, getFakerCategories, getFakers, getFields, JSONSchemaFieldFaker, resolveFake} from "./utils/schema";
 import {asyncBulkMap, createDelay} from "async-bulk-map";
 import {init} from "./secure-store";
 import {CredentialsType} from "./SDK/Signers";
+import FakerStatic = Faker.FakerStatic;
 
 interface AppContext {
     sdk: CDP;
@@ -101,16 +101,22 @@ const sStore = init<Creds>('./creds.json');
             return showMenu(`select event:`, events, event => event.name);
         }],
         ['fakifiedEventSchema', async context => {
-            if (!context.event.schema) {
+            let {schema} = await context.sdk.get<{schema: string|JSONSchema7}>(`workspaces/${context.ws.id}/businessunits/${context.bu.id}/applications/${context.app.id}/dataevents/${context.event.id}`);
+            if (!schema) {
                 console.log(context.event);
                 return errorAndEnd(`corrupted event with no schema\n`);
             }
 
-            const fakified = fakify(context.event.schema);
+            if (typeof schema == 'string') {
+                schema = JSON.parse(schema) as JSONSchema7;
+            }
+
+            const fakified = fakify(schema);
             const fields = getFields(fakified);
 
             let shouldEditSchema = true;
             while (shouldEditSchema) {
+                terminal.cyan(`event schema:\n`);
                 fields.forEach(f => {
                     terminal.white(f);
                     terminal('\n');
@@ -118,12 +124,14 @@ const sStore = init<Creds>('./creds.json');
 
                 await showYesOrNo(`would you like to change fakers for schema fields?`, 'n', {
                     n: async () => shouldEditSchema = false,
-                    y: async () => new TerminalApp<{ field: JSONSchemaFieldFaker; faker: string; }>().show([
+                    y: async () => new TerminalApp<{ field: JSONSchemaFieldFaker; fakerCategory: keyof FakerStatic; faker: string; }>().show([
                         ['field', ctx => showMenu(`select a field:`, fields)],
-                        ['faker', ctx => showMenu(`select a faker:`, getFakers())],
+                        ['fakerCategory', ctx => showMenu(`select a faker category:`, getFakerCategories())],
+                        ['faker', ctx => showMenu(`select a faker:`, getFakers(ctx.fakerCategory))],
                         [async ctx => {
-                            ctx.field.schema.faker = ctx.faker;
-                            terminal.green(`done: ${ctx.field.toString()}`)
+                            ctx.field.schema.faker = `${ctx.fakerCategory}.${ctx.faker}`;
+                            terminal.green(`~~ faked field: ${ctx.field.toString()}\n\n`);
+                            return End;
                         }]
                     ])
                 });
@@ -135,7 +143,7 @@ const sStore = init<Creds>('./creds.json');
             return requestNumber(`number of events to send:`, 10);
         }],
         ['batchSize', async context => {
-            return requestNumber(`events per batch:`, 50).then(batchSize =>
+            return requestNumber(`events per batch:`, Math.min(50, context.eventsNum)).then(batchSize =>
                 batchSize == Cancel ? Cancel : context.eventsNum <= batchSize ? 0 : batchSize);
         }],
         ['delay', async context => {
@@ -145,17 +153,22 @@ const sStore = init<Creds>('./creds.json');
                 return requestNumber('delay between batches in ms:', 1000)
         }],
         [async context => {
-            const fakeEvents = createArray(context.eventsNum, () => jsf.generate(context.fakifiedEventSchema));
+            console.log('faked schema:', context.fakifiedEventSchema);
+            const fakeEvents = await Promise.all(createArray(context.eventsNum, () => resolveFake(context.fakifiedEventSchema)));
 
             function ingest(event: object) {
+                console.log(event);
                 return context.sdk.post(
-                    `workspaces/${context.ws.id}/businessunits/${context.bu.id}/applications/${context.app.id}/dataevents/${context.event.id}`,
-                    event).catch();
+                    `workspaces/${context.ws.id}/ingests`,{
+                        businessUnitId: context.bu.id,
+                        dataEventId: context.event.id,
+                        eventData: event
+                    }).catch();
             }
 
             let ingestResponses: Array<{ errorCode?: number }>;
             if (!context.batchSize) {
-                terminal.cyan(`Ingesting ${context.eventsNum} fake events`);
+                terminal.cyan(`Ingesting ${context.eventsNum} fake events\n`);
                 ingestResponses = await Promise.all(fakeEvents.map(ingest));
             } else {
                 const progressBar = terminal.progressBar({
@@ -184,17 +197,14 @@ const sStore = init<Creds>('./creds.json');
             if (!failed.length) {
                 terminal.green(`all ingest requests passed successfully!\n`);
             } else {
-                terminal.yellow(`${failed.length} failed out of ${ingestResponses.length} requests (${failed.length / ingestResponses.length * 100})\n`);
+                terminal.yellow(`${failed.length} failed out of ${ingestResponses.length} requests (${failed.length / ingestResponses.length * 100}%)\n`);
                 await showYesOrNo('log failed?', 'y', {
-                    n: async () => {
-                    },
                     y: async () => {
-                        terminal.white(failed);
+                        console.log(failed);
                     }
                 })
             }
         }]
     ])
-        .then(() => terminal.bgMagenta.black('Thanks for using CDP CLI!\n'));
+        .then(() => terminal.bgMagenta.black('Thanks for using CDP CLI!').noFormat('\n'));
 })();
-

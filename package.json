@@ -21,6 +21,7 @@
     "typescript": "^4.1.0-beta"
   },
   "dependencies": {
+    "@types/faker": "^5.1.2",
     "@types/json-schema": "^7.0.6",
     "@types/json-schema-faker": "^0.5.1",
     "@types/request": "^2.48.5",

@@ -34,7 +34,6 @@ export class TerminalApp<CTX extends object> implements TerminalCmp<object> {
             const res = await step(getContext(i));
 
             switch (res) {
-                case undefined:
                 case Cancel:
                     i -= 2;
                     if (i < 0)

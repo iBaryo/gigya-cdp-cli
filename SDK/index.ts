@@ -67,7 +67,7 @@ export class CDP {
                     uri += `?${qs}`;
                 break;
             default:
-                body = req.params;
+                body = JSON.stringify(req.params);
         }
 
         if (this.options.ignoreCertError) {

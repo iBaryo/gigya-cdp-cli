@@ -1,4 +1,9 @@
 import {JSONSchema7} from "json-schema";
+import FakerStatic = Faker.FakerStatic;
+import * as faker from "faker";
+import * as jsf from "json-schema-faker";
+
+jsf.extend('faker', () => faker);
 
 export type JSONSchemaFaker = JSONSchema7 & {faker?: string}; // TODO: import from fakify
 export type JSONSchemaFieldFaker = { field: string, faker: string, schema: JSONSchemaFaker, toString(): string };
@@ -25,10 +30,22 @@ export function getFields(schema: JSONSchemaFaker, path = ''): Array<JSONSchemaF
     }
 }
 
-export function getFakers() {
-    return [''];
+export function getFakerCategories() {
+    return Object.entries(faker)
+        .filter(([key, val]) => typeof val == 'object')
+        .map(([k]) => k);
+}
+
+export function getFakers(category: keyof FakerStatic) {
+    return Object.entries(faker[category])
+        .filter(([k, val]) => true)
+        .map(([k]) => k);
 }
 
 export function createArray<T>(size: number, fn: (i: number)=> T): T[] {
     return new Array(size).fill(0).map((_, i) => fn(i));
+}
+
+export function resolveFake(schema: JSONSchemaFaker) {
+    return jsf.resolve(schema);
 }

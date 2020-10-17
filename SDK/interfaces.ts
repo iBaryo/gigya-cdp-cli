@@ -8,5 +8,4 @@ export interface Application {
 export interface Event {
     id: string;
     name: string;
-    schema: JSONSchema7;
 }
