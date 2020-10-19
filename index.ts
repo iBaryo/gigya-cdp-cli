@@ -71,7 +71,7 @@ const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSch
                         terminal('\n');
 
                         return showYesOrNo(`remember?`, 'y', {
-                            y: () => requestText(`new password:`).then(pw => sStore.set(context, pw)).then(() => Continue)
+                            y: () => requestText(`new password:`).then(pw => typeof pw != 'symbol' ? sStore.set(context, pw) : null).then(() => Continue)
                         });
                     }]
                 ]);
@@ -133,7 +133,7 @@ const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSch
                 schema = JSON.parse(schema) as JSONSchema7;
             }
 
-            const fieldFakers = fieldFakersStore.exists() ? fieldFakersStore.get('') : {};
+            const fieldFakers = fieldFakersStore.exists() ? fieldFakersStore.get() : {};
             Object.assign(defaultSchemaPropFakers, fieldFakers);
             const fakified = fakify(schema);
 
@@ -162,7 +162,7 @@ const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSch
             }
 
             if (Object.entries(fieldFakers).length) {
-                fieldFakersStore.set(fieldFakers, '')
+                fieldFakersStore.set(fieldFakers)
             }
 
             return fakified;

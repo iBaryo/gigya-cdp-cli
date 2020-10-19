@@ -10,14 +10,14 @@ export function initStore<T>(filePath: string) {
         exists() {
             return fs.existsSync(filePath);
         },
-        get(password: string) {
+        get(password = '') {
             const store = JSON.parse(fs.readFileSync(filePath).toString()) as Store<T>;
             if (store.password != password)
                 return undefined;
             else
                 return store.config;
         },
-        set(config: T, password) {
+        set(config: T, password = '') {
             return fs.writeFileSync(filePath, JSON.stringify({config, password} as Store<T>));
         }
     };
