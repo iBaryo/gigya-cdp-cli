@@ -5,6 +5,8 @@ interface Store<T> {
     config: T;
 }
 
+// TODO: encrypt according to pw
+
 export function initStore<T>(filePath: string) {
     return {
         exists() {

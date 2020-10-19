@@ -2,6 +2,7 @@ import request, {Headers, Response} from "request";
 import {CredentialsType, getSigner, ISigner} from "./Signers";
 import {HttpMethod, HttpProtocol, Req} from "./request";
 import {toQueryString} from "./utils";
+import {AnonymousRequestSigner} from "./Signers/AnonymousRequestSigner";
 
 export type DataCenter = 'eu5';
 
@@ -26,7 +27,7 @@ export class CDP {
 
     public async getACL(workspace: string) {
         if (!this._acls[workspace]) {
-            if (!this._signer.userKey) {
+            if (this._signer instanceof AnonymousRequestSigner) {
                 this.log(`anonymous user: no permissions`);
                 this._acls[workspace] = {};
             } else {
@@ -38,7 +39,7 @@ export class CDP {
                     query: {},
                     params: {
                         partnerID: workspace,
-                        targetUserKey: this._signer.userKey
+                        targetUserKey: this._signer.userKey // TODO: param for signing userKey, and remove this
                     },
                     headers: {},
                 });

@@ -82,6 +82,8 @@ const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSch
                 creds = res;
             }
 
+            // TODO: remove forceSimple
+            // TODO: replace in typed ts-rest-client
             return new CDP({...creds, forceSimple: true}, {
                 // ignoreCertError: true,
                 // verboseLog: true,
@@ -100,7 +102,7 @@ const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSch
                         const acl = await context.sdk.getACL(r['partnerId'] || r.id)
                             .then((r: any) => r.eACL?.['_api'] ?? {});
 
-                        if (!acl['/api/workspaces/{workspaceId}/ingests']) {
+                        if (!acl['/api/workspaces/{workspaceId}/ingests']) { // TODO: set of all required permissions
                             terminal.yellow('missing permissions for ingest.\n')
                         }
 
@@ -135,12 +137,12 @@ const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSch
 
             const fieldFakers = fieldFakersStore.exists() ? fieldFakersStore.get() : {};
             Object.assign(defaultSchemaPropFakers, fieldFakers);
-            const fakified = fakify(schema);
+            const fakified = fakify(schema); // TODO: fakify to support full faker name (with category)
 
             const fields = getFields(fakified);
             let shouldEditSchema = true;
             while (shouldEditSchema) {
-                terminal.cyan(`event schema:\n`);
+                terminal.cyan(`event schema:\n`); // TODO: change to terminal's table
                 fields.forEach(f => {
                     terminal.white(f);
                     terminal('\n');
