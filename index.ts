@@ -12,10 +12,10 @@ import {
     TerminalApp
 } from "./terminal/TerminalApp";
 import {JSONSchema7} from "json-schema";
-import {fakify} from "json-schema-fakify";
+import {defaultSchemaPropFakers, fakify} from "json-schema-fakify";
 import {createArray, getFakerCategories, getFakers, getFields, JSONSchemaFieldFaker, resolveFake} from "./utils/schema";
 import {asyncBulkMap, createDelay} from "async-bulk-map";
-import {init} from "./secure-store";
+import {initStore} from "./secure-store";
 import {CredentialsType} from "./SDK/Signers";
 import FakerStatic = Faker.FakerStatic;
 
@@ -34,7 +34,8 @@ interface AppContext {
 }
 
 type Creds = { userKey: string; secret: string; };
-const sStore = init<Creds>('./creds.json');
+const sStore = initStore<Creds>('./creds.json');
+const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSchemaFakers.json');
 
 (async () => {
     terminal.bgMagenta.black('Welcome to CDP CLI!\n');
@@ -122,7 +123,7 @@ const sStore = init<Creds>('./creds.json');
             return showMenu(`select event:`, events, event => event.name);
         }],
         ['fakifiedEventSchema', async context => {
-            let {schema} = await context.sdk.get<{schema: string|JSONSchema7}>(`workspaces/${context.ws.id}/businessunits/${context.bu.id}/applications/${context.app.id}/dataevents/${context.event.id}`);
+            let {schema} = await context.sdk.get<{ schema: string | JSONSchema7 }>(`workspaces/${context.ws.id}/businessunits/${context.bu.id}/applications/${context.app.id}/dataevents/${context.event.id}`);
             if (!schema) {
                 console.log(context.event);
                 return errorAndEnd(`corrupted event with no schema\n`);
@@ -132,9 +133,11 @@ const sStore = init<Creds>('./creds.json');
                 schema = JSON.parse(schema) as JSONSchema7;
             }
 
+            const fieldFakers = fieldFakersStore.exists() ? fieldFakersStore.get('') : {};
+            Object.assign(defaultSchemaPropFakers, fieldFakers);
             const fakified = fakify(schema);
-            const fields = getFields(fakified);
 
+            const fields = getFields(fakified);
             let shouldEditSchema = true;
             while (shouldEditSchema) {
                 terminal.cyan(`event schema:\n`);
@@ -152,10 +155,14 @@ const sStore = init<Creds>('./creds.json');
                         [async ctx => {
                             ctx.field.schema.faker = `${ctx.fakerCategory}.${ctx.faker}`;
                             terminal.green(`~~ faked field: ${ctx.field.toString()}\n\n`);
-                            return End;
+                            fieldFakers[ctx.field.fieldName] = ctx.faker as any;
                         }]
                     ])
                 });
+            }
+
+            if (Object.entries(fieldFakers).length) {
+                fieldFakersStore.set(fieldFakers, '')
             }
 
             return fakified;
@@ -164,11 +171,10 @@ const sStore = init<Creds>('./creds.json');
             return requestNumber(`number of events to send:`, 10);
         }],
         ['batchSize', async context => {
-            return requestNumber(`events per batch:`, Math.min(50, context.eventsNum)).then(batchSize =>
-                batchSize == Cancel ? Cancel : context.eventsNum <= batchSize ? 0 : batchSize);
+            return requestNumber(`events per batch:`, Math.min(50, context.eventsNum));
         }],
         ['delay', async context => {
-            if (!context.batchSize)
+            if (context.eventsNum <= context.batchSize)
                 return 0;
             else
                 return requestNumber('delay between batches in ms:', 1000)
@@ -180,7 +186,7 @@ const sStore = init<Creds>('./creds.json');
             function ingest(event: object) {
                 console.log(event);
                 return context.sdk.post(
-                    `workspaces/${context.ws.id}/ingests`,{
+                    `workspaces/${context.ws.id}/ingests`, {
                         businessUnitId: context.bu.id,
                         dataEventId: context.event.id,
                         eventData: JSON.stringify(event)
@@ -188,7 +194,7 @@ const sStore = init<Creds>('./creds.json');
             }
 
             let ingestResponses: Array<{ errorCode?: number }>;
-            if (!context.batchSize) {
+            if (!context.delay) {
                 terminal.cyan(`Ingesting ${context.eventsNum} fake events\n`);
                 ingestResponses = await Promise.all(fakeEvents.map(ingest));
             } else {
@@ -210,7 +216,7 @@ const sStore = init<Creds>('./creds.json');
                         progressBar.itemDone(`batch #${i++}`);
                         return createDelay(context.delay)();
                     },
-                    afterAll:res => {
+                    afterAll: res => {
                         progressBar.stop();
                     }
                 });

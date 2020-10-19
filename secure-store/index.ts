@@ -5,7 +5,7 @@ interface Store<T> {
     config: T;
 }
 
-export function init<T>(filePath: string) {
+export function initStore<T>(filePath: string) {
     return {
         exists() {
             return fs.existsSync(filePath);

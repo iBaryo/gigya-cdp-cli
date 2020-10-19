@@ -6,7 +6,7 @@ import * as jsf from "json-schema-faker";
 jsf.extend('faker', () => faker);
 
 export type JSONSchemaFaker = JSONSchema7 & {faker?: string}; // TODO: import from fakify
-export type JSONSchemaFieldFaker = { field: string, faker: string, schema: JSONSchemaFaker, toString(): string };
+export type JSONSchemaFieldFaker = { fieldName: string, fieldPath: string, faker: string, schema: JSONSchemaFaker, toString(): string };
 
 export function getFields(schema: JSONSchemaFaker, path = ''): Array<JSONSchemaFieldFaker> {
     switch (schema.type) {
@@ -20,11 +20,12 @@ export function getFields(schema: JSONSchemaFaker, path = ''): Array<JSONSchemaF
 
         default:
             return [{
-                field: path,
+                fieldName: path.split('.').pop(),
+                fieldPath: path,
                 get faker() { return this.schema.faker; },
                 schema: schema,
                 toString() {
-                    return `${this.field}\t${this.faker || '(None)'}`
+                    return `${this.fieldPath}\t${this.faker || '(None)'}`
                 }
             }];
     }
