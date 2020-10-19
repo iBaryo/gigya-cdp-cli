@@ -8,6 +8,7 @@ export interface Req<P extends object = {}> {
     domain: string;
     path: string;
     method: HttpMethod;
+    query: object;
     params: P;
     headers: Headers;
 }

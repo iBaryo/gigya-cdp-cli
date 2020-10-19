@@ -10,7 +10,9 @@ export function isCredentials(credentials: UserKeyCredentials | any): credential
 }
 
 export abstract class AuthRequestSigner<T extends UserKeyCredentials> implements ISigner {
+    public readonly userKey: string;
     protected constructor(protected _creds: T) {
+        this.userKey = _creds.userKey;
     }
 
     public abstract sign(request: Req): Req;

@@ -20,8 +20,8 @@ export class AuthBearerSigner extends AuthRequestSigner<RSACredentials> {
         const jwt = this.signJwt(this._creds);
         signedReq.headers.Authorization = `Bearer ${jwt}`;
 
-        delete signedReq.params.userKey;
-        delete signedReq.params.privateKey;
+        // delete signedReq.params.userKey;
+        // delete signedReq.params.privateKey;
         return signedReq;
     }
 

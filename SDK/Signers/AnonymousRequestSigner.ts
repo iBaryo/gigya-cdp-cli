@@ -9,6 +9,7 @@ export function isAnonymous(credentials: NoCredentials | any): credentials is No
 }
 
 export class AnonymousRequestSigner implements ISigner {
+    public get userKey() { return undefined; }
     public sign(request: Req) {
         return clone(request);
     }

@@ -17,10 +17,11 @@ export class SimpleRequestSigner extends AuthRequestSigner<SecretCredentials> {
 
     public sign(request: Req<SecretCredentials>) {
         const signedReq = clone(request);
+        const query = signedReq.query as SecretCredentials;
 
         // add credentials to sent params.
-        signedReq.params.userKey = this._creds.userKey;
-        signedReq.params.secret = this._creds.secret;
+        query.userKey = this._creds.userKey;
+        query.secret = this._creds.secret;
 
         return signedReq;
     }

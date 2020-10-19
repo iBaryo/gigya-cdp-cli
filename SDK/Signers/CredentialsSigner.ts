@@ -17,7 +17,7 @@ export class CredentialsSigner extends SimpleRequestSigner {
 
     public sign(request: Req<SecretCredentials & SignedRequestParams>) {
         const signedReq = super.sign(request);
-        const requestParams = signedReq.params as SecretCredentials & SignedRequestParams;
+        const requestParams = signedReq.query as SecretCredentials & SignedRequestParams;
         const effectiveSecret = requestParams.secret;
 
         // clear previous authentications

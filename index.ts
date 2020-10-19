@@ -57,8 +57,9 @@ const sStore = init<Creds>('./creds.json');
                     requestTextStep(`userKey`),
                     requestTextStep(`secret`),
                     [async context => {
-                        terminal.cyan(`verifying...`);
-                        const res = await new CDP({...context, forceSimple: true}).get(`workspaces`);
+                        terminal.cyan(`authenticating...`);
+                        const sdk = new CDP({...context, forceSimple: true});
+                        const res = await sdk.get(`workspaces`);
                         if (res.errorCode) {
                             console.log(res);
                             terminal.red(`invalid credentials.\n`)
@@ -67,6 +68,7 @@ const sStore = init<Creds>('./creds.json');
 
                         terminal.green(`valid credentials!`);
                         terminal('\n');
+
                         return showYesOrNo(`remember?`, 'y', {
                             y: () => requestText(`new password:`).then(pw => sStore.set(context, pw)).then(() => Continue)
                         });
@@ -79,14 +81,33 @@ const sStore = init<Creds>('./creds.json');
                 creds = res;
             }
 
-            return new CDP({...creds, forceSimple: true});
+            return new CDP({...creds, forceSimple: true}, {
+                // ignoreCertError: true,
+                // verboseLog: true,
+                // proxy: 'http://127.0.0.1:8888'
+            });
         }],
         ['ws', async context => {
             const wss = await context.sdk.get<Array<{ id: string; name: string; }>>(`workspaces`);
             if (!wss.length)
                 return errorAndEnd(`no available workspaces`);
 
-            return showMenu(`select workspace:`, wss, ws => ws.name);
+            return showMenu(`select workspace:`, wss, ws => ws.name)
+                .then(async r => {
+                    if (typeof r == 'object') {
+                        terminal.cyan(`fetching permissions...\n`);
+                        const acl = await context.sdk.getACL(r['partnerId'] || r.id)
+                            .then((r: any) => r.eACL?.['_api'] ?? {});
+
+                        if (!acl['/api/workspaces/{workspaceId}/ingests']) {
+                            terminal.yellow('missing permissions for ingest.\n')
+                        }
+
+                        terminal('\n');
+                    }
+
+                    return r;
+                });
         }],
         ['bu', async (context) => {
             const bUnits = await context.sdk.get<Array<{ id: string; name: string; }>>(`workspaces/${context.ws.id}/businessunits`);
@@ -162,7 +183,7 @@ const sStore = init<Creds>('./creds.json');
                     `workspaces/${context.ws.id}/ingests`,{
                         businessUnitId: context.bu.id,
                         dataEventId: context.event.id,
-                        eventData: event
+                        eventData: JSON.stringify(event)
                     }).catch();
             }
 
@@ -176,7 +197,7 @@ const sStore = init<Creds>('./creds.json');
                     title: `Ingesting ${context.eventsNum} fake events (${context.batchSize} batches):`,
                     eta: true,
                     percent: true,
-                    items: context.batchSize
+                    items: fakeEvents.length / context.batchSize
                 });
 
                 let i = 1;
@@ -188,6 +209,9 @@ const sStore = init<Creds>('./creds.json');
                     afterBulk: bulkRes => {
                         progressBar.itemDone(`batch #${i++}`);
                         return createDelay(context.delay)();
+                    },
+                    afterAll:res => {
+                        progressBar.stop();
                     }
                 });
             }

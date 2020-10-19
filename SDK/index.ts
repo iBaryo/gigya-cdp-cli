@@ -17,17 +17,46 @@ export class CDP {
     };
 
     private _signer: ISigner;
+    private _acls: { [wsId: string]: object } = {};
 
     constructor(credentials: CredentialsType, public options?: Partial<typeof CDP.DefaultOptions>) {
         this.setCredentials(credentials);
         this.options = Object.assign({}, CDP.DefaultOptions, this.options);
     }
 
+    public async getACL(workspace: string) {
+        if (!this._acls[workspace]) {
+            if (!this._signer.userKey) {
+                this.log(`anonymous user: no permissions`);
+                this._acls[workspace] = {};
+            } else {
+                let req: Req = this.sign({
+                    protocol: this.options.protocol,
+                    domain: `admin.us1.${this.options.baseDomain}`,
+                    path: `admin.getEffectiveACL`,
+                    method: 'get',
+                    query: {},
+                    params: {
+                        partnerID: workspace,
+                        targetUserKey: this._signer.userKey
+                    },
+                    headers: {},
+                });
+
+                this.log(`sending `, req);
+                this._acls[workspace] = await this.httpSend<object>(req);
+            }
+        }
+
+        return this._acls[workspace];
+    }
+
     public send<T>(path: string, method: HttpMethod, params: object = {}, headers: Headers = {}): Promise<T & { errorCode?: number }> {
         let req: Req = {
             protocol: this.options.protocol,
             domain: `cdp.${this.options.dataCenter}.${this.options.baseDomain}`,
-            path,
+            path: `api/${path}`,
+            query: {},
             method,
             params,
             headers,
@@ -47,6 +76,7 @@ export class CDP {
 
     public setCredentials(credentials: CredentialsType): this {
         this._signer = getSigner(credentials);
+        this._acls = {};
         return this;
     }
 
@@ -56,28 +86,34 @@ export class CDP {
 
     public httpSend<T>(req: Req) {
         const start = Date.now();
-        let uri = `${req.protocol}://${req.domain}/api/${req.path}`;
+        let uri = `${req.protocol}://${req.domain}/${req.path}`;
         let body = undefined;
 
         switch (req.method) {
             case "get":
             case "delete":
-                const qs = toQueryString(req.params);
-                if (qs)
-                    uri += `?${qs}`;
+                Object.assign(req.query, req.params);
                 break;
             default:
                 body = JSON.stringify(req.params);
         }
 
+        const qs = toQueryString(req.query);
+        if (qs)
+            uri += `?${qs}`;
+
         if (this.options.ignoreCertError) {
             process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0 as any; // todo: restore it?
+        }
+
+        if (this.options.proxy) {
+            console.log(`sending via proxy:`, this.options.proxy);
         }
 
         return new Promise<T>((resolve, reject) => request[req.method](
             uri,
             {
-                headers: req.headers,
+                headers: {...req.headers, ['Content-type']: 'application/json'},
                 body,
                 proxy: this.options.proxy
                 // ca: ''
@@ -116,5 +152,9 @@ export class CDP {
 
     public delete<T>(path: string, params?: object, headers?: Headers) {
         return this.send<T>(path, 'delete', params, headers);
+    }
+
+    public ['🤩']() {
+        console.log('with love from Baryo');
     }
 }
