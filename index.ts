@@ -35,6 +35,14 @@ interface AppContext {
 }
 
 type Creds = { userKey: string; secret: string; };
+const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
+    dataCenter: 'il1-cdp-prod',
+    ignoreCertError: true,
+    // verboseLog: true,
+    proxy: 'http://127.0.0.1:8888'
+};
+
+
 const sStore = initStore<Creds>('./creds.json');
 const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSchemaFakers.json');
 
@@ -65,7 +73,7 @@ const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSch
                     requestTextStep(`secret`),
                     [async context => {
                         terminal.cyan(`authenticating...`);
-                        const sdk = new CDP({...context, forceSimple: true});
+                        const sdk = new CDP({...context, forceSimple: true}, sdkOptions);
                         const res = await sdk.get(`workspaces`);
                         if (res.errorCode) {
                             console.log(res);
@@ -90,16 +98,12 @@ const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSch
 
             // TODO: remove forceSimple
             // TODO: replace in typed ts-rest-client
-            return new CDP({...creds, forceSimple: true}, {
-                dataCenter: 'il1-cdp-prod',
-                ignoreCertError: true,
-                // verboseLog: true,
-                // proxy: 'http://127.0.0.1:8888'
-            });
+            return new CDP({...creds, forceSimple: true}, sdkOptions);
         }],
         ['ws', async context => {
             const wss = await context.sdk.get<Array<{ id: string; name: string; }>>(`workspaces`);
             if (!wss.length)
+
                 return errorAndEnd(`no available workspaces`);
 
             return showMenu(`select workspace:`, wss, ws => ws.name)
@@ -195,11 +199,7 @@ const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSch
             function ingest(event: object) {
                 console.log(event);
                 return context.sdk.post(
-                    `workspaces/${context.ws.id}/ingests`, {
-                        businessUnitId: context.bu.id,
-                        dataEventId: context.event.id,
-                        eventData: JSON.stringify(event)
-                    }).catch();
+                    `workspaces/${context.ws.id}/businessunits/${context.bu.id}/applications/${context.app.id}/dataevents/${context.event.id}/event`, event).catch();
             }
 
             let ingestResponses: Array<{ errorCode?: number }>;

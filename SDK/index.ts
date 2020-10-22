@@ -31,9 +31,10 @@ export class CDP {
                 this.log(`anonymous user: no permissions`);
                 this._acls[workspace] = {};
             } else {
+                const permissionsDc = this.options.dataCenter == 'eu5' ? 'us1' : 'il1';
                 let req: Req = this.sign({
                     protocol: this.options.protocol,
-                    domain: `admin.us1.${this.options.baseDomain}`,
+                    domain: `admin.${permissionsDc}.${this.options.baseDomain}`,
                     path: `admin.getEffectiveACL`,
                     method: 'get',
                     query: {},
@@ -108,7 +109,7 @@ export class CDP {
         }
 
         if (this.options.proxy) {
-            console.log(`sending via proxy:`, this.options.proxy);
+            this.log(`sending via proxy:`, this.options.proxy);
         }
 
         return new Promise<T>((resolve, reject) => request[req.method](
