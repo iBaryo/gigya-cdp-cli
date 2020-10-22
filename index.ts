@@ -2,21 +2,30 @@ import {terminal} from "terminal-kit";
 import {CDP} from "./SDK";
 import {Application, Event} from "./SDK/interfaces";
 import {
-    Cancel, Continue, End,
-    errorAndEnd, Repeat,
+    Cancel,
+    Continue,
+    End,
+    errorAndEnd,
+    Repeat,
     requestNumber,
     requestText,
-    requestTextStep, Restart,
+    requestTextStep,
     showMenu,
     showYesOrNo,
     TerminalApp
 } from "./terminal/TerminalApp";
 import {JSONSchema7} from "json-schema";
 import {defaultSchemaPropFakers, fakify} from "json-schema-fakify";
-import {createArray, getFakerCategories, getFakers, getFields, JSONSchemaFieldFaker, resolveFake} from "./utils/schema";
+import {
+    getFakedEvents,
+    getFakerCategories,
+    getFakers,
+    getFields,
+    getIdentifierFields,
+    JSONSchemaFieldFaker
+} from "./utils/schema";
 import {asyncBulkMap, createDelay} from "async-bulk-map";
 import {initStore} from "./secure-store";
-import {CredentialsType} from "./SDK/Signers";
 import FakerStatic = Faker.FakerStatic;
 
 interface AppContext {
@@ -28,6 +37,7 @@ interface AppContext {
     event: { id: string; name: string; schema: JSONSchema7; },
     shouldEditSchema: boolean;
     fakifiedEventSchema: JSONSchema7;
+    customersNum: number;
     eventsNum: number;
     batchSize: number;
     delay: number;
@@ -36,7 +46,7 @@ interface AppContext {
 
 type Creds = { userKey: string; secret: string; };
 const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
-    dataCenter: 'il1-cdp-prod',
+    dataCenter: 'il1-cdp-st4',
     ignoreCertError: true,
     // verboseLog: true,
     proxy: 'http://127.0.0.1:8888'
@@ -106,7 +116,7 @@ const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSch
 
                 return errorAndEnd(`no available workspaces`);
 
-            return showMenu(`select workspace:`, wss, ws => ws.name)
+            return showMenu(`select workspace:`, wss.filter(ws => ws.name.toLowerCase().includes('eliav')), ws => ws.name)
                 .then(async r => {
                     if (typeof r == 'object') {
                         terminal.cyan(`fetching permissions...\n`);
@@ -123,7 +133,7 @@ const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSch
                     return r;
                 });
         }],
-        ['bu', async (context) => {
+        ['bu', async context => {
             const bUnits = await context.sdk.get<Array<{ id: string; name: string; }>>(`workspaces/${context.ws.id}/businessunits`);
             return showMenu(`select business unit:`, bUnits, bu => bu.name);
         }],
@@ -159,15 +169,19 @@ const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSch
                     terminal('\n');
                 });
 
-                await showYesOrNo(`would you like to change fakers for schema fields?`, 'n', {
+                type FieldEditContext = { field: JSONSchemaFieldFaker; isIdentifer: boolean; fakerCategory: keyof FakerStatic; faker: string; };
+
+                await showYesOrNo(`would you like to augment schema fields?`, 'n', {
                     n: async () => shouldEditSchema = false,
-                    y: async () => new TerminalApp<{ field: JSONSchemaFieldFaker; fakerCategory: keyof FakerStatic; faker: string; }>().show([
+                    y: async () => new TerminalApp<FieldEditContext>().show([
                         ['field', ctx => showMenu(`select a field:`, fields)],
+                        ['isIdentifer', ctx => showYesOrNo(`is it an identifier?`, 'n', async res => res)],
                         ['fakerCategory', ctx => showMenu(`select a faker category:`, getFakerCategories())],
                         ['faker', ctx => showMenu(`select a faker:`, getFakers(ctx.fakerCategory))],
                         [async ctx => {
                             ctx.field.schema.faker = `${ctx.fakerCategory}.${ctx.faker}`;
-                            terminal.green(`~~ faked field: ${ctx.field.toString()}\n\n`);
+                            ctx.field.schema.isIdentifier = ctx.isIdentifer;
+                            terminal.green(`~~ faked field: ${ctx.field.toString()}, identifier: ${ctx.field.isIdentifier}\n\n`);
                             fieldFakers[ctx.field.fieldName] = ctx.faker as any;
                         }]
                     ])
@@ -180,8 +194,20 @@ const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSch
 
             return fakified;
         }],
+        ['customersNum', async context => {
+            if (getIdentifierFields(context.fakifiedEventSchema).length) {
+                return requestNumber(`number of different customers:`, 1);
+            }
+            else {
+                return 0;
+            }
+        }],
         ['eventsNum', async context => {
-            return requestNumber(`number of events to send:`, 10);
+            if (context.customersNum) {
+                return requestNumber(`number of events to send (per customer):`, 3);
+            } else {
+                return requestNumber(`number of events to send:`, 10);
+            }
         }],
         ['batchSize', async context => {
             return requestNumber(`events per batch:`, Math.min(50, context.eventsNum));
@@ -194,7 +220,8 @@ const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSch
         }],
         [async context => {
             console.log('faked schema:', context.fakifiedEventSchema);
-            const fakeEvents = await Promise.all(createArray(context.eventsNum, () => resolveFake(context.fakifiedEventSchema)));
+
+            const fakeEvents = await getFakedEvents(context.fakifiedEventSchema, context.eventsNum, context.customersNum);
 
             function ingest(event: object) {
                 console.log(event);
@@ -204,7 +231,7 @@ const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSch
 
             let ingestResponses: Array<{ errorCode?: number }>;
             if (!context.delay) {
-                terminal.cyan(`Ingesting ${context.eventsNum} fake events\n`);
+                terminal.cyan(`Ingesting ${context.eventsNum * (Math.max(1, context.customersNum))} fake events\n`);
                 ingestResponses = await Promise.all(fakeEvents.map(ingest));
             } else {
                 const progressBar = terminal.progressBar({

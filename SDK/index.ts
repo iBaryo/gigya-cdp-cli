@@ -4,7 +4,7 @@ import {HttpMethod, HttpProtocol, Req} from "./request";
 import {toQueryString} from "./utils";
 import {AnonymousRequestSigner} from "./Signers/AnonymousRequestSigner";
 
-export type DataCenter = 'eu5'|'il1-cdp-prod';
+export type DataCenter = 'eu5'|'il1-cdp-st4';
 
 export class CDP {
     public static DefaultOptions = {

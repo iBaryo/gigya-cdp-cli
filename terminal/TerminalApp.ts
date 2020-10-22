@@ -90,7 +90,7 @@ export function showMenu<T>(title: string, items: T[], keyFn: (i: T) => string =
 }
 
 export type YesNoAnswer = 'n' | 'y';
-export function showYesOrNo<T>(title: string, defaultAnswer: YesNoAnswer,   results: { [k in YesNoAnswer]?: () => Promise<StepResult<T>> }) {
+export function showYesOrNo<T>(title: string, defaultAnswer: YesNoAnswer, results: ((res: boolean) => Promise<StepResult<T>>) | { [k in YesNoAnswer]?: () => Promise<StepResult<T>> }) {
     const answers = {
         _default: defaultAnswer,
         yes: ['y', 'y' == defaultAnswer ? 'ENTER' : ''] as const,
@@ -105,7 +105,7 @@ export function showYesOrNo<T>(title: string, defaultAnswer: YesNoAnswer,   resu
     terminal.cyan(`${title} (${answers.toString()})`);
     return terminal.yesOrNo(answers).promise.then(r => {
         terminal('\n');
-        return results[r ? 'y' : 'n']?.();
+        return typeof results == 'function' ? results(r) : results[r ? 'y' : 'n']?.();
     });
 }
 
