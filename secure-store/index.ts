@@ -9,6 +9,11 @@ interface Store<T> {
 
 export function initStore<T>(filePath: string) {
     return {
+        clear() {
+            if (this.exists()) {
+                fs.unlinkSync(filePath);
+            }
+        },
         exists() {
             return fs.existsSync(filePath);
         },

@@ -5,6 +5,7 @@ export const Repeat = Symbol('repeat current step');
 export const Continue = Symbol('continue normally to the next step');
 export const Skip = Symbol('skip next step');
 export const End = Symbol('end app');
+export const Restart = Symbol('restart app');
 
 export type StepResult<T> = T | void | Symbol;
 
@@ -18,7 +19,7 @@ type ContextStep<CTX extends object> = [ctxKey: keyof CTX, ...step: ContextlessS
 type AppStep<CTX extends object> = ContextStep<CTX> | ContextlessStep<CTX>;
 
 export class TerminalApp<CTX extends object> implements TerminalCmp<object> {
-    constructor(public config = {endMsg: ``}) {
+    constructor(public initialContext: Partial<CTX> = {}) {
     }
 
     public async show(steps?: Array<AppStep<CTX>>) {
@@ -26,7 +27,7 @@ export class TerminalApp<CTX extends object> implements TerminalCmp<object> {
             return {};
 
         const stepResults = steps.map(() => undefined);
-        const getContext = (upTo?: number) => stepResults.slice(0, upTo).reduce((res, cur) => ({...res, ...cur}), {} as CTX);
+        const getContext = (upTo?: number) => [this.initialContext, ...stepResults.slice(0, upTo)].reduce((res, cur) => ({...res, ...cur}), {} as CTX);
 
         for (let i = 0; i < steps.length; ++i) {
             let [contextKey, step] = (steps[i].length == 1 ? ['', steps[i][0]] : steps[i]) as ContextStep<CTX>;
@@ -46,6 +47,9 @@ export class TerminalApp<CTX extends object> implements TerminalCmp<object> {
                     break;
                 case Skip:
                     i++;
+                    break;
+                case Restart:
+                    i = -1;
                     break;
                 case Continue:
                     break;

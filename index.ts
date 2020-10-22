@@ -3,10 +3,10 @@ import {CDP} from "./SDK";
 import {Application, Event} from "./SDK/interfaces";
 import {
     Cancel, Continue, End,
-    errorAndEnd,
+    errorAndEnd, Repeat,
     requestNumber,
     requestText,
-    requestTextStep,
+    requestTextStep, Restart,
     showMenu,
     showYesOrNo,
     TerminalApp
@@ -20,6 +20,7 @@ import {CredentialsType} from "./SDK/Signers";
 import FakerStatic = Faker.FakerStatic;
 
 interface AppContext {
+    login: { retries: number };
     sdk: CDP;
     ws: { id: string; name: string; };
     bu: { id: string; name: string; };
@@ -40,8 +41,8 @@ const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSch
 (async () => {
     terminal.bgMagenta.black('Welcome to CDP CLI!\n');
     terminal('\n');
-    await new TerminalApp<AppContext>().show([
-        ['sdk', async () => {
+    await new TerminalApp<AppContext>({login: {retries: 3}}).show([
+        ['sdk', async context => {
             let creds: Creds;
             if (sStore.exists()) {
                 const pw = await requestText(`password:`);
@@ -50,9 +51,14 @@ const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSch
 
                 creds = sStore.get(pw);
                 if (!creds) {
-                    return errorAndEnd(`wrong password\n`);
+                    terminal.red(`wrong password. ${--context.login.retries} retries left.\n`)
+                    if (context.login.retries > 0) {
+                        return Repeat;
+                    } else {
+                        sStore.clear();
+                        return End;
+                    }
                 }
-
             } else {
                 const res = await new TerminalApp<Creds>().show([
                     requestTextStep(`userKey`),
@@ -85,7 +91,8 @@ const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSch
             // TODO: remove forceSimple
             // TODO: replace in typed ts-rest-client
             return new CDP({...creds, forceSimple: true}, {
-                // ignoreCertError: true,
+                dataCenter: 'il1-cdp-prod',
+                ignoreCertError: true,
                 // verboseLog: true,
                 // proxy: 'http://127.0.0.1:8888'
             });
