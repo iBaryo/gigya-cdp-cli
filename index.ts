@@ -1,12 +1,12 @@
 import {terminal} from "terminal-kit";
-import {CDP} from "./SDK";
+import {CDP, DataCenter} from "./SDK";
 import {Application, Event} from "./SDK/interfaces";
 import {
     Cancel,
     Continue,
     End,
-    errorAndEnd,
     Repeat,
+    errorAndEnd,
     requestNumber,
     requestText,
     requestTextStep,
@@ -17,6 +17,7 @@ import {
 import {JSONSchema7} from "json-schema";
 import {defaultSchemaPropFakers, fakify} from "json-schema-fakify";
 import {
+    createArray,
     getFakedEvents,
     getFakerCategories,
     getFakers,
@@ -29,6 +30,7 @@ import {initStore} from "./secure-store";
 import FakerStatic = Faker.FakerStatic;
 
 interface AppContext {
+    dataCenter: DataCenter;
     login: { retries: number };
     sdk: CDP;
     ws: { id: string; name: string; };
@@ -53,14 +55,26 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
 };
 
 
-const sStore = initStore<Creds>('./creds.json');
 const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSchemaFakers.json');
 
 (async () => {
     terminal.bgMagenta.black('Welcome to CDP CLI!\n');
     terminal('\n');
     await new TerminalApp<AppContext>({login: {retries: 3}}).show([
+        ['dataCenter', async context => {
+            return showMenu(`pick a datacenter:`, ['eu5', 'il1']).then(async dc => {
+                if (dc == 'il1')
+                    return await showMenu(`pick env:`, [
+                        'prod',
+                        ...createArray(8, n => `st${n + 1}`)
+                    ] as DataCenter[]).then(env => typeof env == 'symbol' ? env : `il1-cdp-${env}` as DataCenter);
+                else
+                    return dc as Symbol | DataCenter;
+            });
+        }],
         ['sdk', async context => {
+            const sStore = initStore<Creds>(`./${context.dataCenter.split('-')[0]}.creds.json`);
+
             let creds: Creds;
             if (sStore.exists()) {
                 const pw = await requestText(`password:`);
@@ -81,9 +95,9 @@ const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSch
                 const res = await new TerminalApp<Creds>().show([
                     requestTextStep(`userKey`),
                     requestTextStep(`secret`),
-                    [async context => {
+                    [async credentialsContext => {
                         terminal.cyan(`authenticating...`);
-                        const sdk = new CDP({...context, forceSimple: true}, sdkOptions);
+                        const sdk = new CDP({...credentialsContext, forceSimple: true}, {...sdkOptions, dataCenter: context.dataCenter});
                         const res = await sdk.get(`workspaces`);
                         if (res.errorCode) {
                             console.log(res);
@@ -95,7 +109,7 @@ const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSch
                         terminal('\n');
 
                         return showYesOrNo(`remember?`, 'y', {
-                            y: () => requestText(`new password:`).then(pw => typeof pw != 'symbol' ? sStore.set(context, pw) : null).then(() => Continue)
+                            y: () => requestText(`new password:`).then(pw => typeof pw != 'symbol' ? sStore.set(credentialsContext, pw) : null).then(() => Continue)
                         });
                     }]
                 ]);
@@ -108,7 +122,7 @@ const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSch
 
             // TODO: remove forceSimple
             // TODO: replace in typed ts-rest-client
-            return new CDP({...creds, forceSimple: true}, sdkOptions);
+            return new CDP({...creds, forceSimple: true}, {...sdkOptions, dataCenter: context.dataCenter});
         }],
         ['ws', async context => {
             const wss = await context.sdk.get<Array<{ id: string; name: string; }>>(`workspaces`);
@@ -197,8 +211,7 @@ const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSch
         ['customersNum', async context => {
             if (getIdentifierFields(context.fakifiedEventSchema).length) {
                 return requestNumber(`number of different customers:`, 1);
-            }
-            else {
+            } else {
                 return 0;
             }
         }],

@@ -4,7 +4,9 @@ import {HttpMethod, HttpProtocol, Req} from "./request";
 import {toQueryString} from "./utils";
 import {AnonymousRequestSigner} from "./Signers/AnonymousRequestSigner";
 
-export type DataCenter = 'eu5'|'il1-cdp-st4';
+type StagingEnvs = 1|2|3|4|5|6|7|8;
+type Env<n extends StagingEnvs = StagingEnvs> = 'prod'|`st${n}`;
+export type DataCenter<env extends Env = Env> = 'eu5'|`il1-cdp-${env}`;
 
 export class CDP {
     public static DefaultOptions = {
@@ -40,7 +42,7 @@ export class CDP {
                     query: {},
                     params: {
                         partnerID: workspace,
-                        targetUserKey: this._signer.userKey // TODO: param for signing userKey, and remove this
+                        targetUserKey: this._signer.userKey
                     },
                     headers: {},
                 });
