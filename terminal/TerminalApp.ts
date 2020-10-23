@@ -114,12 +114,20 @@ export function requestTextStep<T extends string>(field: T) {
 }
 
 export async function requestText(title: string) {
-    terminal.cyan(title);
-    const res = await terminal.inputField({}).promise;
-    terminal('\n');
-    if (res === undefined)
-        return Cancel;
-    return res;
+    while (true) {
+        terminal.cyan(title);
+        const res = await terminal.inputField({}).promise;
+        terminal('\n');
+        if (res === undefined) {
+            return Cancel;
+        }
+        else if (res) {
+            return res;
+        }
+        else {
+            terminal.red('must enter a value\n');
+        }
+    }
 }
 
 export async function requestNumber(title: string, def?: number) {
