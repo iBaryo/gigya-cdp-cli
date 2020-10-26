@@ -1,8 +1,11 @@
 {
   "name": "gigya-cdp-cli",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "gigya cdp cli",
-  "main": "index.ts",
+  "main": "index.js",
+  "bin": {
+    "cdp": "./index.js"
+  },
   "scripts": {
     "start": "tsc && node index.js",
     "build": "tsc",
