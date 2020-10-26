@@ -287,5 +287,6 @@ const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSch
             }
         }]
     ])
-        .then(() => terminal.bgMagenta.black('Thanks for using CDP CLI!').noFormat('\n'));
+        .then(() => terminal.bgMagenta.black('Thanks for using CDP CLI!').noFormat('\n'))
+        .then(() => process.exit());
 })();
