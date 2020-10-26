@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import {terminal} from "terminal-kit";
 import {CDP, DataCenter} from "./SDK";
 import {Application, Event} from "./SDK/interfaces";
