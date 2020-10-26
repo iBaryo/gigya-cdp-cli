@@ -7,3 +7,4 @@ specs/
 .gitignore
 tsconfig.json
 .idea/
+*.creds.json

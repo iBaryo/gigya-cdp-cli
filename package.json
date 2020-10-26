@@ -9,7 +9,7 @@
   "scripts": {
     "start": "tsc && node index.js",
     "build": "tsc",
-    "test": "tsc && jasmine specs/*.js",
+    "test": "tsc",
     "prepublish": "npm run test"
   },
   "keywords": [
