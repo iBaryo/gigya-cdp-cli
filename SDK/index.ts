@@ -24,7 +24,11 @@ export class CDP {
 
     constructor(credentials: CredentialsType, public options?: Partial<typeof CDP.DefaultOptions>) {
         this.setCredentials(credentials);
-        this.options = Object.assign({}, CDP.DefaultOptions, this.options);
+        this.options = Object.assign({},
+            CDP.DefaultOptions,
+            { ignoreCertError: this.options.dataCenter.startsWith('il1') } as typeof options,
+            this.options
+        );
     }
 
     public async getACL(workspace: string) {

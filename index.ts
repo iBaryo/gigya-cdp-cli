@@ -14,7 +14,7 @@ import {
     requestTextStep,
     showMenu,
     showYesOrNo,
-    TerminalApp
+    TerminalApp, Restart
 } from "./terminal/TerminalApp";
 import {JSONSchema7} from "json-schema";
 import {defaultSchemaPropFakers, fakify} from "json-schema-fakify";
@@ -50,10 +50,10 @@ interface AppContext {
 
 type Creds = { userKey: string; secret: string; };
 const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
-    dataCenter: 'il1-cdp-st4',
-    ignoreCertError: true,
+    // dataCenter: 'il1-cdp-st4',
+    // ignoreCertError: true,
     // verboseLog: true,
-    proxy: 'http://127.0.0.1:8888'
+    // proxy: 'http://127.0.0.1:8888'
 };
 
 
@@ -104,7 +104,7 @@ const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSch
                         if (res.errorCode) {
                             console.log(res);
                             terminal.red(`invalid credentials.\n`)
-                            return End;
+                            return Restart;
                         }
 
                         terminal.green(`valid credentials!`);
