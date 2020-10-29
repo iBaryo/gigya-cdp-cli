@@ -76,7 +76,9 @@ const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSch
                     return Cancel;
 
                 creds = sStore.get(pw);
-                if (!creds) {
+                if (creds) {
+                    terminal.green('correct! loading...\n');
+                } else {
                     terminal.red(`wrong password. ${--context.login.retries} retries left.\n`)
                     if (context.login.retries > 0) {
                         return Repeat;
@@ -179,9 +181,20 @@ const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSch
             let shouldEditSchema = true;
             while (shouldEditSchema) {
                 terminal.cyan(`event schema:\n`); // TODO: change to terminal's table
-                fields.forEach(f => {
-                    terminal.white(f);
-                    terminal('\n');
+                terminal['table']([
+                    ['Field', 'Faker', 'Identifer'],
+                    ...fields.map(f => [f.fieldPath, f.faker || '(None)', f.isIdentifier ? 'V' : ''])
+                ], {
+                    hasBorder: true ,
+                    // contentHasMarkup: true ,
+                    borderChars: 'lightRounded' ,
+                    borderAttr: { color: 'blue' } ,
+                    textAttr: { bgColor: 'default' } ,
+                    // firstCellTextAttr: { bgColor: 'blue' } ,
+                    firstRowTextAttr: { bgColor: 'yellow' } ,
+                    // firstColumnTextAttr: { bgColor: 'red' } ,
+                    width: 60 ,
+                    fit: true   // Activate all expand/shrink + wordWrap
                 });
 
                 type FieldEditContext = { field: JSONSchemaFieldFaker; isIdentifer: boolean; fakerCategory: keyof FakerStatic; faker: string; };
@@ -189,14 +202,14 @@ const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSch
                 await showYesOrNo(`would you like to augment schema fields?`, 'n', {
                     n: async () => shouldEditSchema = false,
                     y: async () => new TerminalApp<FieldEditContext>().show([
-                        ['field', ctx => showMenu(`select a field:`, fields)],
+                        ['field', ctx => showMenu(`select a field:`, fields, f => f.fieldPath)],
                         ['isIdentifer', ctx => showYesOrNo(`is it an identifier?`, 'n', async res => res)],
                         ['fakerCategory', ctx => showMenu(`select a faker category:`, getFakerCategories())],
                         ['faker', ctx => showMenu(`select a faker:`, getFakers(ctx.fakerCategory))],
                         [async ctx => {
                             ctx.field.schema.faker = `${ctx.fakerCategory}.${ctx.faker}`;
                             ctx.field.schema.isIdentifier = ctx.isIdentifer;
-                            terminal.green(`~~ faked field: ${ctx.field.toString()}, identifier: ${ctx.field.isIdentifier}\n\n`);
+                            terminal.green(`~~ field: ${ctx.field.fieldPath}, faker: ${ctx.field.faker}, identifier: ${ctx.field.isIdentifier}\n\n`);
                             fieldFakers[ctx.field.fieldName] = ctx.faker as any;
                         }]
                     ])
