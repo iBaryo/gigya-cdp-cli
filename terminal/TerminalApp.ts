@@ -68,9 +68,9 @@ export async function PrintAndEnd(title: string) {
     terminal.green(title);
     return End;
 }
-export async function errorAndEnd(title: string) {
+export async function errorAnd(res: Symbol, title: string) {
     terminal.red(title);
-    return End;
+    return res;
 }
 export function showMenu<T>(title: string, items: T[], keyFn: (i: T) => string = String) {
     terminal.cyan(title);
@@ -113,7 +113,7 @@ export function requestTextStep<T extends string>(field: T) {
     return [field, async () => requestText(`${field}:`)] as ContextStep<{[k in T]: any}>;
 }
 
-export async function requestText(title: string) {
+export async function requestText(title: string, required = true) {
     while (true) {
         terminal.cyan(title);
         const res = await terminal.inputField({}).promise;
@@ -123,6 +123,9 @@ export async function requestText(title: string) {
         }
         else if (res) {
             return res;
+        }
+        else if (!required) {
+            return '';
         }
         else {
             terminal.red('must enter a value\n');
@@ -134,7 +137,7 @@ export async function requestNumber(title: string, def?: number) {
     const defText = def === undefined ? '' : ` (default: ${def})`;
     const inputText = `${title}${defText}`;
     while (true) {
-        const res = await requestText(inputText);
+        const res = await requestText(inputText, def === undefined);
         if (res === Cancel)
             return Cancel;
 

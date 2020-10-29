@@ -7,7 +7,7 @@ import {
     Cancel,
     Continue,
     End,
-    errorAndEnd,
+    errorAnd,
     Repeat,
     requestNumber,
     requestText,
@@ -37,6 +37,7 @@ interface AppContext {
     login: { retries: number };
     sdk: CDP;
     ws: { id: string; name: string; };
+    wsFilter: string;
     bu: { id: string; name: string; };
     app: { id: string; name: string; };
     event: { id: string; name: string; schema: JSONSchema7; },
@@ -77,7 +78,7 @@ const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSch
 
                 creds = sStore.get(pw);
                 if (creds) {
-                    terminal.green('correct! loading...\n');
+                    terminal.green('correct!\n');
                 } else {
                     terminal.red(`wrong password. ${--context.login.retries} retries left.\n`)
                     if (context.login.retries > 0) {
@@ -128,10 +129,18 @@ const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSch
                 env: context.env
             });
         }],
+        ['wsFilter', async context => requestText(`workspace filter (optional):`, false)],
         ['ws', async context => {
-            const wss = await context.sdk.get<Array<{ id: string; name: string; }>>(`workspaces`);
+            terminal.cyan(`loading...\n`);
+            const wss =
+                await context.sdk.get<Array<{ id: string; name: string; }>>(`workspaces`)
+                    .then(res => !context.wsFilter ?
+                        res
+                        : res.filter(ws => ws.name.toLowerCase().includes(context.wsFilter))
+                    );
+
             if (!wss.length)
-                return errorAndEnd(`no available workspaces`);
+                return errorAnd(Cancel,`no available workspaces\n`);
 
             return showMenu(`select workspace:`, wss, ws => ws.name).then(async r => {
                 if (typeof r == 'symbol')
@@ -166,7 +175,7 @@ const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSch
             let {schema} = await context.sdk.get<{ schema: string | JSONSchema7 }>(`workspaces/${context.ws.id}/businessunits/${context.bu.id}/applications/${context.app.id}/dataevents/${context.event.id}`);
             if (!schema) {
                 console.log(context.event);
-                return errorAndEnd(`corrupted event with no schema\n`);
+                return errorAnd(End, `corrupted event with no schema\n`);
             }
 
             if (typeof schema == 'string') {
