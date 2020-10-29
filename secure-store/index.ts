@@ -17,10 +17,13 @@ export function initStore<T>(filePath: string) {
             return fs.existsSync(filePath);
         },
         get(password = '') {
-            const str = fs.readFileSync(filePath).toString();
+            let str = fs.readFileSync(filePath).toString();
 
             try {
-                const store = JSON.parse(new Cryptr(password).decrypt(str)) as Store<T>;
+                if (password) {
+                    str = new Cryptr(password).decrypt(str)
+                }
+                const store = JSON.parse(str) as Store<T>;
                 if (store.password != password)
                     return undefined;
                 else
@@ -30,7 +33,11 @@ export function initStore<T>(filePath: string) {
             }
         },
         set(config: T, password = '') {
-            return fs.writeFileSync(filePath, new Cryptr(password).encrypt(JSON.stringify({config, password} as Store<T>)));
+            let str = JSON.stringify({config, password} as Store<T>);
+            if (password) {
+                str = new Cryptr(password).encrypt(str);
+            }
+            return fs.writeFileSync(filePath, str);
         }
     };
 }
