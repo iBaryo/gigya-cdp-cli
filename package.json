@@ -28,12 +28,14 @@
     "typescript": "^4.1.0-beta"
   },
   "dependencies": {
+    "@types/cryptr": "^4.0.1",
     "@types/faker": "^5.1.2",
     "@types/json-schema": "^7.0.6",
     "@types/json-schema-faker": "^0.5.1",
     "@types/request": "^2.48.5",
     "@types/strict-uri-encode": "^2.0.0",
     "async-bulk-map": "^1.0.0",
+    "cryptr": "^6.0.2",
     "jose": "^2.0.2",
     "json-schema-faker": "^0.5.0-rcv.29",
     "json-schema-fakify": "^1.0.9",

@@ -1,11 +1,10 @@
 import * as fs from "fs";
+import Cryptr from "cryptr";
 
 interface Store<T> {
     password: string;
     config: T;
 }
-
-// TODO: encrypt according to pw
 
 export function initStore<T>(filePath: string) {
     return {
@@ -18,14 +17,20 @@ export function initStore<T>(filePath: string) {
             return fs.existsSync(filePath);
         },
         get(password = '') {
-            const store = JSON.parse(fs.readFileSync(filePath).toString()) as Store<T>;
-            if (store.password != password)
+            const str = fs.readFileSync(filePath).toString();
+
+            try {
+                const store = JSON.parse(new Cryptr(password).decrypt(str)) as Store<T>;
+                if (store.password != password)
+                    return undefined;
+                else
+                    return store.config;
+            } catch (e) {
                 return undefined;
-            else
-                return store.config;
+            }
         },
         set(config: T, password = '') {
-            return fs.writeFileSync(filePath, JSON.stringify({config, password} as Store<T>));
+            return fs.writeFileSync(filePath, new Cryptr(password).encrypt(JSON.stringify({config, password} as Store<T>)));
         }
     };
 }
