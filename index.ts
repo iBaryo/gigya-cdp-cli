@@ -1,25 +1,25 @@
 #!/usr/bin/env node
 
 import {terminal} from "terminal-kit";
-import {CDP, DataCenter} from "./SDK";
+import {availableEnvs, CDP, DataCenter, Env} from "./SDK";
 import {Application, Event} from "./SDK/interfaces";
 import {
     Cancel,
     Continue,
     End,
-    Repeat,
     errorAndEnd,
+    Repeat,
     requestNumber,
     requestText,
     requestTextStep,
+    Restart,
     showMenu,
     showYesOrNo,
-    TerminalApp, Restart
+    TerminalApp
 } from "./terminal/TerminalApp";
 import {JSONSchema7} from "json-schema";
 import {defaultSchemaPropFakers, fakify} from "json-schema-fakify";
 import {
-    createArray,
     getFakedEvents,
     getFakerCategories,
     getFakers,
@@ -33,6 +33,7 @@ import FakerStatic = Faker.FakerStatic;
 
 interface AppContext {
     dataCenter: DataCenter;
+    env: Env;
     login: { retries: number };
     sdk: CDP;
     ws: { id: string; name: string; };
@@ -63,17 +64,8 @@ const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSch
     terminal.bgMagenta.black('Welcome to CDP CLI!\n');
     terminal('\n');
     await new TerminalApp<AppContext>({login: {retries: 3}}).show([
-        ['dataCenter', async context => {
-            return showMenu(`pick a datacenter:`, ['eu5', 'il1']).then(async dc => {
-                if (dc == 'il1')
-                    return await showMenu(`pick env:`, [
-                        'prod',
-                        ...createArray(8, n => `st${n + 1}`)
-                    ] as DataCenter[]).then(env => typeof env == 'symbol' ? env : `il1-cdp-${env}` as DataCenter);
-                else
-                    return dc as Symbol | DataCenter;
-            });
-        }],
+        ['dataCenter', async context => showMenu(`pick a datacenter:`, Object.keys(availableEnvs) as DataCenter[])],
+        ['env', async context => showMenu(`pick env:`, availableEnvs[context.dataCenter])],
         ['sdk', async context => {
             const sStore = initStore<Creds>(`./${context.dataCenter.split('-')[0]}.creds.json`);
 
@@ -99,7 +91,11 @@ const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSch
                     requestTextStep(`secret`),
                     [async credentialsContext => {
                         terminal.cyan(`authenticating...`);
-                        const sdk = new CDP({...credentialsContext, forceSimple: true}, {...sdkOptions, dataCenter: context.dataCenter});
+                        const sdk = new CDP({...credentialsContext, forceSimple: true}, {
+                            ...sdkOptions,
+                            dataCenter: context.dataCenter,
+                            env: context.env
+                        });
                         const res = await sdk.get(`workspaces`);
                         if (res.errorCode) {
                             console.log(res);
@@ -124,30 +120,33 @@ const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSch
 
             // TODO: remove forceSimple
             // TODO: replace in typed ts-rest-client
-            return new CDP({...creds, forceSimple: true}, {...sdkOptions, dataCenter: context.dataCenter});
+            return new CDP({...creds, forceSimple: true}, {
+                ...sdkOptions,
+                dataCenter: context.dataCenter,
+                env: context.env
+            });
         }],
         ['ws', async context => {
             const wss = await context.sdk.get<Array<{ id: string; name: string; }>>(`workspaces`);
             if (!wss.length)
-
                 return errorAndEnd(`no available workspaces`);
 
-            return showMenu(`select workspace:`, wss.filter(ws => ws.name.toLowerCase().includes('eliav')), ws => ws.name)
-                .then(async r => {
-                    if (typeof r == 'object') {
-                        terminal.cyan(`fetching permissions...\n`);
-                        const acl = await context.sdk.getACL(r['partnerId'] || r.id)
-                            .then((r: any) => r.eACL?.['_api'] ?? {});
-
-                        if (!acl['/api/workspaces/{workspaceId}/ingests']) { // TODO: set of all required permissions
-                            terminal.yellow('missing permissions for ingest.\n')
-                        }
-
-                        terminal('\n');
-                    }
-
+            return showMenu(`select workspace:`, wss, ws => ws.name).then(async r => {
+                if (typeof r == 'symbol')
                     return r;
-                });
+
+                terminal.cyan(`fetching permissions...\n`);
+                const acl = await context.sdk.getACL(r['partnerId'] || r.id)
+                    .then((r: any) => r.eACL?.['_api'] ?? {});
+
+                if (!acl['/api/workspaces/{workspaceId}/ingests']) { // TODO: set of all required permissions
+                    terminal.yellow('missing permissions for ingest.\n')
+                }
+
+                terminal('\n');
+
+                return r;
+            });
         }],
         ['bu', async context => {
             const bUnits = await context.sdk.get<Array<{ id: string; name: string; }>>(`workspaces/${context.ws.id}/businessunits`);

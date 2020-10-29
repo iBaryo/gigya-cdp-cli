@@ -37,7 +37,7 @@ export class TerminalApp<CTX extends object> implements TerminalCmp<object> {
             switch (res) {
                 case Cancel:
                     i -= 2;
-                    if (i < 0)
+                    if (i < -1)
                         return Cancel;
                     break;
                 case End:

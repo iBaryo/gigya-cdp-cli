@@ -3,15 +3,21 @@ import {CredentialsType, getSigner, ISigner} from "./Signers";
 import {HttpMethod, HttpProtocol, Req} from "./request";
 import {toQueryString} from "./utils";
 import {AnonymousRequestSigner} from "./Signers/AnonymousRequestSigner";
+import {createArray} from "../utils/schema";
 
+export type DataCenter = 'eu5'|`il1`;
 type StagingEnvs = 1|2|3|4|5|6|7|8;
-type Env<n extends StagingEnvs = StagingEnvs> = 'prod'|`st${n}`;
-export type DataCenter<env extends Env = Env> = 'eu5'|`il1-cdp-${env}`;
+export type Env<n extends StagingEnvs = StagingEnvs> = 'prod'|`st${n}`;
+export const availableEnvs: Record<DataCenter, Env[]> = {
+    eu5: ['prod', ...createArray(1, n => `st${n + 1}` as Env)],
+    il1: ['prod', ...createArray(8, n => `st${n + 1}` as Env)]
+};
 
 export class CDP {
     public static DefaultOptions = {
         protocol: 'https' as HttpProtocol,
         dataCenter: 'eu5' as DataCenter,
+        env: 'prod' as Env,
         baseDomain: 'gigya.com',
         proxy: undefined as string,
         ignoreCertError: false,
@@ -59,10 +65,18 @@ export class CDP {
         return this._acls[workspace];
     }
 
+    private getDomainDc({dataCenter, env} = this.options) {
+        if (dataCenter == 'eu5' && env == 'prod')
+            return 'eu5';
+
+        const dc = dataCenter == 'il1' ? 'il1-cdp' : 'eu5';
+        return `${dc}-${env}`;
+    }
+
     public send<T>(path: string, method: HttpMethod, params: object = {}, headers: Headers = {}): Promise<T & { errorCode?: number }> {
         let req: Req = {
             protocol: this.options.protocol,
-            domain: `cdp.${this.options.dataCenter}.${this.options.baseDomain}`,
+            domain: `cdp.${this.getDomainDc()}.${this.options.baseDomain}`,
             path: `api/${path}`,
             query: {},
             method,
