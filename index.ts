@@ -64,6 +64,7 @@ const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSch
 (async () => {
     terminal.bgMagenta.black('Welcome to CDP CLI!\n');
     terminal('\n');
+    let bUnits;
     await new TerminalApp<AppContext>({login: {retries: 3}}).show([
         ['dataCenter', async context => showMenu(`pick a datacenter:`, Object.keys(availableEnvs) as DataCenter[])],
         ['env', async context => showMenu(`pick env:`, availableEnvs[context.dataCenter])],
@@ -99,9 +100,9 @@ const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSch
                             dataCenter: context.dataCenter,
                             env: context.env
                         });
-                        const res = await sdk.get(`workspaces`);
-                        if (res.errorCode) {
-                            console.log(res);
+                        bUnits = await sdk.get(`businessunits`);
+                        if (bUnits.errorCode) {
+                            console.log(bUnits);
                             terminal.red(`invalid credentials.\n`)
                             return Restart;
                         }
@@ -132,12 +133,18 @@ const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSch
         ['wsFilter', async context => requestText(`workspace filter (optional):`, false)],
         ['ws', async context => {
             terminal.cyan(`loading...\n`);
+            if (!bUnits) {
+                bUnits = await context.sdk.get(`businessunits`);
+            }
             const wss =
-                await context.sdk.get<Array<{ id: string; name: string; }>>(`workspaces`)
-                    .then(res => !context.wsFilter ?
-                        res
-                        : res.filter(ws => ws.name.toLowerCase().includes(context.wsFilter))
-                    );
+                await Promise.all<{ id: string; name: string; }>(bUnits.map(bUnit =>
+                    new Promise<{ id: string; name: string; }>(resolve => {
+                        resolve(context.sdk.get<{ id: string; name: string; }>(`workspaces/${bUnit.workspaceId}`))
+                    })))
+                        .then(res =>
+                            !context.wsFilter ?
+                                res
+                                : res.filter(ws => ws.name.toLowerCase().includes(context.wsFilter)));
 
             if (!wss.length)
                 return errorAnd(Cancel,`no available workspaces\n`);
