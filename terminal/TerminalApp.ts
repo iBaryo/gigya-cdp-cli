@@ -7,30 +7,54 @@ export const Skip = Symbol('skip next step');
 export const End = Symbol('end app');
 export const Restart = Symbol('restart app');
 
-export type StepResult<T> = T | void | Symbol;
-
-export interface TerminalCmp<T> {
+interface TerminalCmp<T> {
     show(): Promise<StepResult<T>>;
 }
 
-export type Step<T, R = any> = (context: T) => Promise<StepResult<R>>;
-type ContextlessStep<CTX> = [step: Step<CTX, CTX[keyof CTX]>];
-type ContextStep<CTX extends object> = [ctxKey: keyof CTX, ...step: ContextlessStep<CTX>];
-type AppStep<CTX extends object> = ContextStep<CTX> | ContextlessStep<CTX>;
+type FlowContext<CTX extends object> = CTX & {
+    setGlobally: <K extends keyof CTX>(key: K, val: CTX[K]) => CTX[K]
+};
 
-export class TerminalApp<CTX extends object> implements TerminalCmp<object> {
+// a context-change can be either for a specific field or change multiple properties or none at all.
+type ContextChange<CTX extends object> = CTX[keyof CTX] | Partial<CTX> | void;
+
+// a step can either change the flow, do nothing or return something (like changing the flow).
+type StepResult<R extends ContextChange<object>|any> = R | void | Symbol;
+
+// a step starts with a context and returns a step result to change the context or manipulate the flow.
+type Step<CTX extends object, R extends ContextChange<CTX> = ContextChange<CTX>> =
+    (context: FlowContext<CTX>) => Promise<StepResult<R>>;
+
+// general context step can change partial part of the context (or not).
+type GeneralContextStep<CTX extends object> = [step: Step<CTX, Partial<CTX> | void>];
+
+// a specific prop step changes that prop in the context.
+type ContextPropStep<CTX extends object, K extends keyof CTX> = [ctxProp: K, step: Step<CTX, CTX[K]>];
+
+// an app step can be either general or for a prop
+type AppStep<CTX extends object, K extends ((keyof CTX) | unknown) = never> =
+    K extends keyof CTX ? ContextPropStep<CTX, K> : GeneralContextStep<CTX>;
+
+// Terminal app for managing the flow using steps:
+export class TerminalApp<CTX extends object> implements TerminalCmp<CTX> {
     constructor(public initialContext: Partial<CTX> = {}) {
     }
 
-    public async show(steps?: Array<AppStep<CTX>>) {
+    public async show(steps?: Array<AppStep<CTX, (keyof CTX) | Function>>) {
         if (!steps?.length ?? true)
             return {};
 
         const stepResults = steps.map(() => undefined);
-        const getContext = (upTo?: number) => [this.initialContext, ...stepResults.slice(0, upTo)].reduce((res, cur) => ({...res, ...cur}), {} as CTX);
+
+        const getContext = (upTo?: number) => [
+            this.initialContext,
+            ...stepResults.slice(0, upTo)
+        ].reduce((res, cur) => ({...res, ...cur}), {
+            setGlobally: (key, val) => this.initialContext[key] = val
+        } as FlowContext<CTX>);
 
         for (let i = 0; i < steps.length; ++i) {
-            let [contextKey, step] = (steps[i].length == 1 ? ['', steps[i][0]] : steps[i]) as ContextStep<CTX>;
+            let [contextKey, step] = (steps[i].length == 1 ? ['', steps[i][0]] : steps[i]) as ContextPropStep<CTX, keyof CTX>;
 
             const res = await step(getContext(i));
 
@@ -54,8 +78,7 @@ export class TerminalApp<CTX extends object> implements TerminalCmp<object> {
                 case Continue:
                     break;
                 default:
-                    if (contextKey)
-                        stepResults[i] = {[contextKey]: res};
+                    stepResults[i] = contextKey ? {[contextKey]: res} : res;
                     break;
             }
         }
@@ -64,14 +87,18 @@ export class TerminalApp<CTX extends object> implements TerminalCmp<object> {
     }
 }
 
+// flow/terminal utilities:
+
 export async function PrintAndEnd(title: string) {
     terminal.green(title);
     return End;
 }
+
 export async function errorAnd(res: Symbol, title: string) {
     terminal.red(title);
     return res;
 }
+
 export function showMenu<T>(title: string, items: T[], keyFn: (i: T) => string = String) {
     terminal.cyan(title);
     if (!items.length) {
@@ -90,6 +117,7 @@ export function showMenu<T>(title: string, items: T[], keyFn: (i: T) => string =
 }
 
 export type YesNoAnswer = 'n' | 'y';
+
 export function showYesOrNo<T>(title: string, defaultAnswer: YesNoAnswer, results: ((res: boolean) => Promise<StepResult<T>>) | { [k in YesNoAnswer]?: () => Promise<StepResult<T>> }) {
     const answers = {
         _default: defaultAnswer,
@@ -109,8 +137,8 @@ export function showYesOrNo<T>(title: string, defaultAnswer: YesNoAnswer, result
     });
 }
 
-export function requestTextStep<T extends string>(field: T) {
-    return [field, async () => requestText(`${field}:`)] as ContextStep<{[k in T]: any}>;
+export function requestTextStep<K extends string>(field: K) {
+    return [field, async () => requestText(`${field}:`)] as ContextPropStep<{ [key in K]: any }, K>;
 }
 
 export async function requestText(title: string, required = true) {
@@ -120,14 +148,11 @@ export async function requestText(title: string, required = true) {
         terminal('\n');
         if (res === undefined) {
             return Cancel;
-        }
-        else if (res) {
+        } else if (res) {
             return res;
-        }
-        else if (!required) {
+        } else if (!required) {
             return '';
-        }
-        else {
+        } else {
             terminal.red('must enter a value\n');
         }
     }

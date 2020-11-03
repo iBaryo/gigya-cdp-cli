@@ -52,10 +52,10 @@ export function getIdentifierFields(schema: JSONSchemaFaker) {
     return getFields(schema).filter(f => f.isIdentifier);
 }
 
-export function getFakerCategories() {
+export function getFakerCategories(): Array<keyof FakerStatic> {
     return Object.entries(faker)
         .filter(([key, val]) => typeof val == 'object')
-        .map(([k]) => k);
+        .map(([k]) => k as keyof FakerStatic);
 }
 
 export function getFakers(category: keyof FakerStatic) {

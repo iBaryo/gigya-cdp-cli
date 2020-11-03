@@ -65,6 +65,11 @@ export class CDP {
         return this._acls[workspace];
     }
 
+    public async hasPermissions(workspace: string, ...paths: string[]) {
+        const apiAcl: Record<string, object> = await this.getACL(workspace).then((r: any) => r.eACL?.['_api'] ?? {});
+        return paths.every(p => !!apiAcl[`api/${p}`]);
+    }
+
     private getDomainDc({dataCenter, env} = this.options) {
         if (dataCenter == 'eu5' && env == 'prod')
             return 'eu5';
