@@ -5,9 +5,9 @@ import {toQueryString} from "./utils";
 import {AnonymousRequestSigner} from "./Signers/AnonymousRequestSigner";
 import {createArray} from "../utils/schema";
 
-export type DataCenter = 'eu5'|`il1`;
-type StagingEnvs = 1|2|3|4|5|6|7|8;
-export type Env<n extends StagingEnvs = StagingEnvs> = 'prod'|`st${n}`;
+export type DataCenter = 'eu5' | `il1`;
+type StagingEnvs = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+export type Env<n extends StagingEnvs = StagingEnvs> = 'prod' | `st${n}`;
 export const availableEnvs: Record<DataCenter, Env[]> = {
     il1: ['prod', ...createArray(8, n => `st${n + 1}` as Env)],
     eu5: ['prod', ...createArray(1, n => `st${n + 1}` as Env)]
@@ -32,9 +32,24 @@ export class CDP {
         this.setCredentials(credentials);
         this.options = Object.assign({},
             CDP.DefaultOptions,
-            { ignoreCertError: this.options.dataCenter.startsWith('il1') } as typeof options,
+            {ignoreCertError: this.options.dataCenter.startsWith('il1')} as typeof options,
             this.options
         );
+    }
+
+    private get admin() { // WIP
+        return {
+            bootstrap: async ({tenant = 'rnd', wsName = `ws-${new Date().toDateString()}`, buName = `business unit`}) => {
+
+            },
+            permissions: {
+                for: (wsId: string) => ({
+                    has: (...paths: string[]) => this.hasPermissions(wsId, ...paths),
+                    userKeyHas: async (userKey: string, ...paths: string[]) => null,
+                    grant: async (userKey: string, ...paths: string[]) => null
+                })
+            }
+        };
     }
 
     public async getACL(workspace: string) {
