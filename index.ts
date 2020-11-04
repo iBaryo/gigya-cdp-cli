@@ -178,7 +178,7 @@ const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSch
             let {schema} = await context.sdk.get<{ schema: string | JSONSchema7 }>(`businessunits/${context.bu.id}/applications/${context.app.id}/dataevents/${context.event.id}`);
             if (!schema) {
                 console.log(context.event);
-                return errorAnd(End, `corrupted event with no schema\n`);
+                return errorAnd(Cancel, `corrupted event with no schema\n`);
             }
 
             if (typeof schema == 'string') {
@@ -192,7 +192,7 @@ const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSch
             const fields = getFields(fakified);
             let shouldEditSchema = true;
             while (shouldEditSchema) {
-                terminal.cyan(`event schema:\n`); // TODO: change to terminal's table
+                terminal.cyan(`event schema:\n`);
                 terminal['table']([
                     ['Field', 'Faker', 'Identifer'],
                     ...fields.map(f => [f.fieldPath, f.faker || '(None)', f.isIdentifier ? 'V' : ''])
