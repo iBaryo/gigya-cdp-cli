@@ -36,6 +36,7 @@ interface AppContext {
     env: Env;
     login: { retries: number };
     sdk: CDP;
+    BUs: Array<{ id: string; name: string; workspaceId: string }>;
     ws: { id: string; name: string; };
     wsFilter: string;
     bu: { id: string; name: string; };
@@ -52,7 +53,6 @@ interface AppContext {
 
 type Creds = { userKey: string; secret: string; };
 const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
-    // dataCenter: 'il1-cdp-st4',
     // ignoreCertError: true,
     // verboseLog: true,
     // proxy: 'http://127.0.0.1:8888'
@@ -69,9 +69,9 @@ const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSch
         ['env', async context => showMenu(`pick env:`, availableEnvs[context.dataCenter])],
         ['sdk', async context => {
             const sStore = initStore<Creds>(`./${context.dataCenter.split('-')[0]}.creds.json`);
-
+            const hasExistingCreds = sStore.exists();
             let creds: Creds;
-            if (sStore.exists()) {
+            if (hasExistingCreds) {
                 const pw = await requestText(`password:`);
                 if (pw == Cancel)
                     return Cancel;
@@ -91,28 +91,7 @@ const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSch
             } else {
                 const res = await new TerminalApp<Creds>().show([
                     requestTextStep(`userKey`),
-                    requestTextStep(`secret`),
-                    [async credentialsContext => {
-                        terminal.cyan(`authenticating...`);
-                        const sdk = new CDP({...credentialsContext, forceSimple: true}, {
-                            ...sdkOptions,
-                            dataCenter: context.dataCenter,
-                            env: context.env
-                        });
-                        const res = await sdk.get(`workspaces`);
-                        if (res.errorCode) {
-                            console.log(res);
-                            terminal.red(`invalid credentials.\n`)
-                            return Restart;
-                        }
-
-                        terminal.green(`valid credentials!`);
-                        terminal('\n');
-
-                        return showYesOrNo(`remember?`, 'y', {
-                            y: () => requestText(`new password:`).then(pw => typeof pw != 'symbol' ? sStore.set(credentialsContext, pw) : null).then(() => Continue)
-                        });
-                    }]
+                    requestTextStep(`secret`)
                 ]);
 
                 if (res == Cancel)
@@ -121,58 +100,82 @@ const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSch
                 creds = res;
             }
 
+            terminal.cyan(`authenticating...`);
+
             // TODO: remove forceSimple
             // TODO: replace in typed ts-rest-client
-            return new CDP({...creds, forceSimple: true}, {
+            const sdk = new CDP({...creds, forceSimple: true}, {
                 ...sdkOptions,
                 dataCenter: context.dataCenter,
                 env: context.env
             });
+
+            const res = await sdk.get<AppContext['BUs']>(`businessunits`);
+            if (res.errorCode) {
+                sStore.clear();
+                console.log(res);
+                return errorAnd(Restart, `invalid credentials.\n`);
+            }
+
+            if (!res.length) {
+                sStore.clear();
+                return errorAnd(Restart, `no permissions for any business unit`);
+            }
+
+            terminal.green(`valid credentials!`);
+            terminal('\n');
+            context.setGlobally('BUs', res)
+
+            if (!hasExistingCreds) {
+                await showYesOrNo(`remember?`, 'y', {
+                    y: () => requestText(`new password:`).then(pw => typeof pw != 'symbol' ? sStore.set(creds, pw) : null).then(() => Continue)
+                });
+            }
+
+            return sdk;
         }],
         ['wsFilter', async context => requestText(`workspace filter (optional):`, false)],
         ['ws', async context => {
             terminal.cyan(`loading...\n`);
-            const wss =
-                await context.sdk.get<Array<{ id: string; name: string; }>>(`workspaces`)
-                    .then(res => !context.wsFilter ?
+            const wss = await Promise.all(context.BUs.map(bUnit =>
+                context.sdk.get<{ id: string; name: string; }>(`workspaces/${bUnit.workspaceId}`)))
+                .then(res =>
+                    !context.wsFilter ?
                         res
-                        : res.filter(ws => ws.name.toLowerCase().includes(context.wsFilter))
-                    );
+                        : res.filter(ws => ws.name.toLowerCase().includes(context.wsFilter)));
 
             if (!wss.length)
-                return errorAnd(Cancel,`no available workspaces\n`);
+                return errorAnd(Cancel, `no available workspaces\n`);
 
-            return showMenu(`select workspace:`, wss, ws => ws.name).then(async r => {
-                if (typeof r == 'symbol')
-                    return r;
+            const x = await showMenu(`select workspace:`, wss, ws => ws.name).then(async ws => {
+                if (typeof ws == 'symbol')
+                    return ws;
 
                 terminal.cyan(`fetching permissions...\n`);
-                const acl = await context.sdk.getACL(r['partnerId'] || r.id)
-                    .then((r: any) => r.eACL?.['_api'] ?? {});
 
-                if (!acl['/api/workspaces/{workspaceId}/ingests']) { // TODO: set of all required permissions
+                // TODO: set of all required permissions
+                if (await context.sdk.hasPermissions(ws.id, 'businessunits/{businessUnitId}/applications/{applicationId}/dataevents/{dataEventId}/event')) {
                     terminal.yellow('missing permissions for ingest.\n')
                 }
 
                 terminal('\n');
 
-                return r;
+                return ws;
             });
         }],
         ['bu', async context => {
-            const bUnits = await context.sdk.get<Array<{ id: string; name: string; }>>(`workspaces/${context.ws.id}/businessunits`);
-            return showMenu(`select business unit:`, bUnits, bu => bu.name);
+            return showMenu(`select business unit:`, context.BUs, bu => bu.name);
         }],
         ['app', async context => {
-            const apps = await context.sdk.get<Application[]>(`workspaces/${context.ws.id}/businessunits/${context.bu.id}/applications`);
+            const apps = await context.sdk.get<Application[]>(`businessunits/${context.bu.id}/applications`);
             return showMenu(`select application:`, apps, app => app.name);
         }],
         ['event', async context => {
-            const events = await context.sdk.get<Event[]>(`workspaces/${context.ws.id}/businessunits/${context.bu.id}/applications/${context.app.id}/dataevents`);
+            const events = await context.sdk.get<Array<AppContext['event']>>(`businessunits/${context.bu.id}/applications/${context.app.id}/dataevents`);
             return showMenu(`select event:`, events, event => event.name);
         }],
         ['fakifiedEventSchema', async context => {
-            let {schema} = await context.sdk.get<{ schema: string | JSONSchema7 }>(`workspaces/${context.ws.id}/businessunits/${context.bu.id}/applications/${context.app.id}/dataevents/${context.event.id}`);
+            let {schema} = await context.sdk.get<{ schema: string | JSONSchema7 }>(`businessunits/${context.bu.id}/applications/${context.app.id}/dataevents/${context.event.id}`);
             if (!schema) {
                 console.log(context.event);
                 return errorAnd(End, `corrupted event with no schema\n`);
@@ -194,19 +197,24 @@ const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSch
                     ['Field', 'Faker', 'Identifer'],
                     ...fields.map(f => [f.fieldPath, f.faker || '(None)', f.isIdentifier ? 'V' : ''])
                 ], {
-                    hasBorder: true ,
+                    hasBorder: true,
                     // contentHasMarkup: true ,
-                    borderChars: 'lightRounded' ,
-                    borderAttr: { color: 'blue' } ,
-                    textAttr: { bgColor: 'default' } ,
+                    borderChars: 'lightRounded',
+                    borderAttr: {color: 'blue'},
+                    textAttr: {bgColor: 'default'},
                     // firstCellTextAttr: { bgColor: 'blue' } ,
-                    firstRowTextAttr: { bgColor: 'yellow' } ,
+                    firstRowTextAttr: {bgColor: 'yellow'},
                     // firstColumnTextAttr: { bgColor: 'red' } ,
-                    width: 60 ,
+                    width: 60,
                     fit: true   // Activate all expand/shrink + wordWrap
                 });
 
-                type FieldEditContext = { field: JSONSchemaFieldFaker; isIdentifer: boolean; fakerCategory: keyof FakerStatic; faker: string; };
+                type FieldEditContext = {
+                    field: JSONSchemaFieldFaker;
+                    isIdentifer: boolean;
+                    fakerCategory: keyof FakerStatic;
+                    faker: string;
+                };
 
                 await showYesOrNo(`would you like to augment schema fields?`, 'n', {
                     n: async () => shouldEditSchema = false,
@@ -262,7 +270,7 @@ const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSch
             function ingest(event: object) {
                 console.log(event);
                 return context.sdk.post(
-                    `workspaces/${context.ws.id}/businessunits/${context.bu.id}/applications/${context.app.id}/dataevents/${context.event.id}/event`, event).catch();
+                    `businessunits/${context.bu.id}/applications/${context.app.id}/dataevents/${context.event.id}/event`, event).catch();
             }
 
             let ingestResponses: Array<{ errorCode?: number }>;
