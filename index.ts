@@ -16,7 +16,7 @@ import {
     showYesOrNo,
     TerminalApp, isFlowSymbol
 } from "./terminal";
-import {asCDPError, availableEnvs, CDP, DataCenter, Env, isCDPError} from "./SDK";
+import {asCDPError, availableEnvs, CDP, CDPErrorResponse, DataCenter, Env, isCDPError} from "./SDK";
 import {Application, BusinessUnit, Event, Workspace} from "./SDK/entities";
 import {defaultSchemaPropFakers, fakify} from "json-schema-fakify";
 import {
@@ -131,7 +131,7 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
             return sdk;
         }],
         ['wsFilter', async context => requestText(`workspace filter (optional):`, false)],
-        ['ws', async (context): Promise<Symbol|Workspace> => {
+        ['ws', async (context): Promise<Symbol | Workspace> => {
             terminal.cyan(`loading...\n`);
             const wsIds = Array.from(new Set(context.BUs.map(bUnit => bUnit.workspaceId)));
             const wss = await Promise.all(wsIds.map(wsId => context.sdk.api.workspaces.for(wsId).get())).then(res =>
@@ -264,17 +264,17 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
             console.log('faked schema:', context.fakifiedEventSchema);
 
             const fakeEvents = await getFakedEvents(context.fakifiedEventSchema, context.eventsNum, context.customersNum);
+            const eventApi = context.sdk.api
+                .businessunits.for(context.bu.id)
+                .applications.for(context.app.id)
+                .dataevents.for(context.event.id).event;
 
             function ingest(event: object) {
                 console.log(event);
-                return context.sdk.api
-                    .businessunits.for(context.bu.id)
-                    .applications.for(context.app.id)
-                    .dataevents.for(context.event.id)
-                    .event.create(event).catch();
+                return eventApi.create(event).catch(asCDPError);
             }
 
-            let ingestResponses: Array<{ errorCode?: number }>;
+            let ingestResponses: Array<Partial<CDPErrorResponse>>;
             if (!context.delay) {
                 terminal.cyan(`Ingesting ${context.eventsNum * (Math.max(1, context.customersNum))} fake events\n`);
                 ingestResponses = await Promise.all(fakeEvents.map(ingest));
