@@ -5,13 +5,13 @@ import {terminal} from "terminal-kit";
 import {
     Cancel,
     Continue,
+    Repeat,
+    Restart,
     End,
     errorAnd,
-    Repeat,
     requestNumber,
     requestText,
     requestTextStep,
-    Restart,
     showMenu,
     showYesOrNo,
     TerminalApp
@@ -105,7 +105,7 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
                 env: context.env
             });
 
-            const res = await sdk.get<AppContext['BUs']>(`businessunits`);
+            const res = await sdk.api.businessunits.getAll() as BusinessUnit[] & {errorCode?: string};
             if (res.errorCode) {
                 sStore.clear();
                 console.log(res);

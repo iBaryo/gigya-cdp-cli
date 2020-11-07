@@ -4,6 +4,8 @@ import {HttpMethod, HttpProtocol, Req} from "./request";
 import {toQueryString} from "./utils";
 import {AnonymousRequestSigner} from "./Signers/AnonymousRequestSigner";
 import {createArray} from "../utils/schema";
+import {wrap} from "./ts-rest-client";
+import {EntitiesApi} from "./EntitiesApi";
 
 export type DataCenter = 'eu5' | `il1`;
 type StagingEnvs = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
@@ -19,6 +21,7 @@ export class CDP {
         dataCenter: 'eu5' as DataCenter,
         env: 'prod' as Env,
         baseDomain: 'gigya.com',
+        rootPath: 'api',
         proxy: undefined as string,
         ignoreCertError: false,
         verboseLog: false,
@@ -35,6 +38,10 @@ export class CDP {
             {ignoreCertError: this.options.dataCenter.startsWith('il1')} as typeof options,
             this.options
         );
+    }
+
+    public get api() {
+        return wrap(this).createClient<EntitiesApi>();
     }
 
     private get admin() { // WIP
@@ -82,7 +89,7 @@ export class CDP {
 
     public async hasPermissions(workspace: string, ...paths: string[]) {
         const apiAcl: Record<string, object> = await this.getACL(workspace).then((r: any) => r.eACL?.['_api'] ?? {});
-        return paths.every(p => !!apiAcl[`api/${p}`]);
+        return paths.every(p => !!apiAcl[`${this.options.rootPath}/${p}`]);
     }
 
     private getDomainDc({dataCenter, env} = this.options) {
@@ -97,7 +104,7 @@ export class CDP {
         let req: Req = {
             protocol: this.options.protocol,
             domain: `cdp.${this.getDomainDc()}.${this.options.baseDomain}`,
-            path: `api/${path}`,
+            path: `${this.options.rootPath}/${path}`,
             query: {},
             method,
             params,
@@ -126,7 +133,7 @@ export class CDP {
         return this._signer.sign(req);
     }
 
-    public httpSend<T>(req: Req) {
+    private httpSend<T>(req: Req) {
         const start = Date.now();
         let uri = `${req.protocol}://${req.domain}/${req.path}`;
         let body = undefined;

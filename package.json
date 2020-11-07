@@ -24,6 +24,7 @@
   "author": "Baryo",
   "license": "MIT",
   "devDependencies": {
+    "@types/jasmine": "^3.5.11",
     "@types/terminal-kit": "^1.28.2",
     "typescript": "^4.1.0-beta"
   },
