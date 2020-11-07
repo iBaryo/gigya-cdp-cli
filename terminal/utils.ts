@@ -12,7 +12,7 @@ export async function errorAnd(res: Symbol, title: string) {
     return res;
 }
 
-export function showMenu<T>(title: string, items: T[], keyFn: (i: T) => string = String) {
+export function showMenu<T>(title: string, items: T[], keyFn: (i: T) => string = String): Promise<T | Symbol> {
     terminal.cyan(title);
     if (!items.length) {
         terminal.red(`\n<empty>\n`);
@@ -25,7 +25,7 @@ export function showMenu<T>(title: string, items: T[], keyFn: (i: T) => string =
         }
 
         terminal.green(`selected: ${res.selectedText}\n`);
-        return items[res.selectedIndex];
+        return items[res.selectedIndex] as T;
     });
 }
 

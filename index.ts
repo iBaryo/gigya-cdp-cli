@@ -14,9 +14,9 @@ import {
     requestTextStep,
     showMenu,
     showYesOrNo,
-    TerminalApp
+    TerminalApp, isFlowSymbol
 } from "./terminal";
-import {availableEnvs, CDP, DataCenter, Env} from "./SDK";
+import {asCDPError, availableEnvs, CDP, DataCenter, Env, isCDPError} from "./SDK";
 import {Application, BusinessUnit, Event, Workspace} from "./SDK/entities";
 import {defaultSchemaPropFakers, fakify} from "json-schema-fakify";
 import {
@@ -49,6 +49,7 @@ interface AppContext {
     batchSize: number;
     delay: number;
 }
+
 const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
     // ignoreCertError: true,
     // verboseLog: true,
@@ -105,8 +106,8 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
                 env: context.env
             });
 
-            const res = await sdk.api.businessunits.getAll() as BusinessUnit[] & {errorCode?: string};
-            if (res.errorCode) {
+            const res = await sdk.api.businessunits.getAll().catch(asCDPError);
+            if (isCDPError(res)) {
                 sStore.clear();
                 console.log(res);
                 return errorAnd(Restart, `invalid credentials.\n`);
@@ -130,48 +131,48 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
             return sdk;
         }],
         ['wsFilter', async context => requestText(`workspace filter (optional):`, false)],
-        ['ws', async context => {
+        ['ws', async (context): Promise<Symbol|Workspace> => {
             terminal.cyan(`loading...\n`);
-            const wss = await Promise.all(context.BUs.map(bUnit =>
-                context.sdk.get<Workspace>(`workspaces/${bUnit.workspaceId}`)))
-                .then(res =>
-                    !context.wsFilter ?
-                        res
-                        : res.filter(ws => ws.name.toLowerCase().includes(context.wsFilter)));
+            const wsIds = Array.from(new Set(context.BUs.map(bUnit => bUnit.workspaceId)));
+            const wss = await Promise.all(wsIds.map(wsId => context.sdk.api.workspaces.for(wsId).get())).then(res =>
+                !context.wsFilter ?
+                    res
+                    : res.filter(ws => ws.name.toLowerCase().includes(context.wsFilter)));
 
             if (!wss.length)
                 return errorAnd(Cancel, `no available workspaces\n`);
 
-            const x = await showMenu(`select workspace:`, wss, ws => ws.name).then(async ws => {
-                if (typeof ws == 'symbol')
+            return showMenu(`select workspace:`, wss, ws => ws.name).then(async ws => {
+                if (isFlowSymbol(ws)) {
                     return ws;
+                } else {
+                    terminal.cyan(`fetching permissions...\n`);
 
-                terminal.cyan(`fetching permissions...\n`);
+                    // TODO: set of all required permissions
+                    if (await context.sdk.hasPermissions(ws.id, 'businessunits/{businessUnitId}/applications/{applicationId}/dataevents/{dataEventId}/event')) {
+                        terminal.yellow('missing permissions for ingest.\n')
+                    }
 
-                // TODO: set of all required permissions
-                if (await context.sdk.hasPermissions(ws.id, 'businessunits/{businessUnitId}/applications/{applicationId}/dataevents/{dataEventId}/event')) {
-                    terminal.yellow('missing permissions for ingest.\n')
+                    terminal('\n');
+
+                    return ws;
                 }
-
-                terminal('\n');
-
-                return ws;
             });
         }],
         ['bu', async context => {
             return showMenu(`select business unit:`, context.BUs, bu => bu.name);
         }],
         ['app', async context => {
-            const apps = await context.sdk.get<Application[]>(`businessunits/${context.bu.id}/applications`);
+            const apps = await context.sdk.api.businessunits.for(context.bu.id).applications.getAll();
             return showMenu(`select application:`, apps, app => app.name);
         }],
         ['event', async context => {
-            const events = await context.sdk.get<Event[]>(`businessunits/${context.bu.id}/applications/${context.app.id}/dataevents`);
+            const events = await context.sdk.api.businessunits.for(context.bu.id).applications.for(context.app.id).dataevents.getAll();
             return showMenu(`select event:`, events, event => event.name);
         }],
         ['fakifiedEventSchema', async context => {
             let {schema} =
-                await context.sdk.get<Event>(`businessunits/${context.bu.id}/applications/${context.app.id}/dataevents/${context.event.id}`);
+                await context.sdk.api.businessunits.for(context.bu.id).applications.for(context.app.id).dataevents.for(context.event.id).get();
             if (!schema) {
                 console.log(context.event);
                 return errorAnd(Cancel, `corrupted event with no schema\n`);
@@ -266,8 +267,11 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
 
             function ingest(event: object) {
                 console.log(event);
-                return context.sdk.post(
-                    `businessunits/${context.bu.id}/applications/${context.app.id}/dataevents/${context.event.id}/event`, event).catch();
+                return context.sdk.api
+                    .businessunits.for(context.bu.id)
+                    .applications.for(context.app.id)
+                    .dataevents.for(context.event.id)
+                    .event.create(event).catch();
             }
 
             let ingestResponses: Array<{ errorCode?: number }>;

@@ -1,5 +1,4 @@
-import {terminal} from "terminal-kit";
-import {AppStep, ContextPropStep, FlowContext, StepResult} from "./common";
+import {AppStep, ContextPropStep, FlowContext} from "./common";
 
 export const Cancel = Symbol('cancel current step');
 export const Repeat = Symbol('repeat current step');
@@ -8,6 +7,16 @@ export const Skip = Symbol('skip next step');
 export const End = Symbol('end app');
 export const Restart = Symbol('restart app');
 
+export function isFlowSymbol(x: any): x is Symbol {
+    return [
+        Cancel,
+        Repeat,
+        Continue,
+        Skip,
+        End,
+        Restart
+    ].includes(x);
+}
 
 // Terminal app for managing the flow using steps:
 export class TerminalApp<CTX extends object> {

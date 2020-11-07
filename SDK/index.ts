@@ -5,7 +5,7 @@ import {toQueryString} from "./utils";
 import {AnonymousRequestSigner} from "./Signers/AnonymousRequestSigner";
 import {createArray} from "../utils/schema";
 import {wrap} from "./ts-rest-client";
-import {EntitiesApi} from "./EntitiesApi";
+import {CDPEntitiesApi} from "./CDPEntitiesApi";
 
 export type DataCenter = 'eu5' | `il1`;
 type StagingEnvs = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
@@ -14,6 +14,12 @@ export const availableEnvs: Record<DataCenter, Env[]> = {
     il1: ['prod', ...createArray(8, n => `st${n + 1}` as Env)],
     eu5: ['prod', ...createArray(1, n => `st${n + 1}` as Env)]
 };
+
+export type CDPErrorResponse = { errorCode: string};
+export const asCDPError = (e: unknown) => e as CDPErrorResponse;
+export function isCDPError(e: any): e is CDPErrorResponse {
+    return !!(e as CDPErrorResponse).errorCode;
+}
 
 export class CDP {
     public static DefaultOptions = {
@@ -41,7 +47,7 @@ export class CDP {
     }
 
     public get api() {
-        return wrap(this).createClient<EntitiesApi>();
+        return wrap(this).createClient<CDPEntitiesApi>();
     }
 
     private get admin() { // WIP
@@ -100,7 +106,7 @@ export class CDP {
         return `${dc}-${env}`;
     }
 
-    public send<T>(path: string, method: HttpMethod, params: object = {}, headers: Headers = {}): Promise<T & { errorCode?: number }> {
+    public send<T>(path: string, method: HttpMethod, params: object = {}, headers: Headers = {}): Promise<T> {
         let req: Req = {
             protocol: this.options.protocol,
             domain: `cdp.${this.getDomainDc()}.${this.options.baseDomain}`,
@@ -170,7 +176,10 @@ export class CDP {
                 this.log(`request to ${req.method.toUpperCase()} ${uri} took ${(Date.now() - start) / 1000} seconds`);
                 if (error) {
                     this.log(`error:`, error, response, body);
-                    reject({error, body});
+                    reject({
+                        errorCode: error.errno ?? 'unknown',
+                        errorDetails: error.syscall == 'getaddrinfo' ? 'missing vpn connection?' : error,
+                    });
                     return;
                 }
                 try {
