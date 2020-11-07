@@ -1,10 +1,11 @@
-import {Entity} from "../common";
+import {Entity, Id} from "../common";
 import {JourneyStep, JourneyStepId} from "./JourneySteps";
-//import {JourneyCondition} from "./Condition/EntityCondition";
+import {JourneyCondition} from "./JourneyCondition";
 
-export interface Index extends Entity {
-    // viewId: Id;
+export type JourneyId = Id;
+
+export interface Journey extends Entity<JourneyId> {
     steps: JourneyStep[];
-    //trigger: JourneyCondition;
+    trigger: JourneyCondition;
     then: JourneyStepId[];
 }

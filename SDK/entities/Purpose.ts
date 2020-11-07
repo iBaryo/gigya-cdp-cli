@@ -1,8 +1,6 @@
 import {Entity, Id} from './common';
 import {BusinessUnitId} from './BusinessUnit';
 
-export const Purpose = 'Purpose';
-
 export type PurposeId = Id;
 
 export interface Purpose extends Entity<PurposeId> {

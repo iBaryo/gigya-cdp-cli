@@ -5,8 +5,6 @@ import {SecuritySchemeName, WithSecuritySchemes} from "../Connector/Auth";
 import {WithBusinessUnitId} from "../BusinessUnit";
 import {WithConfigSchema, WithConfigValues} from "../common/config";
 
-export const Index = 'Application';
-
 export type ApplicationId = Id;
 
 interface DirectApplication extends Entity<ApplicationId>, WithBusinessUnitId, WithSecuritySchemes, WithConfigSchema, WithConfigValues {

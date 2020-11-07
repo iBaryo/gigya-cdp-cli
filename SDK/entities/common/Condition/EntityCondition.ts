@@ -5,18 +5,11 @@ import {
     ValueCondition,
     ValueStateCondition, WithTimeRange
 } from "./ValueStateCondition";
-import {Id} from "../common";
+import {Id} from "../index";
 import {Condition, SimpleCondition} from "./Condition";
+import {FieldCondition, FieldStateCondition} from "./FieldCondition";
 
-export interface FieldStateCondition extends SimpleCondition, Partial<WithArrayCondition & WithTimeRange> {
-    field: string;
-    condition: Condition<ValueStateCondition>
-}
-
-export interface FieldCondition extends SimpleCondition, Partial<WithArrayCondition & WithTimeRange> {
-    field: string;
-    condition: Condition<ValueCondition>;
-}
+// TODO: clearout "state" condition entities
 
 export interface ProfileStateCondition extends SimpleCondition {
     type: 'profile'

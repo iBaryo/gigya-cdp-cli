@@ -1,5 +1,4 @@
-import {Condition} from "../Condition/Condition";
-import {FieldStateCondition} from "../Condition/EntityCondition";
+import {Condition, FieldStateCondition} from "../common/Condition";
 
 export type ActivityIndicatorRuleCondition = Condition<FieldStateCondition>;
 

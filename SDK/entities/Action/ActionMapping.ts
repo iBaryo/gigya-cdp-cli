@@ -1,5 +1,5 @@
 import {ApplicationId} from "../Application";
-import {SchemaId} from "../common/schema";
+import {SchemaId} from "../common/withSchema";
 import {MappingBase} from "../common/mapping";
 
 export interface ActionMapping extends MappingBase {

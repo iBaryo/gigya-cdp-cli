@@ -2,7 +2,6 @@
 
 import {terminal} from "terminal-kit";
 import {availableEnvs, CDP, DataCenter, Env} from "./SDK";
-import {Application, Event} from "./SDK/interfaces";
 import {
     Cancel,
     Continue,
@@ -30,25 +29,25 @@ import {
 import {asyncBulkMap, createDelay} from "async-bulk-map";
 import {initStore} from "./secure-store";
 import FakerStatic = Faker.FakerStatic;
+import {Application, BusinessUnit, Event, Workspace} from "./SDK/entities";
 
 interface AppContext {
     dataCenter: DataCenter;
     env: Env;
     login: { retries: number };
     sdk: CDP;
-    BUs: Array<{ id: string; name: string; workspaceId: string }>;
-    ws: { id: string; name: string; };
+    BUs: BusinessUnit[];
+    ws: Workspace;
     wsFilter: string;
-    bu: { id: string; name: string; };
-    app: { id: string; name: string; };
-    event: { id: string; name: string; schema: JSONSchema7; },
+    bu: BusinessUnit;
+    app: Application;
+    event: Event,
     shouldEditSchema: boolean;
     fakifiedEventSchema: JSONSchema7;
     customersNum: number;
     eventsNum: number;
     batchSize: number;
     delay: number;
-    sentEvents: any[];
 }
 
 type Creds = { userKey: string; secret: string; };
@@ -138,7 +137,7 @@ const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSch
         ['ws', async context => {
             terminal.cyan(`loading...\n`);
             const wss = await Promise.all(context.BUs.map(bUnit =>
-                context.sdk.get<{ id: string; name: string; }>(`workspaces/${bUnit.workspaceId}`)))
+                context.sdk.get<Workspace>(`workspaces/${bUnit.workspaceId}`)))
                 .then(res =>
                     !context.wsFilter ?
                         res
@@ -171,11 +170,12 @@ const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSch
             return showMenu(`select application:`, apps, app => app.name);
         }],
         ['event', async context => {
-            const events = await context.sdk.get<Array<AppContext['event']>>(`businessunits/${context.bu.id}/applications/${context.app.id}/dataevents`);
+            const events = await context.sdk.get<Event[]>(`businessunits/${context.bu.id}/applications/${context.app.id}/dataevents`);
             return showMenu(`select event:`, events, event => event.name);
         }],
         ['fakifiedEventSchema', async context => {
-            let {schema} = await context.sdk.get<{ schema: string | JSONSchema7 }>(`businessunits/${context.bu.id}/applications/${context.app.id}/dataevents/${context.event.id}`);
+            let {schema} =
+                await context.sdk.get<Event>(`businessunits/${context.bu.id}/applications/${context.app.id}/dataevents/${context.event.id}`);
             if (!schema) {
                 console.log(context.event);
                 return errorAnd(Cancel, `corrupted event with no schema\n`);

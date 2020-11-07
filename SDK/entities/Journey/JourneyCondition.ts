@@ -1,11 +1,11 @@
-import {Condition} from "../Condition/Condition";
+import {Condition} from "../common/Condition";
 import {
     ActivityCondition,
     ActivityIndicatorCondition,
     EventCondition,
     ProfileCondition, PurposeCondition,
     SegmentCondition
-} from "../Condition/EntityCondition";
+} from "../common/Condition/EntityCondition";
 
 export type JourneyCondition = Condition<ProfileCondition
     | ActivityCondition

@@ -1,9 +1,9 @@
-import {Condition} from "../Condition/Condition";
+import {Condition} from "../common/Condition";
 import {
     ActivityIndicatorStateCondition,
     ProfileStateCondition, PurposeCondition,
     SegmentStateCondition
-} from "../Condition/EntityCondition";
+} from "../common/Condition/EntityCondition";
 
 export type AudienceCondition = Condition<
     ProfileStateCondition                   // no change

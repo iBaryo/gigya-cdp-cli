@@ -1,11 +1,11 @@
 import {Entity, Id} from "../common";
 import {PurposeId} from "../Purpose";
 import {ApplicationId} from "../Application";
-import {Schema} from "../common/schema";
+import {WithSchema} from "../common/withSchema";
 
 export type EventId = Id;
 
-export interface Event extends Entity<EventId>, Schema {
+export interface Event extends Entity<EventId>, WithSchema {
     applicationId: ApplicationId;
     purposeIds: PurposeId[];
     dataType: EventType;
