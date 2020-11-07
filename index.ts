@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
+import {JSONSchema7} from "json-schema";
 import {terminal} from "terminal-kit";
-import {availableEnvs, CDP, DataCenter, Env} from "./SDK";
 import {
     Cancel,
     Continue,
@@ -16,7 +16,8 @@ import {
     showYesOrNo,
     TerminalApp
 } from "./terminal";
-import {JSONSchema7} from "json-schema";
+import {availableEnvs, CDP, DataCenter, Env} from "./SDK";
+import {Application, BusinessUnit, Event, Workspace} from "./SDK/entities";
 import {defaultSchemaPropFakers, fakify} from "json-schema-fakify";
 import {
     getFakedEvents,
@@ -29,7 +30,6 @@ import {
 import {asyncBulkMap, createDelay} from "async-bulk-map";
 import {initStore} from "./secure-store";
 import FakerStatic = Faker.FakerStatic;
-import {Application, BusinessUnit, Event, Workspace} from "./SDK/entities";
 
 interface AppContext {
     dataCenter: DataCenter;
@@ -49,16 +49,11 @@ interface AppContext {
     batchSize: number;
     delay: number;
 }
-
-type Creds = { userKey: string; secret: string; };
 const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
     // ignoreCertError: true,
     // verboseLog: true,
     // proxy: 'http://127.0.0.1:8888'
 };
-
-
-const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSchemaFakers.json');
 
 (async () => {
     terminal.bgMagenta.black('Welcome to CDP CLI!\n');
@@ -67,6 +62,7 @@ const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSch
         ['dataCenter', async context => showMenu(`pick a datacenter:`, Object.keys(availableEnvs) as DataCenter[])],
         ['env', async context => showMenu(`pick env:`, availableEnvs[context.dataCenter])],
         ['sdk', async context => {
+            type Creds = { userKey: string; secret: string; };
             const sStore = initStore<Creds>(`./${context.dataCenter.split('-')[0]}.creds.json`);
             const hasExistingCreds = sStore.exists();
             let creds: Creds;
@@ -185,6 +181,7 @@ const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSch
                 schema = JSON.parse(schema) as JSONSchema7;
             }
 
+            const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSchemaFakers.json');
             const fieldFakers = fieldFakersStore.exists() ? fieldFakersStore.get() : {};
             Object.assign(defaultSchemaPropFakers, fieldFakers);
             const fakified = fakify(schema); // TODO: fakify to support full faker name (with category)
