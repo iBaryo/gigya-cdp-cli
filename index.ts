@@ -16,7 +16,7 @@ import {
     showMenu,
     showYesOrNo,
     TerminalApp
-} from "./terminal/TerminalApp";
+} from "./terminal";
 import {JSONSchema7} from "json-schema";
 import {defaultSchemaPropFakers, fakify} from "json-schema-fakify";
 import {
