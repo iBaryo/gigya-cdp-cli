@@ -8,6 +8,7 @@ import {
 import {Id} from "../index";
 import {Condition, SimpleCondition} from "./Condition";
 import {FieldCondition, FieldStateCondition} from "./FieldCondition";
+import {ActivityFieldName, ProfileFieldName} from "../Field";
 
 // TODO: clearout "state" condition entities
 
@@ -19,7 +20,7 @@ export interface ProfileStateCondition extends SimpleCondition {
 export interface ProfileCondition extends SimpleCondition {
     type: 'profile'
     operator?: 'created' | 'updated';
-    fieldCondition?: Condition<FieldCondition>;
+    fieldCondition?: Condition<FieldCondition<ProfileFieldName>>;
 }
 
 export interface ActivityCondition extends SimpleCondition {
@@ -49,7 +50,7 @@ export interface ActivityIndicatorStateCondition extends FieldStateCondition {
     type: 'activityIndicator';
 }
 
-export interface ActivityIndicatorCondition extends FieldCondition {
+export interface ActivityIndicatorCondition extends FieldCondition<ActivityFieldName> {
     type: 'activityIndicator';
 }
 

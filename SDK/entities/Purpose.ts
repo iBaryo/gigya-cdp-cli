@@ -1,14 +1,15 @@
 import {Entity, Id} from './common';
-import {BusinessUnitId} from './BusinessUnit';
+import {WithBusinessUnitId} from './BusinessUnit';
+import {SegmentName} from "./Segment";
+import {ActivityIndicatorId} from "./ActivityIndicator";
 
 export type PurposeId = Id;
 
-export interface Purpose extends Entity<PurposeId> {
-  businessUnitId: BusinessUnitId;
+export interface Purpose extends Entity<PurposeId>, WithBusinessUnitId {
   externalId: string;
   reason: string;
   customerAttributes?: string[];
-  customerSegments?: string[];
-  customerActivityIndicators?: string[];
-  customerActivities?: Record<string, string[]>;
+  customerSegments?: SegmentName[];
+  customerActivityIndicators?: ActivityIndicatorId[];
+  customerActivities?: Record<Id, string[]>;
 }

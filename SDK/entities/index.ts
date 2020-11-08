@@ -9,6 +9,8 @@ export * from './Segment';
 export * from './ActivityIndicator';
 export * from './Action';
 export * from './View';
+export * from './MatchingRule';
+export * from './MergeRule';
 export * from './Audience';
 export * from './Journey';
 
