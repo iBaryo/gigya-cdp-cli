@@ -201,7 +201,7 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
                     borderAttr: {color: 'blue'},
                     textAttr: {bgColor: 'default'},
                     // firstCellTextAttr: { bgColor: 'blue' } ,
-                    firstRowTextAttr: {bgColor: 'yellow'},
+                    firstRowTextAttr: {bgColor: 'blue', color: 'black'},
                     // firstColumnTextAttr: { bgColor: 'red' } ,
                     width: 60,
                     fit: true   // Activate all expand/shrink + wordWrap
