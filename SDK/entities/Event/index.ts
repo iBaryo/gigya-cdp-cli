@@ -1,7 +1,7 @@
 import {Entity, Id} from "../common";
 import {PurposeId} from "../Purpose";
 import {ApplicationId} from "../Application";
-import {WithSchema} from "../common/withSchema";
+import {WithSchema} from "../Schema";
 
 export type EventId = Id;
 

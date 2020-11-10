@@ -2,7 +2,7 @@ import {Entity, Id} from "../common";
 import {ActivityIndicatorRuleCondition} from "./ActivityIndicatorRuleCondition";
 import {CalculationMethod} from "./CalculationMethod";
 import {DateRange} from "./DateRange";
-import {SchemaId} from "../common/withSchema";
+import {SchemaId} from "../Schema";
 
 export type ActivityIndicatorId = Id;
 export interface ActivityIndicator extends Entity<ActivityIndicatorId> {

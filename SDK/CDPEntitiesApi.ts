@@ -14,6 +14,7 @@ import {EventMapping} from "./entities/Event/EventMapping";
 import {EventSchedule} from "./entities/Event/EventSchedule";
 import {MatchingRule, MatchingRulePriority} from "./entities/MatchingRule";
 import {ActionMapping} from "./entities/Action/ActionMapping";
+import {CustomerSchema} from "./entities/Schema";
 
 export type CDPEntitiesApi = {
     workspaces: EntityApi<EntityDef<Workspace>, {
@@ -23,19 +24,23 @@ export type CDPEntitiesApi = {
         }>;
     }>,
     businessunits: EntityApi<EntityDef<BusinessUnit>, {
+        mappings: EntityApi<EntityDef<Record<string, Array<{sourceField: string; targetField: string}>>>>; // deprecate this
+
+        ucpschemas: EntityApi<EntityDef<CustomerSchema>>;
+
         activityIndicators: EntityApi<EntityDef<ActivityIndicator>>;
         segments: EntityApi<EntityDef<Segment>>;
         applications: EntityApi<EntityDef<Application>, {
 
             dataevents: EntityApi<EntityDef<Event>, {
-                mapping: EntityApi<EntityDef<EventMapping[]>>;
+                // mappings: EntityApi<EntityDef<EventMapping[]>>;
                 schedule: EntityApi<EntityDef<EventSchedule>>;
                 event: EntityApi;
                 activate: EntityApi;
             }>;
 
             actions: EntityApi<EntityDef<Action>, {
-                mapping: EntityApi<EntityDef<ActionMapping[]>>;
+                mappings: EntityApi<EntityDef<ActionMapping[]>>;
                 activate: EntityApi;
             }>;
 
