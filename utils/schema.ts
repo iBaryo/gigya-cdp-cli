@@ -12,7 +12,7 @@ type WithIdentifier = {
     isIdentifier: boolean;
 };
 
-export type JSONSchemaFaker = JSONSchema7 & Partial<WithFaker & WithIdentifier>;
+export type JSONSchemaFaker = JSONSchema7 & Partial<WithFaker>;
 export type JSONSchemaFieldFaker = WithFaker & WithIdentifier & {
     fieldName: string;
     fieldPath: string;
@@ -34,13 +34,22 @@ export function getFields(schema: JSONSchemaFaker, path = ''): Array<JSONSchemaF
             return [{
                 fieldName: path.split('.').pop(),
                 fieldPath: path,
+                schema: schema,
+
+                get isIdentifier() {
+                    return this.schema.isIdentifier;
+                },
+                set isIdentifier(isIdentifier: boolean) {
+                    this.schema.isIdentifier = isIdentifier;
+                },
+
                 get faker() {
                     return this.schema.faker;
                 },
-                get isIdentifier() {
-                    return this.schema['isIdentifier'];
+                set faker(f: string) {
+                    this.schema.faker = f;
                 },
-                schema: schema,
+
                 toString() {
                     return `${this.fieldPath}\t${this.faker || '(No faker)'}`
                 }
@@ -72,26 +81,22 @@ export function resolveFake(schema: JSONSchemaFaker) {
     return jsf.resolve(schema);
 }
 
-export function getFakedEvents(schema: JSONSchemaFaker, eventsNum: number, customersNum = 0): Promise<object[]> {
-    const identifiers = getIdentifierFields(schema);
-    if (!identifiers.length) {
+export function getFakedEvents(identifierName: string, schema: JSONSchemaFaker, eventsNum: number, customersNum = 0): Promise<object[]> {
+    const identifierSchema = findField(identifierName, schema);
         return Promise.all(
-            createArray(eventsNum, () => resolveFake(schema))
-        );
-    } else {
-        return Promise.all(
-            identifiers.flatMap(identifier => {
-                return createArray(Math.max(1, customersNum), async () => {
-                    const id = await resolveFake(identifier.schema);
-                    console.log(`~~~~`, identifier.fieldName, id);
+                createArray(Math.max(1, customersNum), async () => {
+                    const id = await resolveFake(identifierSchema);
+                    console.log(`~~~~`, identifierName, id);
                     return Promise.all(
                         createArray(eventsNum, async () => Object.assign(await resolveFake(schema), {
-                            [identifier.fieldName]: id
+                            [identifierName]: id
                         }))
                     );
-                });
-            })
+                })
         ).then(res => res.reduce((res, cur) => res.concat(cur), []));
+}
 
-    }
+function findField(fieldName: string, schema: JSONSchema7): JSONSchemaFaker {
+    // TODO: zoe to implement
+    return { type: 'string', faker: 'name.firstName' };
 }

@@ -17,7 +17,7 @@ import {
     TerminalApp, isFlowSymbol
 } from "./terminal";
 import {asCDPError, availableEnvs, CDP, CDPErrorResponse, DataCenter, Env, isCDPError} from "./SDK";
-import {Application, BusinessUnit, Event, Workspace} from "./SDK/entities";
+import {Application, BusinessUnit, Event, MatchingRule, View, Workspace} from "./SDK/entities";
 import {defaultSchemaPropFakers, fakify} from "json-schema-fakify";
 import {
     getFakedEvents,
@@ -30,6 +30,8 @@ import {
 import {asyncBulkMap, createDelay} from "async-bulk-map";
 import {initStore} from "./secure-store";
 import FakerStatic = Faker.FakerStatic;
+import {SchemaType} from "./SDK/entities/Schema";
+import {ProfileFieldName} from "./SDK/entities/common/Field";
 
 interface AppContext {
     dataCenter: DataCenter;
@@ -42,6 +44,8 @@ interface AppContext {
     bu: BusinessUnit;
     app: Application;
     event: Event,
+    view: View,
+    identifier: ProfileFieldName;
     shouldEditSchema: boolean;
     fakifiedEventSchema: JSONSchema7;
     customersNum: number;
@@ -173,27 +177,29 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
         ['fakifiedEventSchema', async context => {
             let {schema} =
                 await context.sdk.api.businessunits.for(context.bu.id).applications.for(context.app.id).dataevents.for(context.event.id).get();
+
             if (!schema) {
                 console.log(context.event);
                 return errorAnd(Cancel, `corrupted event with no schema\n`);
-            }
-
-            if (typeof schema == 'string') {
+            } else if (typeof schema == 'string') {
                 schema = JSON.parse(schema) as JSONSchema7;
             }
 
             const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./defaultSchemaFakers.json');
             const fieldFakers = fieldFakersStore.exists() ? fieldFakersStore.get() : {};
             Object.assign(defaultSchemaPropFakers, fieldFakers);
+
             const fakified = fakify(schema); // TODO: fakify to support full faker name (with category)
 
             const fields = getFields(fakified);
+            // fields.
+
             let shouldEditSchema = true;
             while (shouldEditSchema) {
                 terminal.cyan(`event schema:\n`);
                 terminal['table']([
-                    ['Field', 'Faker', 'Identifer'],
-                    ...fields.map(f => [f.fieldPath, f.faker || '(None)', f.isIdentifier ? 'V' : ''])
+                    ['Field', 'Faker'],
+                    ...fields.map(f => [f.fieldPath, f.faker || '(None)'])
                 ], {
                     hasBorder: true,
                     // contentHasMarkup: true ,
@@ -209,7 +215,6 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
 
                 type FieldEditContext = {
                     field: JSONSchemaFieldFaker;
-                    isIdentifer: boolean;
                     fakerCategory: keyof FakerStatic;
                     faker: string;
                 };
@@ -218,12 +223,10 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
                     n: async () => shouldEditSchema = false,
                     y: async () => new TerminalApp<FieldEditContext>().show([
                         ['field', ctx => showMenu(`select a field:`, fields, f => f.fieldPath)],
-                        ['isIdentifer', ctx => showYesOrNo(`is it an identifier?`, 'n', async res => res)],
                         ['fakerCategory', ctx => showMenu(`select a faker category:`, getFakerCategories())],
                         ['faker', ctx => showMenu(`select a faker:`, getFakers(ctx.fakerCategory))],
                         [async ctx => {
-                            ctx.field.schema.faker = `${ctx.fakerCategory}.${ctx.faker}`;
-                            ctx.field.schema.isIdentifier = ctx.isIdentifer;
+                            ctx.field.faker = `${ctx.fakerCategory}.${ctx.faker}`;
                             terminal.green(`~~ field: ${ctx.field.fieldPath}, faker: ${ctx.field.faker}, identifier: ${ctx.field.isIdentifier}\n\n`);
                             fieldFakers[ctx.field.fieldName] = ctx.faker as any;
                         }]
@@ -237,12 +240,48 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
 
             return fakified;
         }],
+        ['view', async context => {
+            const views =
+                await context.sdk.api.businessunits.for(context.bu.id).views.getAll();
+
+            return showMenu(`pick a view:`, views, v => v.name);
+        }],
+        ['identifier', async context => {
+            const buOps = context.sdk.api.businessunits.for(context.bu.id);
+            const viewOps = buOps.views.for(context.view.id);
+            const [priorities, mRules] = await Promise.all([viewOps.matchRulesPriority.get(), viewOps.matchRules.getAll()]);
+            const identifiers = priorities.rules.map(mRuleId => mRules.find(mRule => mRule.id == mRuleId)?.attributeName).filter(Boolean);
+
+            // match all matching rules to their field (fields have different matching rules)
+            const profileSchema = await buOps.ucpschemas.getAll().then(
+                schemas => schemas.find(s => s.schemaType == SchemaType.Profile));
+
+            const profileMappings = await context.sdk.api.businessunits.for(context.bu.id).mappings.get({
+                sourceId: context.event.id,
+                targetId: profileSchema.id
+            }).then(m => m?.[profileSchema.id] || []);
+
+            // filter only the mappings to the profile schema && to a targetField that is an identifier and take the source field
+            const eventIdentifierFields = profileMappings.map(m => {
+                const identifierIndex = identifiers.indexOf(m.targetField);
+                return {
+                    eventField: m.sourceField as ProfileFieldName,
+                    identifier: identifiers[identifierIndex],
+                    priority: identifierIndex
+                };
+            }).filter(i => !!i.identifier);
+
+            // TODO display a table: field, To identifier (priority)  -- sort according to priority
+
+            return showMenu(`pick an identifier:`, eventIdentifierFields, f => `${f.eventField} (${f.identifier})`).then(f => {
+                if (isFlowSymbol(f))
+                    return f;
+
+                return f.eventField as any;
+            });
+        }],
         ['customersNum', async context => {
-            if (getIdentifierFields(context.fakifiedEventSchema).length) {
-                return requestNumber(`number of different customers:`, 1);
-            } else {
-                return 0;
-            }
+            return requestNumber(`number of different customers:`, 1);
         }],
         ['eventsNum', async context => {
             if (context.customersNum) {
@@ -263,7 +302,7 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
         [async context => {
             console.log('faked schema:', context.fakifiedEventSchema);
 
-            const fakeEvents = await getFakedEvents(context.fakifiedEventSchema, context.eventsNum, context.customersNum);
+            const fakeEvents = await getFakedEvents(context.identifier, context.fakifiedEventSchema, context.eventsNum, context.customersNum);
             const eventApi = context.sdk.api
                 .businessunits.for(context.bu.id)
                 .applications.for(context.app.id)

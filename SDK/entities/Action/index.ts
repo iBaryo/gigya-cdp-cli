@@ -30,7 +30,7 @@ interface ActionsEndpoints {
     POST: (bUnit: BusinessUnitId, applicationId: ApplicationId, actionId: Id, schema: JSONSchema7) => Promise<JSONSchema7>; // upsert
   };
 
-  '/businessUnits/$bUnit/applications/$appId/actions/$actionId/mapping': {
+  '/businessUnits/$bUnit/applications/$appId/actions/$actionId/mappings': {
     GET: (bUnit: BusinessUnitId, applicationId: ApplicationId, actionId: Id) => Promise<ActionMapping[]>;
     POST: (bUnit: BusinessUnitId, applicationId: ApplicationId, actionId: Id, payload: ActionMapping[]) => Promise<ActionMapping[]>; // upsert
   };

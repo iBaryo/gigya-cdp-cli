@@ -29,7 +29,7 @@ interface AppLibraryEndpoints {
     GET: (wsId: WorkspaceId) => Promise<Connector[]>;
     POST: (wsId: WorkspaceId, connector: Payload<Connector>) => Promise<Connector>;
   };
-  "/api/workspaces/$wsId/global/appLibrary/${connectorId}": {
+  "/api/workspaces/$wsId/global/appLibrary/$connectorId": {
     GET: (wsId: WorkspaceId, connectorId: Id) => Promise<Connector>;
     PUT: (wsId: WorkspaceId, connectorId: Id, connector: Payload<Connector>) => Promise<Connector>;
     DELETE: (wsId: WorkspaceId, connectorId: Id) => Promise<void>;
@@ -41,7 +41,7 @@ interface AppLibraryEndpoints {
     POST: (wsId: WorkspaceId, connector: Payload<Connector>) => Promise<Connector>;
   };
 
-  "/api/workspaces/$wsId/appLibrary/${connectorId}": {
+  "/api/workspaces/$wsId/appLibrary/$connectorId": {
     GET: (wsId: WorkspaceId, connectorId: Id) => Promise<Connector>;
     PUT: (wsId: WorkspaceId, connectorId: Id, connector: Payload<Connector>) => Promise<Connector>;
     DELETE: (wsId: WorkspaceId, connectorId: Id) => Promise<void>;

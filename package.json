@@ -10,7 +10,8 @@
     "start": "tsc && node index.js",
     "build": "tsc",
     "test": "tsc",
-    "prepublish": "npm run test"
+    "prepublish": "npm run test",
+    "run-test": "tsc && node test.js"
   },
   "repository": {
     "type": "git",
