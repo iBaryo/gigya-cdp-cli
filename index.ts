@@ -231,7 +231,7 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
                         ['faker', ctx => showMenu(`select a faker:`, getFakers(ctx.fakerCategory))],
                         [async ctx => {
                             ctx.field.faker = `${ctx.fakerCategory}.${ctx.faker}`;
-                            terminal.green(`~~ field: ${ctx.field.fieldPath}, faker: ${ctx.field.faker}, identifier: ${ctx.field.isIdentifier}\n\n`);
+                            terminal.green(`~~ field: ${ctx.field.fieldPath}, faker: ${ctx.field.faker}\n\n`);
                             fieldFakers[ctx.field.fieldName] = ctx.faker as any;
                         }]
                     ])
@@ -293,11 +293,13 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
                 fit: true   // Activate all expand/shrink + wordWrap
             });
 
-            return showMenu(`pick an identifier:`, eventIdentifierFields, f => `${f.eventFieldPath} (-> ${f.identifier})`).then(f => {
-                if (isFlowSymbol(f))
-                    return f;
+            return showMenu(`pick an identifier:`, eventIdentifierFields, f => `${f.eventFieldPath} (-> ${f.identifier})`).then(selected => {
+                if (isFlowSymbol(selected))
+                    return selected;
 
-                return f.eventFieldPath;
+                // const unselected = eventIdentifierFields.filter(field => selected != field).map(f => f.eventFieldPath);
+
+                return selected.eventFieldPath;
             });
         }],
         ['customersNum', async context => {
