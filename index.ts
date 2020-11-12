@@ -265,7 +265,7 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
             const eventIdentifierFields = profileMappings.map(m => {
                 const identifierIndex = identifiers.indexOf(m.targetField);
                 return {
-                    eventField: m.sourceField as ProfileFieldName,
+                    eventFieldPath: m.sourceField as ProfileFieldName,
                     identifier: identifiers[identifierIndex],
                     priority: identifierIndex
                 };
@@ -273,11 +273,29 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
 
             // TODO display a table: field, To identifier (priority)  -- sort according to priority
 
-            return showMenu(`pick an identifier:`, eventIdentifierFields, f => `${f.eventField} (${f.identifier})`).then(f => {
+            eventIdentifierFields.sort((a, b) => a.priority - b.priority)
+
+            terminal['table']([
+                ['Field', 'To Identifier'],
+                ...eventIdentifierFields.map(f => [f.eventFieldPath, `${f.identifier} (${f.priority})` || '(None)'])
+            ], {
+                hasBorder: true,
+                // contentHasMarkup: true ,
+                borderChars: 'lightRounded',
+                borderAttr: {color: 'blue'},
+                textAttr: {bgColor: 'default'},
+                // firstCellTextAttr: { bgColor: 'blue' } ,
+                firstRowTextAttr: {bgColor: 'blue', color: 'black'},
+                // firstColumnTextAttr: { bgColor: 'red' } ,
+                width: 60,
+                fit: true   // Activate all expand/shrink + wordWrap
+            });
+
+            return showMenu(`pick an identifier:`, eventIdentifierFields, f => `${f.eventFieldPath} (${f.identifier})`).then(f => {
                 if (isFlowSymbol(f))
                     return f;
 
-                return f.eventField as any;
+                return f.eventFieldPath as any;
             });
         }],
         ['customersNum', async context => {
