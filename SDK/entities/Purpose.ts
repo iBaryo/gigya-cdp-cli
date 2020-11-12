@@ -1,15 +1,16 @@
 import {Entity, Id} from './common';
-import {WithBusinessUnitId} from './BusinessUnit';
 import {SegmentName} from "./Segment";
-import {ActivityIndicatorId} from "./ActivityIndicator";
+import {ActivityIndicatorName} from "./ActivityIndicator";
+import {ActivityFieldName, ProfileFieldName} from "./common/Field";
+import {ActivitySchemaName} from "./Schema";
 
 export type PurposeId = Id;
 
-export interface Purpose extends Entity<PurposeId>, WithBusinessUnitId {
+export interface Purpose extends Omit<Entity<PurposeId>, 'enabled'> {
   externalId: string;
   reason: string;
-  customerAttributes?: string[];
+  customerAttributes?: ProfileFieldName[];
   customerSegments?: SegmentName[];
-  customerActivityIndicators?: ActivityIndicatorId[];
-  customerActivities?: Record<Id, string[]>;
+  customerActivityIndicators?: ActivityIndicatorName[];
+  customerActivities?: Record<ActivitySchemaName, ActivityFieldName[]>;
 }

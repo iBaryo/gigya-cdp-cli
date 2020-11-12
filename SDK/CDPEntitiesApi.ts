@@ -5,7 +5,7 @@ import {
     Application,
     BusinessUnit, Connector,
     Event, Journey,
-    MergeRule,
+    MergeRule, Purpose,
     Segment,
     View,
     Workspace
@@ -33,6 +33,8 @@ export type CDPEntitiesApi = {
         mappings: EntityApi<CDPEntityDef<Record<string, Array<{sourceField: string; targetField: string}>>>>; // deprecate this
 
         ucpschemas: EntityApi<CDPEntityDef<CustomerSchema>>;
+
+        purposes: EntityApi<CDPEntityDef<Purpose>>;
 
         activityIndicators: EntityApi<CDPEntityDef<ActivityIndicator>>;
         segments: EntityApi<CDPEntityDef<Segment>>;

@@ -22,3 +22,6 @@ export enum SchemaType {
     Segment,
     ActivityIndicator
 }
+
+export type ProfileSchemaName = 'profile';
+export type ActivitySchemaName = string;
