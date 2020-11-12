@@ -141,7 +141,7 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
             const wss = await Promise.all(wsIds.map(wsId => context.sdk.api.workspaces.for(wsId).get())).then(res =>
                 !context.wsFilter ?
                     res
-                    : res.filter(ws => ws.name.toLowerCase().includes(context.wsFilter)));
+                    : res.filter(ws => ws.name.toLowerCase().includes(context.wsFilter.toLowerCase())));
 
             if (!wss.length)
                 return errorAnd(Cancel, `no available workspaces\n`);
@@ -164,7 +164,7 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
             });
         }],
         ['bu', async context => {
-            return showMenu(`select business unit:`, context.BUs, bu => bu.name);
+            return showMenu(`select business unit:`, context.BUs.filter(bu => bu.workspaceId == context.ws.id), bu => bu.name);
         }],
         ['app', async context => {
             const apps = await context.sdk.api.businessunits.for(context.bu.id).applications.getAll();
@@ -246,7 +246,7 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
 
             return showMenu(`pick a view:`, views, v => v.name);
         }],
-        ['identifier', async context => {
+        ['identifier', async (context): Promise<ProfileFieldName|Symbol> => {
             const buOps = context.sdk.api.businessunits.for(context.bu.id);
             const viewOps = buOps.views.for(context.view.id);
             const [priorities, mRules] = await Promise.all([viewOps.matchRulesPriority.get(), viewOps.matchRules.getAll()]);
@@ -267,17 +267,15 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
                 return {
                     eventFieldPath: m.sourceField as ProfileFieldName,
                     identifier: identifiers[identifierIndex],
-                    priority: identifierIndex
+                    priority: identifierIndex + 1
                 };
             }).filter(i => !!i.identifier);
-
-            // TODO display a table: field, To identifier (priority)  -- sort according to priority
 
             eventIdentifierFields.sort((a, b) => a.priority - b.priority)
 
             terminal['table']([
-                ['Field', 'To Identifier'],
-                ...eventIdentifierFields.map(f => [f.eventFieldPath, `${f.identifier} (${f.priority})` || '(None)'])
+                ['Event Field', 'To Identifier'],
+                ...eventIdentifierFields.map(f => [f.eventFieldPath, `${f.identifier} (priority: ${f.priority})` || '(None)'])
             ], {
                 hasBorder: true,
                 // contentHasMarkup: true ,
@@ -291,11 +289,11 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
                 fit: true   // Activate all expand/shrink + wordWrap
             });
 
-            return showMenu(`pick an identifier:`, eventIdentifierFields, f => `${f.eventFieldPath} (${f.identifier})`).then(f => {
+            return showMenu(`pick an identifier:`, eventIdentifierFields, f => `${f.eventFieldPath} (-> ${f.identifier})`).then(f => {
                 if (isFlowSymbol(f))
                     return f;
 
-                return f.eventFieldPath as any;
+                return f.eventFieldPath;
             });
         }],
         ['customersNum', async context => {

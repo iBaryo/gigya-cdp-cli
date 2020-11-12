@@ -97,17 +97,18 @@ export function getFakedEvents(identifierName: string, schema: JSONSchemaFaker, 
 }
 
 function findField(fieldPath: string, schema: JSONSchemaFaker): JSONSchemaFaker {
-
-    let pathItems = fieldPath.split('.');
-    let currentPath = pathItems.shift()
+    const pathSegments = fieldPath.split('.');
+    const currentPath = pathSegments.shift();
 
     if(schema.type !== 'object'){
-        throw('not an object')
+        throw 'not an object';
     }
 
-    let currentPathSchema = schema.properties[currentPath]
+    const currentPathSchema = schema.properties[currentPath] as JSONSchemaFaker;
 
-    if(!pathItems.length) {
-        return currentPathSchema as JSONSchema7
-    } else return findField(pathItems.join('.'), currentPathSchema as JSONSchema7)
+    if(!pathSegments.length) {
+        return currentPathSchema;
+    } else {
+        return findField(pathSegments.join('.'), currentPathSchema);
+    }
 }
