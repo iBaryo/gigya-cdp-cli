@@ -108,9 +108,7 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
 
             terminal.cyan(`authenticating...`);
 
-            // TODO: remove forceSimple
-            // TODO: replace in typed ts-rest-client
-            const sdk = new CDP({...creds, forceSimple: true}, {
+            const sdk = new CDP(creds, {
                 ...sdkOptions,
                 dataCenter: context.dataCenter,
                 env: context.env
