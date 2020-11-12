@@ -5,33 +5,39 @@ import {terminal} from "terminal-kit";
 import {
     Cancel,
     Continue,
-    Repeat,
-    Restart,
     End,
     errorAnd,
+    isFlowSymbol,
+    Repeat,
     requestNumber,
     requestText,
     requestTextStep,
+    Restart,
     showMenu,
     showYesOrNo,
-    TerminalApp, isFlowSymbol
+    TerminalApp
 } from "./terminal";
-import {asCDPError, availableEnvs, CDP, CDPErrorResponse, DataCenter, Env, isCDPError} from "./SDK";
-import {Application, BusinessUnit, Event, MatchingRule, View, Workspace} from "./SDK/entities";
 import {defaultSchemaPropFakers, fakify} from "json-schema-fakify";
-import {
-    getFakedEvents,
-    getFakerCategories,
-    getFakers,
-    getFields,
-    getIdentifierFields,
-    JSONSchemaFieldFaker
-} from "./utils/schema";
+import {getFakedEvents, getFakerCategories, getFakers, getFields, JSONSchemaFieldFaker} from "./utils/schema";
 import {asyncBulkMap, createDelay} from "async-bulk-map";
 import {initStore} from "./secure-store";
+import {
+    Application,
+    asCDPError,
+    availableEnvs,
+    BusinessUnit,
+    CDP,
+    CDPErrorResponse,
+    DataCenter,
+    Env,
+    Event,
+    isCDPError,
+    ProfileFieldName,
+    SchemaType,
+    View,
+    Workspace
+} from "./gigya-cdp-sdk";
 import FakerStatic = Faker.FakerStatic;
-import {SchemaType} from "./SDK/entities/Schema";
-import {ProfileFieldName} from "./SDK/entities/common/Field";
 
 interface AppContext {
     dataCenter: DataCenter;
@@ -246,7 +252,7 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
 
             return showMenu(`pick a view:`, views, v => v.name);
         }],
-        ['identifier', async (context): Promise<ProfileFieldName|Symbol> => {
+        ['identifier', async (context): Promise<ProfileFieldName | Symbol> => {
             const buOps = context.sdk.api.businessunits.for(context.bu.id);
             const viewOps = buOps.views.for(context.view.id);
             const [priorities, mRules] = await Promise.all([viewOps.matchRulesPriority.get(), viewOps.matchRules.getAll()]);

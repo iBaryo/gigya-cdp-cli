@@ -1,0 +1,3 @@
+[submodule "gigya-cdp-sdk"]
+	path = gigya-cdp-sdk
+	url = https://github.com/iBaryo/gigya-cdp-sdk
