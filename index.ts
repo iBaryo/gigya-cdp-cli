@@ -36,8 +36,9 @@ import {
     SchemaType,
     View,
     Workspace
-} from "./gigya-cdp-sdk";
+} from 'gigya-cdp-sdk';
 import FakerStatic = Faker.FakerStatic;
+import { getSdkOptions } from "./sdk-options";
 
 interface AppContext {
     dataCenter: DataCenter;
@@ -60,14 +61,10 @@ interface AppContext {
     delay: number;
 }
 
-const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
-    // ignoreCertError: true,
-    // verboseLog: true,
-    // proxy: 'http://127.0.0.1:8888'
-};
-
 (async () => {
     terminal.bgMagenta.black('Welcome to CDP CLI!\n');
+    terminal('\n');
+    const sdkOptions = await getSdkOptions();
     terminal('\n');
     await new TerminalApp<AppContext>({login: {retries: 3}}).show([
         ['dataCenter', async context => showMenu(`pick a datacenter:`, Object.keys(availableEnvs) as DataCenter[])],
@@ -172,11 +169,11 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
         }],
         ['app', async context => {
             const apps = await context.sdk.api.businessunits.for(context.bu.id).applications.getAll();
-            return showMenu(`select application:`, apps, app => app.name);
+            return showMenu<Application>(`select application:`, apps, app => app.name);
         }],
         ['event', async context => {
             const events = await context.sdk.api.businessunits.for(context.bu.id).applications.for(context.app.id).dataevents.getAll();
-            return showMenu(`select event:`, events, event => event.name);
+            return showMenu<Event>(`select event:`, events, event => event.name);
         }],
         ['fakifiedEventSchema', async context => {
             let {schema} =
@@ -248,7 +245,7 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
             const views =
                 await context.sdk.api.businessunits.for(context.bu.id).views.getAll();
 
-            return showMenu(`pick a view:`, views, v => v.name);
+            return showMenu<View>(`pick a view:`, views, v => v.name);
         }],
         ['identifier', async (context): Promise<ProfileFieldName | Symbol> => {
             const buOps = context.sdk.api.businessunits.for(context.bu.id);
@@ -293,14 +290,14 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
                 fit: true   // Activate all expand/shrink + wordWrap
             });
 
-            return showMenu(`pick an identifier:`, eventIdentifierFields, f => `${f.eventFieldPath} (-> ${f.identifier})`).then(selected => {
-                if (isFlowSymbol(selected))
-                    return selected;
-
-                // const unselected = eventIdentifierFields.filter(field => selected != field).map(f => f.eventFieldPath);
-
-                return selected.eventFieldPath;
-            });
+            return showMenu<{identifier: string; eventFieldPath: string}>(
+                `pick an identifier:`,
+                eventIdentifierFields,
+                    f => `${f.eventFieldPath} (-> ${f.identifier})`)
+                .then(selected =>
+                    isFlowSymbol(selected)
+                        ? selected
+                        : selected.eventFieldPath);
         }],
         ['customersNum', async context => {
             return requestNumber(`number of different customers:`, 1);

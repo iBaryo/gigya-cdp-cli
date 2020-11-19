@@ -39,6 +39,7 @@
     "@types/strict-uri-encode": "^2.0.0",
     "async-bulk-map": "^1.0.0",
     "cryptr": "^6.0.2",
+    "gigya-cdp-sdk": "^0.0.4",
     "jose": "^2.0.2",
     "json-schema-faker": "^0.5.0-rcv.29",
     "json-schema-fakify": "^1.0.9",
