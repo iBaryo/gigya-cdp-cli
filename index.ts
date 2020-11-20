@@ -38,6 +38,7 @@ import {
     Workspace
 } from "./gigya-cdp-sdk";
 import FakerStatic = Faker.FakerStatic;
+import {detectProxy} from "./utils/proxy";
 
 interface AppContext {
     dataCenter: DataCenter;
@@ -69,6 +70,13 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
 (async () => {
     terminal.bgMagenta.black('Welcome to CDP CLI!\n');
     terminal('\n');
+
+    sdkOptions.proxy = await detectProxy({hostname: '127.0.0.1', port: 8888}).then(proxy => {
+        if (proxy)
+            terminal.yellow(`proxy detected at: ${proxy}\n`);
+        return proxy;
+    });
+
     await new TerminalApp<AppContext>({login: {retries: 3}}).show([
         ['dataCenter', async context => showMenu(`pick a datacenter:`, Object.keys(availableEnvs) as DataCenter[])],
         ['env', async context => showMenu(`pick env:`, availableEnvs[context.dataCenter])],
@@ -380,4 +388,5 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
     ])
         .then(() => terminal.bgMagenta.black('Thanks for using CDP CLI!').noFormat('\n'))
         .then(() => process.exit());
-})();
+})
+();
