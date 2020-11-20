@@ -64,7 +64,6 @@ interface AppContext {
 const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
     // ignoreCertError: true,
     // verboseLog: true,
-    // proxy: 'http://127.0.0.1:8888'
 };
 
 (async () => {
@@ -210,8 +209,16 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
             while (shouldEditSchema) {
                 terminal.cyan(`event schema:\n`);
                 terminal['table']([
-                    ['Field', 'Faker'],
-                    ...fields.map(f => [f.fieldPath, f.faker || '(None)'])
+                    [
+                        'Field',
+                        'Faker',
+                        'Format'
+                    ],
+                    ...fields.map(f => [
+                        f.fieldPath,
+                        f.faker || '(None)',
+                        f.schema.type == 'string' && f.schema.format ? f.schema.format : ''
+                    ])
                 ], {
                     hasBorder: true,
                     // contentHasMarkup: true ,
