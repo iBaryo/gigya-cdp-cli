@@ -212,12 +212,12 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
                     [
                         'Field',
                         'Faker',
-                        'Format'
+                        'Pattern'
                     ],
                     ...fields.map(f => [
                         f.fieldPath,
                         f.faker || '(None)',
-                        f.schema.type == 'string' && f.schema.format ? f.schema.format : ''
+                        f.schema.type == 'string' && f.schema.pattern ? f.schema.pattern : ''
                     ])
                 ], {
                     hasBorder: true,
@@ -232,22 +232,33 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
                     fit: true   // Activate all expand/shrink + wordWrap
                 });
 
+                const categories: Array<'pattern' | keyof FakerStatic> = ['pattern', ...getFakerCategories()];
+
                 type FieldEditContext = {
                     field: JSONSchemaFieldFaker;
-                    fakerCategory: keyof FakerStatic;
-                    faker: string;
+                    category: (typeof categories)[0];
+                    augment: string | undefined;
                 };
 
                 await showYesOrNo(`would you like to augment schema fields?`, 'n', {
                     n: async () => shouldEditSchema = false,
                     y: async () => new TerminalApp<FieldEditContext>().show([
                         ['field', ctx => showMenu(`select a field:`, fields, f => f.fieldPath)],
-                        ['fakerCategory', ctx => showMenu(`select a faker category:`, getFakerCategories())],
-                        ['faker', ctx => showMenu(`select a faker:`, getFakers(ctx.fakerCategory))],
+                        ['category', ctx => showMenu(`select a faker category:`, categories)],
+                        ['augment', (ctx): Promise<Symbol | string | undefined> => {
+                            if (ctx.category == 'pattern')
+                                return requestText('pattern (regex):', false).then(format => !format ? undefined : format);
+                            else
+                                return showMenu(`select a faker:`, getFakers(ctx.category));
+                        }],
                         [async ctx => {
-                            ctx.field.faker = `${ctx.fakerCategory}.${ctx.faker}`;
-                            terminal.green(`~~ field: ${ctx.field.fieldPath}, faker: ${ctx.field.faker}\n\n`);
-                            fieldFakers[ctx.field.fieldName] = ctx.faker as any;
+                            if (ctx.category == 'pattern')
+                                ctx.field.schema.pattern = ctx.augment;
+                            else
+                                ctx.field.faker = `${ctx.category}.${ctx.augment}`;
+
+                            terminal.green(`~~ field: ${ctx.field.fieldPath}:\n`, JSON.stringify(ctx.field.schema, undefined, 4), '\n');
+                            fieldFakers[ctx.field.fieldName] = ctx.augment as any;
                         }]
                     ])
                 });
