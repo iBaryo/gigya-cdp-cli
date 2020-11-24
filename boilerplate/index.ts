@@ -5,7 +5,7 @@ import {DirectEventName} from "./Events/Direct";
 
 export function createBoilerplate(sdk: CDP) {
     return {
-        async for(bUnitId: BusinessUnitId) {
+        for(bUnitId: BusinessUnitId) {
             const bOps = sdk.api.businessunits.for(bUnitId);
 
             return {
@@ -84,7 +84,8 @@ export function createBoilerplate(sdk: CDP) {
                 audiences: {
                     async align() {
                         // TODO: zoe
-                        // "My Campaign Audience" - all VIP GOLD females over 23 years old
+                        // in Marketing view
+                        //  "My Campaign Audience" - all VIP GOLD females over 23 years old
                     }
                 },
                 async alignAll() {
