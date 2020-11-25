@@ -2,6 +2,11 @@ import {CDP} from "../gigya-cdp-sdk";
 import {BusinessUnitId} from "../gigya-cdp-sdk/entities";
 import {DirectEventName} from "./Events/Direct";
 
+/*
+       1. always extend, never delete
+       2. log operations
+       3. only update if there a change is required, e.g. if the current schema already contains the boilerplate schema then no need to update.
+ */
 
 export function createBoilerplate(sdk: CDP) {
     return {
@@ -58,7 +63,7 @@ export function createBoilerplate(sdk: CDP) {
                     async alignCloudStorage() {
                         // TODO: zoe
                         /*
-                            get all connectors
+                            get all connectors from the applibrary
                             for each cloud storage connector
                             create an application -
                                 name according to connector's
@@ -68,7 +73,7 @@ export function createBoilerplate(sdk: CDP) {
                                 create an event
                                     name: `new customers from ${app.name}`
                                     purposes: basic
-                                    mock settings & config0
+                                    mock settings & config
                                     create schema according to boilerplate
                                     create mapping
                                     no schedule
@@ -98,8 +103,10 @@ export function createBoilerplate(sdk: CDP) {
                     await this.segments.align();
                     await this.purposes.align();
 
-                    await this.applications.alignAll();
-                    await this.audiences.align();
+                    await Promise.all([
+                        this.applications.alignAll(),
+                        this.audiences.align()
+                    ]);
                 },
                 async ingestFakeEvents(customersNum: number, events: DirectEventName[]) {
                     // TODO: zoe
@@ -114,3 +121,5 @@ export function createBoilerplate(sdk: CDP) {
         }
     };
 }
+
+
