@@ -8,6 +8,7 @@
   },
   "scripts": {
     "start": "tsc && node index.js",
+    "boilerplate": "tsc && node boilerplate-test.js",
     "build": "tsc",
     "test": "tsc",
     "prepublish": "npm run test",
