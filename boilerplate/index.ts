@@ -1,6 +1,8 @@
 import {CDP} from "../gigya-cdp-sdk";
-import {BusinessUnitId} from "../gigya-cdp-sdk/entities";
+import {BusinessUnitId, SchemaType} from "../gigya-cdp-sdk/entities";
 import {DirectEventName} from "./Events/Direct";
+import {JSONSchema7} from "json-schema";
+import {boilerplateProfileSchema} from "./schemas/boilerplateProfileSchema";
 
 /*
        1. always extend, never delete
@@ -16,8 +18,42 @@ export function createBoilerplate(sdk: CDP) {
             return {
                 schemas: {
                     async alignProfile() {
-                        // TODO: zoe
-                        // complete missing fields
+                        let alignedProfile;
+                        console.log("~~~~~~~~ aligning profile schema ~~~~~~~~")
+                        console.log('~~~~~~~~ boilerplate profile schema:', boilerplateProfileSchema)
+
+                        const userProfileSchema = await bOps.ucpschemas.getAll().then(schemas => schemas.find(s => s.schemaType == SchemaType.Profile))
+
+                        if(userProfileSchema) {
+                            const parsedProfile = JSON.parse(userProfileSchema.schema?.toString())
+                            const profileFields = Object.keys(parsedProfile?.properties)
+                            console.log('~~~~~~~~ your profile schema:', parsedProfile.properties)
+
+                            const boilerplateProfileFields = Object.keys(boilerplateProfileSchema)
+                            const fieldDiffs = boilerplateProfileFields.filter(f => !profileFields.includes(f))
+                            fieldDiffs.length && console.log("~~~~~~ schema field diffs:", fieldDiffs)
+
+                            if (fieldDiffs.length) {
+                                alignedProfile = bOps.ucpschemas.for(userProfileSchema.id).update({
+                                    enabled: userProfileSchema.enabled,
+                                    name: "Profile",
+                                    protectedFields: userProfileSchema.protectedFields,
+                                    schema: JSON.stringify({...parsedProfile, properties:{...boilerplateProfileSchema, ...parsedProfile.properties}}) as JSONSchema7,
+                                    schemaType: 0
+                                }).then(updated => console.log('~~~~~ aligned profile:', updated))
+                                // return alignedProfile
+                            }
+                        } else {
+                            alignedProfile = bOps.ucpschemas.create({
+                                enabled: false,
+                                name: "Profile",
+                                protectedFields: undefined,
+                                schema: boilerplateProfileSchema, //TODO: ZOE this wont work
+                                schemaType: 0
+                            }).then(newProfile => console.log('~~~~~ aligned profile:', newProfile))
+                            // return alignedProfile = boilerplateProfileSchema
+                        }
+                        console.log('~~~~~~~ profile aligned!')
                     },
                     async alignActivities() {
                         // TODO: zoe
@@ -88,6 +124,50 @@ export function createBoilerplate(sdk: CDP) {
                 },
                 audiences: {
                     async align() {
+//                         const view = await bOps.views.getAll().then(views => views.find(v => v.type == "Marketing"));
+//                         const vOps = bOps.views.for(view.id);
+// const boilerAudience = await vOps.audiences.create({
+//     name: "My Campaign Audience",
+//     enabled: "true",
+//     purposeIds: [],
+//     query: {
+//         type: "profile",
+//         fieldCondition: {
+//             operator: "and",
+//             conditions: [
+//                 {
+//                     field: "age",
+//                     condition: {
+//                         operator: "greaterThan",
+//                         operand: {
+//                             type: "number",
+//                             value: 23
+//                         }
+//                     },
+//                 {
+//                     field: "gender",
+//                     condition: {
+//                         operator: "equal",
+//                         operand: {
+//                             type: "string",
+//                             value: "female"
+//                         }
+//                     }
+//                 },
+//         },
+//                     ],
+//                     }
+//                     },
+//                         {
+//                             type: "segment", name
+//                         :
+//                             "VIP",
+//                                 value
+//                         :
+//                             "VIP"
+//                         }
+//   }
+// })
                         // TODO: zoe
                         // in Marketing view
                         //  "My Campaign Audience" - all VIP GOLD females over 23 years old
