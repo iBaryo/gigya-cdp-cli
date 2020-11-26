@@ -8,5 +8,3 @@ export const profileSchema: JSONSchema7 = {
     "gender": {type: "string"},
     "birthdate": {type: "string", format: "date"}
 } as JSONSchema7;
-
-// TODO: zoe, according to default schema + gender field: string + birthdate field: string format:date

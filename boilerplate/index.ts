@@ -2,7 +2,8 @@ import {CDP} from "../gigya-cdp-sdk";
 import {BusinessUnitId, SchemaType} from "../gigya-cdp-sdk/entities";
 import {DirectEventName} from "./Events/Direct";
 import {JSONSchema7} from "json-schema";
-import {boilerplateProfileSchema} from "./schemas/boilerplateProfileSchema";
+import {profileSchema as boilerplateProfileSchema} from "./schemas/ProfileSchema";
+import {activitySchemas as boilerplateActivitySchemas} from "./schemas/ActivitiesSchemas";
 
 /*
        1. always extend, never delete
@@ -31,9 +32,9 @@ export function createBoilerplate(sdk: CDP) {
 
                             const boilerplateProfileFields = Object.keys(boilerplateProfileSchema)
                             const fieldDiffs = boilerplateProfileFields.filter(f => !profileFields.includes(f))
-                            fieldDiffs.length && console.log("~~~~~~ schema field diffs:", fieldDiffs)
 
                             if (fieldDiffs.length) {
+                                console.log("~~~~~~ schema field diffs:", fieldDiffs)
                                 alignedProfile = bOps.ucpschemas.for(userProfileSchema.id).update({
                                     enabled: userProfileSchema.enabled,
                                     name: "Profile",
@@ -48,7 +49,7 @@ export function createBoilerplate(sdk: CDP) {
                                 enabled: false,
                                 name: "Profile",
                                 protectedFields: undefined,
-                                schema: boilerplateProfileSchema, //TODO: ZOE this wont work
+                                schema: JSON.stringify(boilerplateProfileSchema) as JSONSchema7,
                                 schemaType: 0
                             }).then(newProfile => console.log('~~~~~ aligned profile:', newProfile))
                             // return alignedProfile = boilerplateProfileSchema
@@ -56,8 +57,47 @@ export function createBoilerplate(sdk: CDP) {
                         console.log('~~~~~~~ profile aligned!')
                     },
                     async alignActivities() {
-                        // TODO: zoe
-                        // complete missing activities & fields
+                        let alignedActivity;
+                        const boilerplateActivities = Object.keys(boilerplateActivitySchemas)
+
+                        for(let activity of boilerplateActivities) {
+                            console.log(`~~~~~~ aligning ${activity} Activity`)
+
+                            console.log(activity)
+                            const userActivitySchema = await bOps.ucpschemas.getAll().then(schemas => schemas.find(s => s.name == activity))
+                            if (userActivitySchema) {
+                                // userActivities holds schema of activities in a JSON schema string.
+                                // we need to check the properties against the boilerplate properties
+                                const parsedUserActivity = JSON.parse(userActivitySchema.schema?.toString())
+                                const userOrdersProperties = Object.keys(parsedUserActivity?.properties)
+                                console.log(`your ${activity} schema:`, parsedUserActivity.properties)
+
+                                const fieldDiffs = Object.keys(boilerplateActivitySchemas[activity].properties).filter(f => !userOrdersProperties.includes(f))
+
+                                if (fieldDiffs.length) {
+                                    console.log(`~~~~~~ ${activity} schema field diffs:`, fieldDiffs)
+                                    return alignedActivity = bOps.ucpschemas.for(userActivitySchema.id).update({
+                                        enabled: userActivitySchema.enabled,
+                                        name: activity,
+                                        protectedFields: userActivitySchema.protectedFields,
+                                        schema: JSON.stringify({
+                                            ...parsedUserActivity,
+                                            properties: {...boilerplateActivitySchemas[activity], ...parsedUserActivity.properties}
+                                        }) as JSONSchema7,
+                                        schemaType: 1
+                                    })
+                                }
+                            } else {
+                                return alignedActivity = bOps.ucpschemas.create({
+                                    enabled: false,
+                                    name: activity,
+                                    protectedFields: undefined,
+                                    schema: JSON.stringify(boilerplateActivitySchemas[activity]) as JSONSchema7,
+                                    schemaType: 1
+                                }).then(res => console.log(res))
+                            }
+                                console.log(`~~~~~~~~aligned ${activity}`)
+                        }
                     }
                 },
                 activityIndicators: {
