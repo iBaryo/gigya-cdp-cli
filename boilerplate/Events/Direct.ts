@@ -11,7 +11,19 @@ export const DirectEvents: Record<DirectEventName, Payload<Event>> = {
         description: 'money money money',
         purposeIds: ['basic', 'marketing'] as Array<Purpose>,
         dataType: EventType.firstPartyCrmData,
-        schema: {} // TODO: zoe
+        schema: {
+            'type': 'object',
+            'properties': {
+                'firstName': {
+                    'type': 'string'
+                },
+                'lastName': {
+                    'type': 'string'
+                },
+
+
+            }
+        } // TODO: zoe
     },
     'page-view': {
         enabled: true,
