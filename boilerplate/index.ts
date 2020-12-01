@@ -61,42 +61,38 @@ export function createBoilerplate(sdk: CDP) {
                         console.log('~~~~~ aligned profile:', alignedProfile);
                     },
                     async alignActivities() {
-                        let alignedActivity;
-                        const boilerplateActivities = Object.keys(boilerplateActivitySchemas)
+                        let alignActivityPromise: Promise<CustomerSchema>
+                        const boilerplateActivities = Object.keys(boilerplateActivitySchemas);
 
+                        for (const activity of boilerplateActivities) {
+                            console.log(`~~~~~~ aligning ${activity} Activity`);
+                            const activitySchema = await bOps.ucpschemas.getAll().then(schemas => schemas.find(s => s.name == activity));
 
-                        for (let activity of boilerplateActivities) {
-                            console.log(`~~~~~~ aligning ${activity} Activity`)
+                            if (!activitySchema) {
+                                alignActivityPromise = bOps.ucpschemas.create({
+                                    enabled: true,
+                                    name: activity,
+                                    schema: JSON.stringify(boilerplateActivitySchemas[activity]),
+                                    schemaType: SchemaType.Activity
+                                });
+                            } else {
+                                const parsedUserActivity = JSON.parse(activitySchema.schema.toString());
+                                const userOrdersProperties = Object.keys(parsedUserActivity.properties);
+                                const fieldDiffs = Object.keys(boilerplateActivitySchemas[activity].properties).filter(f => !userOrdersProperties.includes(f));
 
-                            console.log(activity)
-                            const userActivitySchema = await bOps.ucpschemas.getAll().then(schemas => schemas.find(s => s.name == activity))
-                            if (userActivitySchema) {
-                                const parsedUserActivity = JSON.parse(userActivitySchema.schema.toString())
-                                const userOrdersProperties = Object.keys(parsedUserActivity.properties)
-                                console.log(`your ${activity} schema:`, parsedUserActivity.properties)
-
-                                const fieldDiffs = Object.keys(boilerplateActivitySchemas[activity].properties).filter(f => !userOrdersProperties.includes(f))
-
-                                if (fieldDiffs.length) {
-                                    // console.log(`~~~~~~ ${activity} schema field diffs:`, fieldDiffs)
-                                    alignedActivity = bOps.ucpschemas.for(userActivitySchema.id).update({
-                                        enabled: userActivitySchema.enabled,
+                                alignActivityPromise = !fieldDiffs.length ?
+                                    Promise.resolve(alignActivityPromise)
+                                    : bOps.ucpschemas.for(activitySchema.id).update({
+                                        enabled: activitySchema.enabled,
                                         name: activity,
                                         schema: JSON.stringify({
                                             ...parsedUserActivity,
                                             properties: {...boilerplateActivitySchemas[activity].properties, ...parsedUserActivity.properties}
-                                        }) as JSONSchema7,
-                                        schemaType: 1
-                                    }).then(res => res)
+                                        }),
+                                        schemaType: SchemaType.Activity
+                                    });
                                 }
-                            } else {
-                                alignedActivity = bOps.ucpschemas.create({
-                                    enabled: false,
-                                    name: activity,
-                                    schema: JSON.stringify(boilerplateActivitySchemas[activity]) as JSONSchema7,
-                                    schemaType: 1
-                                }).then(res => res)
-                            }
+                            const alignedActivity = await alignActivityPromise
                             console.log(`~~~~~~~~aligned ${activity}`, alignedActivity)
                         }
                     }
