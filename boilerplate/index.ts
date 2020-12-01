@@ -1,5 +1,5 @@
 import {CDP} from "../gigya-cdp-sdk";
-import {BusinessUnitId, SchemaType} from "../gigya-cdp-sdk/entities";
+import {BusinessUnitId, CustomerSchema, SchemaType} from "../gigya-cdp-sdk/entities";
 import {DirectEventName, DirectEvents} from "./Events/Direct";
 import {JSONSchema7} from "json-schema";
 import {profileSchema as boilerplateProfileSchema} from "./schemas/ProfileSchema";
@@ -24,44 +24,41 @@ export function createBoilerplate(sdk: CDP) {
             return {
                 schemas: {
                     async alignProfile() { //TODO: age vs birthdate??
-                        let alignedProfile;
-                        console.log("~~~~~~~~ aligning profile schema ~~~~~~~~")
-                        console.log('~~~~~~~~ boilerplate profile schema:', boilerplateProfileSchema)
+                        console.log("~~~~~~~~ aligning profile schema ~~~~~~~~");
+                        console.log('~~~~~~~~ boilerplate profile schema:', boilerplateProfileSchema);
 
-                        const userProfileSchema = await bOps.ucpschemas.getAll().then(schemas => schemas.find(s => s.schemaType == SchemaType.Profile))
+                        const profileSchemaEntity = await bOps.ucpschemas.getAll().then(schemas => schemas.find(s => s.schemaType == SchemaType.Profile));
 
-                        if (userProfileSchema) {
-                            const parsedProfile = JSON.parse(userProfileSchema.schema?.toString())
-                            const profileFields = Object.keys(parsedProfile?.properties)
-                            console.log('~~~~~~~~ your profile schema:', parsedProfile.properties)
+                        let alignProfilePromise: Promise<CustomerSchema>;
 
-                            const boilerplateProfileFields = Object.keys(boilerplateProfileSchema)
-                            const fieldDiffs = boilerplateProfileFields.filter(f => !profileFields.includes(f))
-
-                            if (fieldDiffs.length) {
-                                // console.log("~~~~~~ schema field diffs:", fieldDiffs)
-                                alignedProfile = bOps.ucpschemas.for(userProfileSchema.id).update({
-                                    enabled: userProfileSchema.enabled,
-                                    name: "Profile",
-                                    protectedFields: userProfileSchema.protectedFields,
-                                    schema: JSON.stringify({
-                                        ...parsedProfile,
-                                        properties: {...boilerplateProfileSchema, ...parsedProfile.properties}
-                                    }) as JSONSchema7,
-                                    schemaType: 0
-                                }).then(updated => console.log('~~~~~ aligned profile:', updated))
-                                // return alignedProfile
-                            }
-                        } else {
-                            alignedProfile = bOps.ucpschemas.create({
-                                enabled: false,
+                        if (!profileSchemaEntity) {
+                            alignProfilePromise = bOps.ucpschemas.create({
+                                enabled: true,
                                 name: "Profile",
-                                protectedFields: undefined,
-                                schema: JSON.stringify(boilerplateProfileSchema) as JSONSchema7,
-                                schemaType: 0
-                            }).then(newProfile => console.log('~~~~~ aligned profile:', newProfile))
+                                schema: JSON.stringify(boilerplateProfileSchema),
+                                schemaType: SchemaType.Profile
+                            });
+                        } else {
+                            const profileSchema = JSON.parse(profileSchemaEntity.schema.toString());
+                            const profileFields = Object.keys(profileSchema.properties);
+                            const boilerplateProfileFields = Object.keys(boilerplateProfileSchema.properties);
+                            const fieldDiffs = boilerplateProfileFields.filter(f => !profileFields.includes(f));
+
+                            alignProfilePromise = !fieldDiffs.length ?
+                                Promise.resolve(profileSchemaEntity)
+                                : bOps.ucpschemas.for(profileSchemaEntity.id).update({
+                                enabled: true,
+                                name: "Profile",
+                                schema: JSON.stringify({
+                                    ...profileSchema,
+                                    properties: {...boilerplateProfileSchema, ...profileSchema.properties}
+                                }),
+                                schemaType: SchemaType.Profile
+                            });
                         }
-                        console.log('~~~~~~~ profile is aligned!')
+
+                        const alignedProfile = await alignProfilePromise;
+                        console.log('~~~~~ aligned profile:', alignedProfile);
                     },
                     async alignActivities() {
                         let alignedActivity;
@@ -74,8 +71,8 @@ export function createBoilerplate(sdk: CDP) {
                             console.log(activity)
                             const userActivitySchema = await bOps.ucpschemas.getAll().then(schemas => schemas.find(s => s.name == activity))
                             if (userActivitySchema) {
-                                const parsedUserActivity = JSON.parse(userActivitySchema.schema?.toString())
-                                const userOrdersProperties = Object.keys(parsedUserActivity?.properties)
+                                const parsedUserActivity = JSON.parse(userActivitySchema.schema.toString())
+                                const userOrdersProperties = Object.keys(parsedUserActivity.properties)
                                 console.log(`your ${activity} schema:`, parsedUserActivity.properties)
 
                                 const fieldDiffs = Object.keys(boilerplateActivitySchemas[activity].properties).filter(f => !userOrdersProperties.includes(f))
@@ -85,7 +82,6 @@ export function createBoilerplate(sdk: CDP) {
                                     alignedActivity = bOps.ucpschemas.for(userActivitySchema.id).update({
                                         enabled: userActivitySchema.enabled,
                                         name: activity,
-                                        protectedFields: userActivitySchema.protectedFields,
                                         schema: JSON.stringify({
                                             ...parsedUserActivity,
                                             properties: {...boilerplateActivitySchemas[activity].properties, ...parsedUserActivity.properties}
@@ -97,7 +93,6 @@ export function createBoilerplate(sdk: CDP) {
                                 alignedActivity = bOps.ucpschemas.create({
                                     enabled: false,
                                     name: activity,
-                                    protectedFields: undefined,
                                     schema: JSON.stringify(boilerplateActivitySchemas[activity]) as JSONSchema7,
                                     schemaType: 1
                                 }).then(res => res)
@@ -187,7 +182,7 @@ export function createBoilerplate(sdk: CDP) {
                                 enabled: true,
                                 logoUrl: "https://universe.eu5-st1.gigya.com/assets/img/connect-application.png",
                                 name: "Test Application",
-                                securitySchemes: {},
+                                securitySchemes: {}, // TODO: confirm this
                                 description: "R&D test application for creating customers"
                             }).then(res => console.log('~~~~~ aligned Direct application:', res))
 
