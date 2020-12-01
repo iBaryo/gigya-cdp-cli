@@ -4,10 +4,10 @@ import {DirectEventName, DirectEvents} from "./Events/Direct";
 import {JSONSchema7} from "json-schema";
 import {profileSchema as boilerplateProfileSchema} from "./schemas/ProfileSchema";
 import {activitySchemas as boilerplateActivitySchemas} from "./schemas/ActivitiesSchemas";
-import {activityIndicatorSchema as boilerplateActivityIndicatorSchema} from "./schemas/ActivityIndicatorSchema";
 import {purchaseSum as boilerplateActivityIndicator} from "./ActivityIndicators/PurchaseSum";
 import {VIPSegment} from "./Segments/VIPSegment";
 import {config} from "./BoilerplateConfig";
+import {CampaignAudience} from "./Audiences/AudienceCondition";
 
 /*
        1. always extend, never delete
@@ -23,7 +23,7 @@ export function createBoilerplate(sdk: CDP) {
 
             return {
                 schemas: {
-                    async alignProfile() {
+                    async alignProfile() { //TODO: age vs birthdate??
                         let alignedProfile;
                         console.log("~~~~~~~~ aligning profile schema ~~~~~~~~")
                         console.log('~~~~~~~~ boilerplate profile schema:', boilerplateProfileSchema)
@@ -113,27 +113,17 @@ export function createBoilerplate(sdk: CDP) {
                         let alignedActivityIndicator;
                         const userOrdersActivitySchema = await bOps.ucpschemas.getAll().then(schemas => schemas.find(s => s.name == 'Orders'))
                         const userActivityIndicators = await bOps.activityIndicators.getAll().then(a => a.find(ind => (['Purchase Sum', 'purchaseSum'].includes(ind.name)))) // TODO: CHANGE TO == since we dont need purchaseSum
-                        if (userActivityIndicators) {
 
+                        if (userActivityIndicators) {
                             const fieldDiffs = Object.entries(boilerplateActivityIndicator).find(f => !Object.entries(userActivityIndicators).includes(f))
 
                             if (fieldDiffs.length) {
-                                // const mergedActivityIndicators = {...userActivityIndicators, ...boilerplateActivityIndicator} // update was not working with this
-                                // console.log('mergedActivityIndicators', mergedActivityIndicators) // BUG: SCHEMAID & CONDITION = undefined when I dont want them to be
-
-                                // TODO: however you only want to actually update whatever is new so you need to actually FIND THE KEYS THAT NEED TO CHANGE AND THEN OBJECT DESTRUCTURE
-                                // TODO: WHY LIKE THIS. VERY UGLY HELLO.
                                 alignedActivityIndicator = bOps.activityIndicators.for(userActivityIndicators.id).update({
-                                    // calculationMethod: userActivityIndicators.calculationMethod ? userActivityIndicators.calculationMethod : boilerplateActivityIndicator.purchaseSum.calculationMethod,
-                                    // condition: userActivityIndicators.condition ? userActivityIndicators.condition : boilerplateActivityIndicator.purchaseSum.condition, //what we want here?
-                                    // dateRange: userActivityIndicators.dateRange ? userActivityIndicators.dateRange : boilerplateActivityIndicator.purchaseSum.dateRange,
-                                    // enabled: userActivityIndicators.enabled ? userActivityIndicators.enabled : boilerplateActivityIndicator.purchaseSum.enabled,
-                                    // name: userActivityIndicators.name ? userActivityIndicators.name : boilerplateActivityIndicator.purchaseSum.name,
                                     ...boilerplateActivityIndicator,
                                     schemaId: userOrdersActivitySchema.id, // nope -- this assumes a schema??
-                                    // description: boilerplateActivityIndicator.purchaseSum.description,
                                 }).then(res => res)
-                            }
+                            } else return // to get to next else?
+
                         } else alignedActivityIndicator = bOps.activityIndicators.create({
                             ...boilerplateActivityIndicator,
                             schemaId: userOrdersActivitySchema.id,
@@ -169,26 +159,23 @@ export function createBoilerplate(sdk: CDP) {
                         // marketing - attributes: segment.VIP, activityIndicator.purchaseSum
                     }
                 },
-                applications: {
+                applications: { //TODO: mapping for events
                     async alignDirect() {
                         let boilerplateDirectApplication;
                         let boilerPlateEvents;
-                        // TODO: zoe
                         console.log("~~~~~~~ aligning Direct applications")
                         const userDirectApplication = await bOps.applications.getAll().then(apps => apps && apps.find(app => app['type'] == 'Basic' && app.name == 'Test Application'))
-                        console.log('userApps', userDirectApplication)
 
-                        if(userDirectApplication){
+                        if (userDirectApplication) {
                             const userDirectEvents = await bOps.applications.for(userDirectApplication.id).dataevents.getAll().then(events => events && events.filter(e => ['purchase', 'page-view'].includes(e.name)))
-                            console.log(userDirectEvents, 'userDirectEvents')
-                            if(userDirectEvents.length){
-                                for(let event of userDirectEvents){
+                            if (userDirectEvents.length) {
+                                for (let event of userDirectEvents) {
                                     boilerPlateEvents = await bOps.applications.for(userDirectApplication.id).dataevents.for(event.id).update({
-                                    ...DirectEvents[event.name]
+                                        ...DirectEvents[event.name]
                                     })
                                 }
                             } else {
-                                for(let event of config.directEvents){
+                                for (let event of config.directEvents) {
                                     boilerPlateEvents = await bOps.applications.for(userDirectApplication.id).dataevents.create({
                                         ...DirectEvents[event]
                                     })
@@ -203,6 +190,12 @@ export function createBoilerplate(sdk: CDP) {
                                 securitySchemes: {},
                                 description: "R&D test application for creating customers"
                             }).then(res => console.log('~~~~~ aligned Direct application:', res))
+
+                            for (let event of config.directEvents) {
+                                boilerPlateEvents = await bOps.applications.for(userDirectApplication.id).dataevents.create({
+                                    ...DirectEvents[event]
+                                })
+                            }
                         }
                         /*
                             create direct application:
@@ -212,7 +205,7 @@ export function createBoilerplate(sdk: CDP) {
                                 create direct events according to boilerplate
                                     settings
                                     schema
-                                    mapping
+                                    mapping TODO:
                                         to profile
                                             TO THE SAME IDENTIFIER
                                         to activities`
@@ -246,61 +239,21 @@ export function createBoilerplate(sdk: CDP) {
                 },
                 audiences: {
                     async align() {
+                        console.log('~~~~~~~ aligning Audiences')
+                        let boilerAudience;
                         const view = await bOps.views.getAll().then(views => views.find(v => v.type == "Marketing"));
                         const vOps = bOps.views.for(view.id);
-                        // TODO: check if there, update else create
-                        const boilerAudience = await vOps.audiences.create({
-                            name: "My Campaign Audience",
-                            enabled: true,
-                            purposeIds: [],
-                            query: {
-                                operator: "and",
-                                conditions: [
-                                    {
-                                        type: 'profile',
-                                        fieldCondition: {
-                                            operator: 'and',
-                                            conditions: [
-                                                {
-                                                    field: 'age', // but we don't have age
-                                                    condition: {
-                                                        operator: 'greaterThan',
-                                                        operand: {
-                                                            type: 'double',
-                                                            value: 18
-                                                        }
-                                                    }
-                                                // {
-                                                //     field: 'birthdate',
-                                                //     condition: {
-                                                //         operator: 'before',
-                                                //         operand: {
-                                                //             type: 'string',
-                                                //             value: new Date().setFullYear(new Date().getFullYear() - 18) but this is: 1038739299847
-                                                //         }
-                                                //     }
-                                                },
-                                                {
-                                                    field: "gender",
-                                                    condition: {
-                                                        operator: 'equal',
-                                                        operand: {
-                                                            type: 'string',
-                                                            value: 'female'
-                                                        }
-                                                    }
-                                                }
-                                            ]
-                                        }
-                                    },
-                                    {
-                                        type: 'segment',
-                                        name: 'VIP',
-                                        values: ['Gold']
-                                    }
-                                ]
-                            }
-                        })
+
+                        const userAudience = await vOps.audiences.getAll().then(audiences => audiences.find(a => a.name == "My Campaign Audience"))
+
+                        if (userAudience) {
+                            console.log(userAudience)
+                            boilerAudience = await vOps.audiences.for(userAudience.id).update({...CampaignAudience as any}) //TODO: dont do this.
+                        } else {
+                            boilerAudience = await vOps.audiences.create({...CampaignAudience as any, viewId: view.id}) //TODO: dont do this.
+                        }
+
+                        console.log('~~~~~ Audience aligned!', boilerAudience)
                     }
                 },
                 async alignAll() {

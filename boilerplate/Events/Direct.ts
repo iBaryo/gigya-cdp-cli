@@ -11,7 +11,7 @@ export const DirectEvents: Record<DirectEventName, Payload<Event>> = {
         description: 'money money money',
         purposeIds: ['basic', 'marketing'] as Array<Purpose>,
         dataType: EventType.firstPartyCrmData,
-        schema: {
+        schema: { //TODO: what fields do you want?
             'type': 'object',
             'properties': {
                 'firstName': {
