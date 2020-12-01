@@ -1,13 +1,12 @@
 import {Payload} from "../../gigya-cdp-sdk/entities/common";
-import {CustomerSchema, ProfileFieldName, Purpose, PurposeId, SegmentName} from "../../gigya-cdp-sdk/entities";
-import {profileSchema} from "../schemas/ProfileSchema";
-import {activityIndicatorSchema} from "../schemas/ActivityIndicatorSchema";
+import {ProfileFieldName, Purpose, PurposeId, SegmentName} from "../../gigya-cdp-sdk/entities";
+
 import {ActivityIndicator} from "../BoilerplateConfig";
 
 export type PurposeName = 'marketing' | 'basic';
 export type PurposeReasons = 'Marketing' | 'Consent'
 
-export const Purposes: Record<PurposeName, Payload<any>> = // Purpose gives error for 'enabled'
+export const Purposes: Record<PurposeName, Payload<any>> = // Purpose gives error for 'enabled' TODO: sort out purposes...
     {
         'marketing': {
             customerActivities: {},
