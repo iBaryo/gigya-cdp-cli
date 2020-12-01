@@ -1,5 +1,4 @@
 import {JSONSchema7} from "json-schema";
-import {config} from "../BoilerplateConfig";
 
 export type ActivityName = 'Orders' | 'Page-Views';
 export const activitySchemas: Record<ActivityName, JSONSchema7> = {
@@ -13,10 +12,13 @@ export const activitySchemas: Record<ActivityName, JSONSchema7> = {
                 type: "string"
             },
             "amount": {
-                type: "integer"
+                type: "number"
             },
             "tax": {
-                type: "integer"
+                type: "number"
+            },
+            "price": {
+                type: "number"
             }
         }
     },
@@ -26,6 +28,9 @@ export const activitySchemas: Record<ActivityName, JSONSchema7> = {
             "pageUrl": {
                 "type": 'string',
                 "format": 'hostname'
+            },
+            "sessionTime": {
+                "type": 'number'
             }
         }
     }
