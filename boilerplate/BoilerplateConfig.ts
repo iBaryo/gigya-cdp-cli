@@ -1,8 +1,9 @@
- export const config = {
+export const config = {
     commonIdentifier: 'masterDataId',
     purposes: ['basic', 'marketing'],
     activityIndicators: ['Purchase Sum'],
-     directEvents: ['purchase', 'page-view']
-} as const;
+    directEvents: ['onPurchase', 'onPageView'],
+
+}; // why as const --- it had as const here????
 export type Purpose = typeof config.purposes[0];
 export type ActivityIndicator = typeof config.activityIndicators[0]

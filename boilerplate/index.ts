@@ -1,5 +1,12 @@
 import {CDP} from "../gigya-cdp-sdk";
-import {BusinessUnitId, CustomerSchema, SchemaType} from "../gigya-cdp-sdk/entities";
+import {
+    ActivityIndicator,
+    Application,
+    BusinessUnitId,
+    CustomerSchema,
+    Event,
+    SchemaType, Segment
+} from "../gigya-cdp-sdk/entities";
 import {DirectEventName, DirectEvents} from "./Events/Direct";
 import {JSONSchema7} from "json-schema";
 import {profileSchema as boilerplateProfileSchema} from "./schemas/ProfileSchema";
@@ -8,6 +15,7 @@ import {purchaseSum as boilerplateActivityIndicator} from "./ActivityIndicators/
 import {VIPSegment} from "./Segments/VIPSegment";
 import {config} from "./BoilerplateConfig";
 import {CampaignAudience} from "./Audiences/AudienceCondition";
+import {SegmentCondition} from "../gigya-cdp-sdk/entities/common/Condition";
 
 /*
        1. always extend, never delete
@@ -25,7 +33,6 @@ export function createBoilerplate(sdk: CDP) {
                 schemas: {
                     async alignProfile() { //TODO: age vs birthdate??
                         console.log("~~~~~~~~ aligning profile schema ~~~~~~~~");
-                        console.log('~~~~~~~~ boilerplate profile schema:', boilerplateProfileSchema);
 
                         const profileSchemaEntity = await bOps.ucpschemas.getAll().then(schemas => schemas.find(s => s.schemaType == SchemaType.Profile));
 
@@ -60,6 +67,7 @@ export function createBoilerplate(sdk: CDP) {
                         const alignedProfile = await alignProfilePromise;
                         console.log('~~~~~ aligned profile:', alignedProfile);
                     },
+
                     async alignActivities() {
                         let alignActivityPromise: Promise<CustomerSchema>
                         const boilerplateActivities = Object.keys(boilerplateActivitySchemas);
@@ -92,51 +100,80 @@ export function createBoilerplate(sdk: CDP) {
                                         schemaType: SchemaType.Activity
                                     });
                                 }
-                            const alignedActivity = await alignActivityPromise
-                            console.log(`~~~~~~~~aligned ${activity}`, alignedActivity)
+                            const alignedActivity = await alignActivityPromise;
+                            console.log(`~~~~~~~~aligned ${activity}`, alignedActivity);
                         }
                     }
                 },
+
                 activityIndicators: {
                     async align() {
                         console.log('~~~~~~~ aligning Activity Indicators')
 
-                        let alignedActivityIndicator;
-                        const userOrdersActivitySchema = await bOps.ucpschemas.getAll().then(schemas => schemas.find(s => s.name == 'Orders'))
-                        const userActivityIndicators = await bOps.activityIndicators.getAll().then(a => a.find(ind => (['Purchase Sum', 'purchaseSum'].includes(ind.name)))) // TODO: CHANGE TO == since we dont need purchaseSum
+                        let alignedActivityIndicatorPromise: Promise<ActivityIndicator>
 
-                        if (userActivityIndicators) {
-                            const fieldDiffs = Object.entries(boilerplateActivityIndicator).find(f => !Object.entries(userActivityIndicators).includes(f))
+                        const userOrdersActivitySchema = await bOps.ucpschemas.getAll().then(schemas => schemas.find(s => s.name == 'Orders'));
+                        const userActivityIndicators = await bOps.activityIndicators.getAll().then(a => a.find(ind => (config.activityIndicators.includes(ind.name))));
+                        // haven't taken into account if more than one activity indicator... if bpConfig changes //TODO
+                        if (!userActivityIndicators) {
+                            alignedActivityIndicatorPromise = bOps.activityIndicators.create({
+                                ...boilerplateActivityIndicator,
+                                schemaId: userOrdersActivitySchema.id,
+                            });
+                        } else {
+                            const fieldDiffs = Object.entries(boilerplateActivityIndicator).find(f => !Object.entries(userActivityIndicators).includes(f));
 
-                            if (fieldDiffs.length) {
-                                alignedActivityIndicator = bOps.activityIndicators.for(userActivityIndicators.id).update({
+                            alignedActivityIndicatorPromise = !fieldDiffs.length ?
+                                Promise.resolve(alignedActivityIndicatorPromise)
+                                : bOps.activityIndicators.for(userActivityIndicators.id).update({
                                     ...boilerplateActivityIndicator,
-                                    schemaId: userOrdersActivitySchema.id, // nope -- this assumes a schema??
-                                }).then(res => res)
-                            } else return // to get to next else?
-
-                        } else alignedActivityIndicator = bOps.activityIndicators.create({
-                            ...boilerplateActivityIndicator,
-                            schemaId: userOrdersActivitySchema.id,
-                        })
-                        console.log('~~~~~ Activity Indicator aligned!', alignedActivityIndicator)
-                    }
+                                    schemaId: userOrdersActivitySchema.id,
+                                });
+                        }
+                        const alignedActivityIndicator = await alignedActivityIndicatorPromise;
+                        console.log('~~~~~~~ aligned Activity Indicator:', alignedActivityIndicator)
+                    },
                 },
+
                 segments: {
                     async align() {
-                        let alignedSegment;
-                        console.log('~~~~~~~ aligning segment')
-                        const userVIPSegment = await bOps.segments.getAll().then(segments => segments.find(s => s.name == 'VIP'))
-                        if (userVIPSegment) {
-                            alignedSegment = bOps.segments.for(userVIPSegment.id).update({
-                                ...VIPSegment
-                            })
-                        } else {
-                            alignedSegment = bOps.segments.create({
-                                ...VIPSegment
-                            })
 
+                        let alignedSegmentPromise: Promise<Segment>;
+
+                        console.log('~~~~~~~ aligning segment')
+                        const userVIPSegment = await bOps.segments.getAll().then(segments => segments.find(s => s.name == 'VIP'));
+                        console.log(userVIPSegment, VIPSegment)
+
+                        if (userVIPSegment) {
+                            // TODO: i want to implement an actual comparison but really struggling
+                            // let fields = ['operator', 'operand', 'field']
+                            // let numberMatches = 0
+                            // let i = 0
+                            // while(i <= 2) {
+                            //     console.log('zzzz', userVIPSegment.values[i].condition[fields[i]], VIPSegment.values[i].condition[fields[i]], 'zzzz') wonnt work with operand and field because ther are objects..
+                            //     if ((userVIPSegment.values[i].condition == VIPSegment.values[i].condition) && (userVIPSegment.values[i].value == VIPSegment.values[i].value)) {
+                            //         console.log('matches')
+                            //         numberMatches += 1
+                            //         console.log(numberMatches)
+                            //
+                            //     }
+                            //     i += 1
+                            // }
+                            // console.log(numberMatches)
+                            // if(numberMatches === 3){
+                            //     console.log('resolve')
+                            //     await Promise.resolve(alignedSegmentPromise)
+                            // } else {
+                                alignedSegmentPromise = bOps.segments.for(userVIPSegment.id).update({
+                                    ...VIPSegment
+                                })
+                            // }
+                        } else {
+                            alignedSegmentPromise = bOps.segments.create({
+                                ...VIPSegment
+                            })
                         }
+                        const alignedSegment = await alignedSegmentPromise
                         console.log('~~~~~~ segment is aligned!', alignedSegment)
                     }
                 },
@@ -150,43 +187,63 @@ export function createBoilerplate(sdk: CDP) {
                         // marketing - attributes: segment.VIP, activityIndicator.purchaseSum
                     }
                 },
+                //TODO: IDENTIFIER?!
                 applications: { //TODO: mapping for events
                     async alignDirect() {
-                        let boilerplateDirectApplication;
-                        let boilerPlateEvents;
-                        console.log("~~~~~~~ aligning Direct applications")
-                        const userDirectApplication = await bOps.applications.getAll().then(apps => apps && apps.find(app => app['type'] == 'Basic' && app.name == 'Test Application'))
+                        let directApplicationPromise: Promise<Application>
+                        let directEventsPromise: Promise<Event>;
+                        // let mappingsPromise = Promise<>
 
-                        if (userDirectApplication) {
-                            const userDirectEvents = await bOps.applications.for(userDirectApplication.id).dataevents.getAll().then(events => events && events.filter(e => ['purchase', 'page-view'].includes(e.name)))
+                        console.log("~~~~~~~ aligning Direct applications");
+                        const userDirectApplication = await bOps.applications.getAll().then(apps => apps && apps.find(app => app['type'] == 'Basic' && app.name == 'Test Application'));
+
+                        if (userDirectApplication) { // user has a direct application
+                            // TODO: this is not DRY, function should have ONE CONCERN ONLY.. here, deal with APP only.
+                            const userDirectEvents = await bOps.applications.for(userDirectApplication.id).dataevents.getAll().then(events => events && events.filter(e => config.directEvents.includes(e.name)));
+
+
+                            // don't need to update the user's direct application, because you can't have duplicates of the name, so just check event
                             if (userDirectEvents.length) {
                                 for (let event of userDirectEvents) {
-                                    boilerPlateEvents = await bOps.applications.for(userDirectApplication.id).dataevents.for(event.id).update({
-                                        ...DirectEvents[event.name]
-                                    })
+                                    const singleEvent = await bOps.applications.for(userDirectApplication.id).dataevents.for(event.id).get();
+                                    if(JSON.stringify(JSON.parse(singleEvent.schema.toString())) == JSON.stringify(DirectEvents[singleEvent.name].payload.schema)){
+                                        console.log('matches') // check schema matches then dont need to update the event... can now look at the mapping...
+                                    }
+
+                                    // check Model --> if different, mapping is definitely different --> update both, keep users event
+                                    // check Mapping if Model is the same --> update mapping if different, else keep user's mapping.
+                                //     directEventsPromise = bOps.applications.for(userDirectApplication.id).dataevents.for(event.id).update({
+                                //         ...DirectEvents[event.name].payload
+                                //     })
                                 }
                             } else {
+                                // create: event with schema, create mapping
                                 for (let event of config.directEvents) {
-                                    boilerPlateEvents = await bOps.applications.for(userDirectApplication.id).dataevents.create({
-                                        ...DirectEvents[event]
+                                    directEventsPromise = bOps.applications.for(userDirectApplication.id).dataevents.create({ //create dataEvent for application
+                                        ...DirectEvents[event].payload
                                     })
+
+
                                 }
                             }
                             // going to have repeat of creating events
-                        } else {
-                            boilerplateDirectApplication = await bOps.applications.create({
+                        } else { // create application, event, mapping
+                            const boilerplateDirectApplication = await bOps.applications.create({
                                 enabled: true,
                                 logoUrl: "https://universe.eu5-st1.gigya.com/assets/img/connect-application.png",
                                 name: "Test Application",
                                 securitySchemes: {}, // TODO: confirm this
                                 description: "R&D test application for creating customers"
-                            }).then(res => console.log('~~~~~ aligned Direct application:', res))
+                            }).then(app => {
+                                for (let event of config.directEvents) {
+                                    directEventsPromise = bOps.applications.for(app.id).dataevents.create({
+                                        ...DirectEvents[event].payload
+                                    })
+                                }})
 
-                            for (let event of config.directEvents) {
-                                boilerPlateEvents = await bOps.applications.for(userDirectApplication.id).dataevents.create({
-                                    ...DirectEvents[event]
-                                })
-                            }
+                            // now we have a new event, create the mapping
+
+                            // targetID = dataeventId, sourceID = application
                         }
                         /*
                             create direct application:
@@ -239,7 +296,7 @@ export function createBoilerplate(sdk: CDP) {
 
                         if (userAudience) {
                             console.log(userAudience)
-                            boilerAudience = await vOps.audiences.for(userAudience.id).update({...CampaignAudience as any}) //TODO: dont do this.
+                            boilerAudience = await vOps.audiences.for(userAudience.id).update({...CampaignAudience as any}) //TODO: dont do this. but getting errors that I dont know how to deal with.
                         } else {
                             boilerAudience = await vOps.audiences.create({...CampaignAudience as any, viewId: view.id}) //TODO: dont do this.
                         }
