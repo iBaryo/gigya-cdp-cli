@@ -5,17 +5,16 @@ import {
     BusinessUnitId,
     CustomerSchema,
     Event,
-    SchemaType, Segment
+    SchemaType,
+    Segment
 } from "../gigya-cdp-sdk/entities";
 import {DirectEventName, DirectEvents} from "./Events/Direct";
-import {JSONSchema7} from "json-schema";
 import {profileSchema as boilerplateProfileSchema} from "./schemas/ProfileSchema";
 import {activitySchemas as boilerplateActivitySchemas} from "./schemas/ActivitiesSchemas";
 import {purchaseSum as boilerplateActivityIndicator} from "./ActivityIndicators/PurchaseSum";
 import {VIPSegment} from "./Segments/VIPSegment";
 import {config} from "./BoilerplateConfig";
 import {CampaignAudience} from "./Audiences/AudienceCondition";
-import {SegmentCondition} from "../gigya-cdp-sdk/entities/common/Condition";
 
 /*
        1. always extend, never delete
@@ -54,14 +53,14 @@ export function createBoilerplate(sdk: CDP) {
                             alignProfilePromise = !fieldDiffs.length ?
                                 Promise.resolve(profileSchemaEntity)
                                 : bOps.ucpschemas.for(profileSchemaEntity.id).update({
-                                enabled: true,
-                                name: "Profile",
-                                schema: JSON.stringify({
-                                    ...profileSchema,
-                                    properties: {...boilerplateProfileSchema, ...profileSchema.properties}
-                                }),
-                                schemaType: SchemaType.Profile
-                            });
+                                    enabled: true,
+                                    name: "Profile",
+                                    schema: JSON.stringify({
+                                        ...profileSchema,
+                                        properties: {...boilerplateProfileSchema, ...profileSchema.properties}
+                                    }),
+                                    schemaType: SchemaType.Profile
+                                });
                         }
 
                         const alignedProfile = await alignProfilePromise;
@@ -69,37 +68,37 @@ export function createBoilerplate(sdk: CDP) {
                     },
 
                     async alignActivities() {
-                        let alignActivityPromise: Promise<CustomerSchema>
-                        const boilerplateActivities = Object.keys(boilerplateActivitySchemas);
+                        let alignActivityPromise: Promise<CustomerSchema>;
+                        const customerSchemas = await bOps.ucpschemas.getAll();
 
-                        for (const activity of boilerplateActivities) {
+                        for (const [activity, boilerplateSchema] of Object.entries(boilerplateActivitySchemas)) {
                             console.log(`~~~~~~ aligning ${activity} Activity`);
-                            const activitySchema = await bOps.ucpschemas.getAll().then(schemas => schemas.find(s => s.name == activity));
+                            const activitySchema = customerSchemas.find(s => s.name == activity && s.schemaType == SchemaType.Activity);
 
                             if (!activitySchema) {
                                 alignActivityPromise = bOps.ucpschemas.create({
                                     enabled: true,
                                     name: activity,
-                                    schema: JSON.stringify(boilerplateActivitySchemas[activity]),
+                                    schema: JSON.stringify(boilerplateSchema),
                                     schemaType: SchemaType.Activity
                                 });
                             } else {
-                                const parsedUserActivity = JSON.parse(activitySchema.schema.toString());
-                                const userOrdersProperties = Object.keys(parsedUserActivity.properties);
-                                const fieldDiffs = Object.keys(boilerplateActivitySchemas[activity].properties).filter(f => !userOrdersProperties.includes(f));
+                                const remoteActivitySchema = JSON.parse(activitySchema.schema.toString());
+                                const remoteSchemaProperties = Object.keys(remoteActivitySchema.properties);
+                                const fieldDiffs = Object.keys(boilerplateSchema.properties).filter(f => !remoteSchemaProperties.includes(f));
 
                                 alignActivityPromise = !fieldDiffs.length ?
-                                    Promise.resolve(alignActivityPromise)
+                                    Promise.resolve(activitySchema)
                                     : bOps.ucpschemas.for(activitySchema.id).update({
-                                        enabled: activitySchema.enabled,
+                                        enabled: true,
                                         name: activity,
                                         schema: JSON.stringify({
-                                            ...parsedUserActivity,
-                                            properties: {...boilerplateActivitySchemas[activity].properties, ...parsedUserActivity.properties}
+                                            ...remoteActivitySchema,
+                                            properties: {...remoteActivitySchema.properties, ...boilerplateSchema.properties} //order = priority => lower, higher
                                         }),
                                         schemaType: SchemaType.Activity
                                     });
-                                }
+                            }
                             const alignedActivity = await alignActivityPromise;
                             console.log(`~~~~~~~~aligned ${activity}`, alignedActivity);
                         }
@@ -164,9 +163,9 @@ export function createBoilerplate(sdk: CDP) {
                             //     console.log('resolve')
                             //     await Promise.resolve(alignedSegmentPromise)
                             // } else {
-                                alignedSegmentPromise = bOps.segments.for(userVIPSegment.id).update({
-                                    ...VIPSegment
-                                })
+                            alignedSegmentPromise = bOps.segments.for(userVIPSegment.id).update({
+                                ...VIPSegment
+                            })
                             // }
                         } else {
                             alignedSegmentPromise = bOps.segments.create({
@@ -206,15 +205,15 @@ export function createBoilerplate(sdk: CDP) {
                             if (userDirectEvents.length) {
                                 for (let event of userDirectEvents) {
                                     const singleEvent = await bOps.applications.for(userDirectApplication.id).dataevents.for(event.id).get();
-                                    if(JSON.stringify(JSON.parse(singleEvent.schema.toString())) == JSON.stringify(DirectEvents[singleEvent.name].payload.schema)){
+                                    if (JSON.stringify(JSON.parse(singleEvent.schema.toString())) == JSON.stringify(DirectEvents[singleEvent.name].payload.schema)) {
                                         console.log('matches') // check schema matches then dont need to update the event... can now look at the mapping...
                                     }
 
                                     // check Model --> if different, mapping is definitely different --> update both, keep users event
                                     // check Mapping if Model is the same --> update mapping if different, else keep user's mapping.
-                                //     directEventsPromise = bOps.applications.for(userDirectApplication.id).dataevents.for(event.id).update({
-                                //         ...DirectEvents[event.name].payload
-                                //     })
+                                    //     directEventsPromise = bOps.applications.for(userDirectApplication.id).dataevents.for(event.id).update({
+                                    //         ...DirectEvents[event.name].payload
+                                    //     })
                                 }
                             } else {
                                 // create: event with schema, create mapping
@@ -239,7 +238,8 @@ export function createBoilerplate(sdk: CDP) {
                                     directEventsPromise = bOps.applications.for(app.id).dataevents.create({
                                         ...DirectEvents[event].payload
                                     })
-                                }})
+                                }
+                            })
 
                             // now we have a new event, create the mapping
 
