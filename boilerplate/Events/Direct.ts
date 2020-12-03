@@ -31,37 +31,37 @@ export const DirectEvents: Record<DirectEventName, EventConfig> = {
                     'firstName': {
                         type: 'string'
                     },
-                    // 'primaryEmail': {
-                    //     type: 'string'
-                    // },
-                    // 'primaryPhone': {
-                    //     type: 'string'
-                    // },
+                    'primaryEmail': {
+                        type: 'string'
+                    },
+                    'primaryPhone': {
+                        type: 'string'
+                    },
                     'purchasePrice': {
                         type: 'number'
                     },
-                    // 'orderId': {
-                    //     type: 'string'
-                    // },
+                    'orderId': {
+                        type: 'string'
+                    },
                     'masterDataId': {
                         type: 'array',
                         items: {
                             type: 'string'
                         }
                     },
-                    // "birthdate": {
-                    //     type: "string",
-                    //     format: "date"
-                    // },
-                    // "gender": {
-                    //     type: "string"
-                    // },
-                    // "pageUrl": {
-                    //     type: 'string'
-                    // },
-                    // "sessionTime": {
-                    //     type: 'number'
-                    // }
+                    "birthdate": {
+                        type: "string",
+                        format: "date"
+                    },
+                    "gender": {
+                        type: "string"
+                    },
+                    "pageUrl": {
+                        type: 'string'
+                    },
+                    "sessionTime": {
+                        type: 'number'
+                    }
                 }
             }
         },
