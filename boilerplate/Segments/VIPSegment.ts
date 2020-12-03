@@ -24,7 +24,6 @@ export const VIPSegment: Payload<Segment> = {
         },
         {
             condition: {
-
                 operator: 'and',
                 conditions: [
                     {

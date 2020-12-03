@@ -10,11 +10,13 @@ import {
 } from "../gigya-cdp-sdk/entities";
 import {DirectEventName, DirectEvents} from "./Events/Direct";
 import {profileSchema as boilerplateProfileSchema} from "./schemas/ProfileSchema";
-import {activitySchemas as boilerplateActivitySchemas} from "./schemas/ActivitiesSchemas";
+import {ActivityName, activitySchemas as boilerplateActivitySchemas} from "./schemas/ActivitiesSchemas";
 import {purchaseSum as boilerplateActivityIndicator} from "./ActivityIndicators/PurchaseSum";
 import {VIPSegment} from "./Segments/VIPSegment";
 import {config} from "./BoilerplateConfig";
 import {CampaignAudience} from "./Audiences/AudienceCondition";
+
+const isEqual = require('lodash/isEqual')
 
 /*
        1. always extend, never delete
@@ -111,22 +113,25 @@ export function createBoilerplate(sdk: CDP) {
 
                         let alignedActivityIndicatorPromise: Promise<ActivityIndicator>
 
-                        const userOrdersActivitySchema = await bOps.ucpschemas.getAll().then(schemas => schemas.find(s => s.name == 'Orders'));
-                        const userActivityIndicators = await bOps.activityIndicators.getAll().then(a => a.find(ind => (config.activityIndicators.includes(ind.name))));
+                        const [remoteActivitySchema, remoteActivityIndicator] = await Promise.all([
+                            bOps.ucpschemas.getAll().then(schemas => schemas.find(s => s.name == ('Orders' as ActivityName))),
+                            bOps.activityIndicators.getAll().then(a => a.find(ind => (config.activityIndicators.includes(ind.name))))
+                        ]);
+
                         // haven't taken into account if more than one activity indicator... if bpConfig changes //TODO
-                        if (!userActivityIndicators) {
+                        if (!remoteActivityIndicator) {
                             alignedActivityIndicatorPromise = bOps.activityIndicators.create({
                                 ...boilerplateActivityIndicator,
-                                schemaId: userOrdersActivitySchema.id,
+                                schemaId: remoteActivitySchema.id,
                             });
                         } else {
-                            const fieldDiffs = Object.entries(boilerplateActivityIndicator).find(f => !Object.entries(userActivityIndicators).includes(f));
+                            const fieldDiffs = Object.entries(boilerplateActivityIndicator).find(f => !Object.entries(remoteActivityIndicator).includes(f));
 
                             alignedActivityIndicatorPromise = !fieldDiffs.length ?
-                                Promise.resolve(alignedActivityIndicatorPromise)
-                                : bOps.activityIndicators.for(userActivityIndicators.id).update({
+                                Promise.resolve(remoteActivityIndicator)
+                                : bOps.activityIndicators.for(remoteActivityIndicator.id).update({
                                     ...boilerplateActivityIndicator,
-                                    schemaId: userOrdersActivitySchema.id,
+                                    schemaId: remoteActivityIndicator.id,
                                 });
                         }
                         const alignedActivityIndicator = await alignedActivityIndicatorPromise;
@@ -140,40 +145,38 @@ export function createBoilerplate(sdk: CDP) {
                         let alignedSegmentPromise: Promise<Segment>;
 
                         console.log('~~~~~~~ aligning segment')
-                        const userVIPSegment = await bOps.segments.getAll().then(segments => segments.find(s => s.name == 'VIP'));
-                        console.log(userVIPSegment, VIPSegment)
+                        const remoteSegment = await bOps.segments.getAll().then(segments => segments.find(s => s.name == 'VIP'));
 
-                        if (userVIPSegment) {
+                        if (remoteSegment) {
                             // TODO: i want to implement an actual comparison but really struggling
-                            // let fields = ['operator', 'operand', 'field']
-                            // let numberMatches = 0
-                            // let i = 0
-                            // while(i <= 2) {
-                            //     console.log('zzzz', userVIPSegment.values[i].condition[fields[i]], VIPSegment.values[i].condition[fields[i]], 'zzzz') wonnt work with operand and field because ther are objects..
-                            //     if ((userVIPSegment.values[i].condition == VIPSegment.values[i].condition) && (userVIPSegment.values[i].value == VIPSegment.values[i].value)) {
-                            //         console.log('matches')
-                            //         numberMatches += 1
-                            //         console.log(numberMatches)
-                            //
-                            //     }
-                            //     i += 1
-                            // }
-                            // console.log(numberMatches)
-                            // if(numberMatches === 3){
-                            //     console.log('resolve')
-                            //     await Promise.resolve(alignedSegmentPromise)
-                            // } else {
-                            alignedSegmentPromise = bOps.segments.for(userVIPSegment.id).update({
-                                ...VIPSegment
-                            })
-                            // }
+                            //TODO: bug
+                            let numberMatches = 0
+                            let i = 2
+                            while (i >= 0) {
+                                if (isEqual(remoteSegment.values[i], VIPSegment.values[i])) {
+                                    console.log('isequal', i)
+                                    numberMatches += 1
+                                }
+                                console.log(i)
+                                i--
+                            }
+
+                            if (numberMatches == 3) {
+                                console.log('all 3 are equal')
+                                alignedSegmentPromise = Promise.resolve(remoteSegment)
+                            } else {
+                                alignedSegmentPromise = bOps.segments.for(remoteSegment.id).update({
+                                    ...VIPSegment
+                                })
+                            }
+
                         } else {
                             alignedSegmentPromise = bOps.segments.create({
                                 ...VIPSegment
                             })
                         }
                         const alignedSegment = await alignedSegmentPromise
-                        console.log('~~~~~~ segment is aligned!', alignedSegment)
+                        console.log('~~~~~~ segment is aligned!', alignedSegment.values, remoteSegment.values)
                     }
                 },
                 purposes: {
@@ -187,6 +190,8 @@ export function createBoilerplate(sdk: CDP) {
                     }
                 },
                 //TODO: IDENTIFIER?!
+
+
                 applications: { //TODO: mapping for events
                     async alignDirect() {
                         let directApplicationPromise: Promise<Application>
