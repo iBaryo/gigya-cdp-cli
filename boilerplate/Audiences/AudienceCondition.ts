@@ -29,7 +29,7 @@ export const CampaignAudience: Payload<Audience> = {
                             //     condition: {
                             //         operator: 'before',
                             //         operand: {
-                            //             type: 'string',
+                            //             type: 'string', actually number
                             //             value: new Date().setFullYear(new Date().getFullYear() - 18) but this is: 1038739299847
                             //         }
                             //     }
