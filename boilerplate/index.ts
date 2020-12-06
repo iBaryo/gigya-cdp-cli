@@ -144,41 +144,38 @@ export function createBoilerplate(sdk: CDP) {
 
                         let alignedSegmentPromise: Promise<Segment>;
 
-                        console.log('~~~~~~~ aligning segment')
+                        console.log('~~~~~~~ aligning segment');
                         const remoteSegment = await bOps.segments.getAll().then(segments => segments.find(s => s.name == 'VIP'));
 
                         if (remoteSegment) {
-                            // TODO: i want to implement an actual comparison but really struggling
-                            //TODO: bug
-                            let numberMatches = 0
-                            let i = 2
+
+                            let numberMatches = 0;
+                            let i = 2;
                             while (i >= 0) {
-                                if (isEqual(remoteSegment.values[i], VIPSegment.values[i])) {
-                                    console.log('isequal', i)
+
+                                if (isEqual(remoteSegment.values[i].condition, VIPSegment.values[i].condition)) {
                                     numberMatches += 1
                                 }
-                                console.log(i)
                                 i--
                             }
 
                             if (numberMatches == 3) {
-                                console.log('all 3 are equal')
-                                alignedSegmentPromise = Promise.resolve(remoteSegment)
+                                alignedSegmentPromise = Promise.resolve(remoteSegment);
                             } else {
                                 alignedSegmentPromise = bOps.segments.for(remoteSegment.id).update({
                                     ...VIPSegment
-                                })
+                                });
                             }
-
                         } else {
                             alignedSegmentPromise = bOps.segments.create({
                                 ...VIPSegment
-                            })
+                            });
                         }
                         const alignedSegment = await alignedSegmentPromise
-                        console.log('~~~~~~ segment is aligned!', alignedSegment.values, remoteSegment.values)
+                        console.log('~~~~~~ segment is aligned!', alignedSegment.values);
                     }
                 },
+
                 purposes: {
                     async align() {
                         console.log('~~~~~~  aligning Purposes')
