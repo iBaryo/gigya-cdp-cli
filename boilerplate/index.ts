@@ -14,7 +14,9 @@ import {ActivityName, activitySchemas as boilerplateActivitySchemas} from "./sch
 import {purchaseSum as boilerplateActivityIndicator} from "./ActivityIndicators/PurchaseSum";
 import {VIPSegment} from "./Segments/VIPSegment";
 import {config} from "./BoilerplateConfig";
-import {CampaignAudience} from "./Audiences/AudienceCondition";
+import {CampaignAudience as boilerplateAudience} from "./Audiences/AudienceCondition";
+import {Audience} from "../gigya-cdp-sdk/entities/Audience";
+import {AudienceCondition} from "../gigya-cdp-sdk/entities/Audience/AudienceCondition";
 
 const isEqual = require('lodash/isEqual')
 
@@ -151,14 +153,13 @@ export function createBoilerplate(sdk: CDP) {
 
                             let numberMatches = 0;
                             let i = 2;
-                            while (i >= 0) {
 
+                            while (i >= 0) {
                                 if (isEqual(remoteSegment.values[i].condition, VIPSegment.values[i].condition)) {
                                     numberMatches += 1
                                 }
                                 i--
                             }
-
                             if (numberMatches == 3) {
                                 alignedSegmentPromise = Promise.resolve(remoteSegment);
                             } else {
@@ -166,6 +167,7 @@ export function createBoilerplate(sdk: CDP) {
                                     ...VIPSegment
                                 });
                             }
+
                         } else {
                             alignedSegmentPromise = bOps.segments.create({
                                 ...VIPSegment
@@ -290,20 +292,32 @@ export function createBoilerplate(sdk: CDP) {
                 audiences: {
                     async align() {
                         console.log('~~~~~~~ aligning Audiences')
-                        let boilerAudience;
+                        let audiencePromise: Promise<Audience>
                         const view = await bOps.views.getAll().then(views => views.find(v => v.type == "Marketing"));
                         const vOps = bOps.views.for(view.id);
 
-                        const userAudience = await vOps.audiences.getAll().then(audiences => audiences.find(a => a.name == "My Campaign Audience"))
+                        const remoteAudience = await vOps.audiences.getAll().then(audiences => audiences.find(a => a.name == "My Campaign Audience"))
 
-                        if (userAudience) {
-                            console.log(userAudience)
-                            boilerAudience = await vOps.audiences.for(userAudience.id).update({...CampaignAudience as any}) //TODO: dont do this. but getting errors that I dont know how to deal with.
+                        if (remoteAudience) {
+                            console.log(remoteAudience)
+                            if (isEqual(remoteAudience, boilerplateAudience)) {
+
+                                audiencePromise = vOps.audiences.for(remoteAudience.id).update({
+                                    enabled: false,
+                                    name: "",
+                                    purposeIds: [],
+                                    query: undefined
+                                }) //TODO: dont do this. but getting errors that I dont know how to deal with.
                         } else {
-                            boilerAudience = await vOps.audiences.create({...CampaignAudience as any, viewId: view.id}) //TODO: dont do this.
+                                audiencePromise = vOps.audiences.create({
+                                    enabled: false,
+                                    name: "",
+                                    purposeIds: [],
+                                    query: undefined,
+                                }) //TODO: dont do this.
                         }
 
-                        console.log('~~~~~ Audience aligned!', boilerAudience)
+                        console.log('~~~~~ Audience aligned!', audiencePromise)
                     }
                 },
                 async alignAll() {
