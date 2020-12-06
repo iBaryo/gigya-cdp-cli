@@ -147,7 +147,7 @@ export function createBoilerplate(sdk: CDP) {
                         let alignedSegmentPromise: Promise<Segment>;
 
                         console.log('~~~~~~~ aligning segment');
-                        const remoteSegment = await bOps.segments.getAll().then(segments => segments.find(s => s.name == 'VIP'));
+                        const remoteSegment = await bOps.segments.getAll().then(segments => segments.find(s => s.name == VIPSegment.name));
 
                         if (remoteSegment) {
 
@@ -289,6 +289,7 @@ export function createBoilerplate(sdk: CDP) {
                         ]);
                     }
                 },
+                //TODO: need purpose IDS
                 audiences: {
                     async align() {
                         console.log('~~~~~~~ aligning Audiences')
@@ -296,28 +297,33 @@ export function createBoilerplate(sdk: CDP) {
                         const view = await bOps.views.getAll().then(views => views.find(v => v.type == "Marketing"));
                         const vOps = bOps.views.for(view.id);
 
-                        const remoteAudience = await vOps.audiences.getAll().then(audiences => audiences.find(a => a.name == "My Campaign Audience"))
+                        const remoteAudience = await vOps.audiences.getAll().then(audiences => audiences.find(a => a.name == boilerplateAudience.name))
 
                         if (remoteAudience) {
                             console.log(remoteAudience)
                             if (isEqual(remoteAudience, boilerplateAudience)) {
-
+                                console.log('is equal')
+                                audiencePromise = Promise.resolve(remoteAudience);
+                            } else {
                                 audiencePromise = vOps.audiences.for(remoteAudience.id).update({
-                                    enabled: false,
-                                    name: "",
+                                    enabled: true,
+                                    name: boilerplateAudience.name,
                                     purposeIds: [],
-                                    query: undefined
-                                }) //TODO: dont do this. but getting errors that I dont know how to deal with.
+                                    query: boilerplateAudience.query
+                                });
+                            }
                         } else {
                                 audiencePromise = vOps.audiences.create({
-                                    enabled: false,
-                                    name: "",
-                                    purposeIds: [],
-                                    query: undefined,
-                                }) //TODO: dont do this.
+                                    enabled: true,
+                                    name: boilerplateAudience.name,
+                                    purposeIds: boilerplateAudience.purposeIds,
+                                    query: boilerplateAudience.query
+                                });
                         }
 
-                        console.log('~~~~~ Audience aligned!', audiencePromise)
+
+                        const alignedAudience = await audiencePromise
+                        console.log('~~~~~ Audience aligned!', alignedAudience)
                     }
                 },
                 async alignAll() {
