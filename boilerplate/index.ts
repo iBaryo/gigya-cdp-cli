@@ -8,7 +8,7 @@ import {
     SchemaType,
     Segment
 } from "../gigya-cdp-sdk/entities";
-import {DirectEventName, DirectEvents} from "./Events/Direct";
+import {DirectEventName, boilerplateDirectEvents} from "./Events/Direct";
 import {profileSchema as boilerplateProfileSchema} from "./schemas/ProfileSchema";
 import {ActivityName, activitySchemas as boilerplateActivitySchemas} from "./schemas/ActivitiesSchemas";
 import {purchaseSum as boilerplateActivityIndicator} from "./ActivityIndicators/PurchaseSum";
@@ -17,8 +17,10 @@ import {config} from "./BoilerplateConfig";
 import {CampaignAudience as boilerplateAudience} from "./Audiences/AudienceCondition";
 import {Audience} from "../gigya-cdp-sdk/entities/Audience";
 import {AudienceCondition} from "../gigya-cdp-sdk/entities/Audience/AudienceCondition";
+import {defaultDirectApplication} from "./Applications/defaultDirectApplication";
 
-const isEqual = require('lodash/isEqual')
+const isEqual = require('lodash/isEqual');
+const without = require('lodash/without');
 
 /*
        1. always extend, never delete
@@ -71,6 +73,8 @@ export function createBoilerplate(sdk: CDP) {
                         console.log('~~~~~ aligned profile:', alignedProfile);
                     },
 
+                    //TODO: matching rules! ****
+
                     async alignActivities() {
                         let alignActivityPromise: Promise<CustomerSchema>;
                         const customerSchemas = await bOps.ucpschemas.getAll();
@@ -108,6 +112,8 @@ export function createBoilerplate(sdk: CDP) {
                         }
                     }
                 },
+
+                //TODO: Application Identifier
 
                 activityIndicators: {
                     async align() {
@@ -160,13 +166,9 @@ export function createBoilerplate(sdk: CDP) {
                                 }
                                 i--
                             }
-                            if (numberMatches == 3) {
-                                alignedSegmentPromise = Promise.resolve(remoteSegment);
-                            } else {
-                                alignedSegmentPromise = bOps.segments.for(remoteSegment.id).update({
-                                    ...VIPSegment
-                                });
-                            }
+                            alignedSegmentPromise = numberMatches == 3 ? Promise.resolve(remoteSegment) : bOps.segments.for(remoteSegment.id).update({
+                                ...VIPSegment
+                            });
 
                         } else {
                             alignedSegmentPromise = bOps.segments.create({
@@ -178,7 +180,7 @@ export function createBoilerplate(sdk: CDP) {
                     }
                 },
 
-                purposes: {
+                purposes: { //TODO: PURPOSES
                     async align() {
                         console.log('~~~~~~  aligning Purposes')
                         const userPurposes = await bOps.purposes.getAll().then(p => p)
@@ -195,61 +197,192 @@ export function createBoilerplate(sdk: CDP) {
                     async alignDirect() {
                         let directApplicationPromise: Promise<Application>
                         let directEventsPromise: Promise<Event>;
-                        // let mappingsPromise = Promise<>
+                        let directEventsArray: [Event];
+                        let alignedDirectApp: Application;
 
                         console.log("~~~~~~~ aligning Direct applications");
-                        const userDirectApplication = await bOps.applications.getAll().then(apps => apps && apps.find(app => app['type'] == 'Basic' && app.name == 'Test Application'));
+                        let remoteApplicationId = await bOps.applications.getAll().then(apps =>
+                            apps?.find(app =>
+                                app.type == defaultDirectApplication.type && app.name == defaultDirectApplication.name)?.id
+                        );
 
-                        if (userDirectApplication) { // user has a direct application
-                            // TODO: this is not DRY, function should have ONE CONCERN ONLY.. here, deal with APP only.
-                            const userDirectEvents = await bOps.applications.for(userDirectApplication.id).dataevents.getAll().then(events => events && events.filter(e => config.directEvents.includes(e.name)));
-
-
-                            // don't need to update the user's direct application, because you can't have duplicates of the name, so just check event
-                            if (userDirectEvents.length) {
-                                for (let event of userDirectEvents) {
-                                    const singleEvent = await bOps.applications.for(userDirectApplication.id).dataevents.for(event.id).get();
-                                    if (JSON.stringify(JSON.parse(singleEvent.schema.toString())) == JSON.stringify(DirectEvents[singleEvent.name].payload.schema)) {
-                                        console.log('matches') // check schema matches then dont need to update the event... can now look at the mapping...
-                                    }
-
-                                    // check Model --> if different, mapping is definitely different --> update both, keep users event
-                                    // check Mapping if Model is the same --> update mapping if different, else keep user's mapping.
-                                    //     directEventsPromise = bOps.applications.for(userDirectApplication.id).dataevents.for(event.id).update({
-                                    //         ...DirectEvents[event.name].payload
-                                    //     })
-                                }
-                            } else {
-                                // create: event with schema, create mapping
-                                for (let event of config.directEvents) {
-                                    directEventsPromise = bOps.applications.for(userDirectApplication.id).dataevents.create({ //create dataEvent for application
-                                        ...DirectEvents[event].payload
-                                    })
+                        // check if there is a direct application,
+                        // There is one??
+                        // 1. check that it has events
+                        // 2. if YES events --> check that our events are the same as theirs (maybe check which event they have or dont have), ---> now check mappings
+                        // 3. if NO events -->  create events, create mapping
+                        // No Direct application?
+                        // 1. create application
+                        // 2. create events
+                        // 3. create mapping
 
 
-                                }
-                            }
-                            // going to have repeat of creating events
-                        } else { // create application, event, mapping
-                            const boilerplateDirectApplication = await bOps.applications.create({
+                        if (!remoteApplicationId) {
+                            remoteApplicationId = await bOps.applications.create({
+                                type: 'Basic',
                                 enabled: true,
                                 logoUrl: "https://universe.eu5-st1.gigya.com/assets/img/connect-application.png",
                                 name: "Test Application",
                                 securitySchemes: {}, // TODO: confirm this
                                 description: "R&D test application for creating customers"
-                            }).then(app => {
-                                for (let event of config.directEvents) {
-                                    directEventsPromise = bOps.applications.for(app.id).dataevents.create({
-                                        ...DirectEvents[event].payload
-                                    })
+                            }).then(app => app.id);
+                        }
+
+                        const remoteSchemas = await bOps.ucpschemas.getAll();
+
+                        const appOps = bOps.applications.for(remoteApplicationId);
+                        const remoteDirectEvents = await appOps.dataevents.getAll();
+
+                        console.log('remoteDirectEvents', remoteDirectEvents);
+
+                        await Promise.all(
+                            Object.entries(boilerplateDirectEvents).map(async ([eventName, {payload: boilerplateEvent, mapping: boilerplateMapping}]) => {
+                                let remoteEventId = remoteDirectEvents.find(ev => ev.name == eventName)?.id;
+
+                                if (!remoteEventId) {
+                                    remoteEventId = await appOps.dataevents.create(boilerplateEvent).then(ev => ev.id);
+
+                                    await Promise.all(
+                                        Object.entries(boilerplateMapping).map(([schemaName, mappings]) => {
+                                            const targetSchemaId = remoteSchemas.find(remoteSchema => remoteSchema.name == schemaName)?.id;
+                                            if (!targetSchemaId)
+                                                throw `mapping set to a non existing schema: ${schemaName}`;
+
+                                            return bOps.mappings.create({
+                                                sourceId: remoteEventId,
+                                                targetId: targetSchemaId,
+                                                mappings
+                                            });
+                                        })
+                                    );
+
+
+                                } else {
+                                    const eventOps = appOps.dataevents.for(remoteEventId);
+                                    const remoteEvent = await eventOps.get();
+
+                                    if (!isEqual(remoteEvent, boilerplateEvent)) {
+                                        await eventOps.update(boilerplateEvent);
+
+                                        // const remoteEventMapping = await bOps.mappings.get();
+                                        // console.log('remoteEventMapping', remoteEventMapping)
+                                        await Promise.all(
+                                            Object.entries(boilerplateMapping).map(([schemaName, mappings]) => {
+                                                const targetSchemaId = remoteSchemas.find(remoteSchema => remoteSchema.name == schemaName)?.id;
+                                                if (!targetSchemaId)
+                                                    throw `mapping set to a non existing schema: ${schemaName}`;
+
+                                                return bOps.mappings.update({
+                                                    sourceId: remoteEvent.id,
+                                                    targetId: targetSchemaId,
+                                                    mappings
+                                                });
+                                            })
+                                        );
+                                    }
+
+                                    // TODO: updating mapping
                                 }
-                            })
+
+
+                            }));
+
+                        // ±±±±±±±±±±±±
+
+
+                        // if (remoteApplicationId) {
+                        //     alignedDirectApp = remoteApplicationId;
+                        //     // TODO: this is not DRY, function should have ONE CONCERN ONLY.. here, deal with APP only.
+                        //
+                        //
+                        //     // don't need to update the user's direct application, because you can't have duplicates of the name, so just check event
+                        //     if (remoteDirectEvents.length > 0) {
+                        //         const matchingRemoteDEs = remoteDirectEvents.filter(e => Object.keys(boilerplateDirectEvents).includes(e.name));
+                        //         // const diffRemoteDE = Object.values(DirectEvents).map(m => m.payload).filter(p => remoteDirectEvents.includes(p));
+                        //
+                        //         console.log(diffRemoteDE, 'diffRemoteDE');
+                        //         console.log(matchingRemoteDEs, 'matchingRemoteDE');
+                        //         // update the ones that match
+                        //
+                        //         if (matchingRemoteDEs.length) {
+                        //             for (let remoteEvent of matchingRemoteDEs) {
+                        //                 const singleEvent = await bOps.applications.for(remoteApplicationId.id).dataevents.for(remoteEvent.id).get();
+                        //                 console.log('singleEvent', singleEvent)
+                        //                 // are they the same as ours?
+                        //                 if (singleEvent) {
+                        //                     const boilerplateSingleEvent = boilerplateDirectEvents[singleEvent.name].payload
+                        //                     if (isEqual(singleEvent.schema, boilerplateSingleEvent.schema)) {
+                        //                         // same as ours? keep theirs!
+                        //                         directEventsArray.push(remoteEvent);
+                        //                         //TODO: check mapping because we have the same events
+                        //
+                        //                     } else {
+                        //                         // different from ours? update events & update mapping!
+                        //                         const directEventPayload = await bOps.applications.for(remoteApplicationId.id).dataevents.for(singleEvent.id).update({
+                        //                             ...boilerplateDirectEvents[singleEvent.name].payload
+                        //                         });
+                        //                         directEventsArray.push(directEventPayload);
+                        //                         //TODO: MAPPING - update or create if not there
+                        //                     }
+                        //                 }
+                        //                 console.log('directEventsArray', directEventsArray)
+                        //             }
+                        //         } else if (diffRemoteDE) {
+                        //             // have only some of the events
+                        //             console.log('diffRemoteDE', diffRemoteDE)
+                        //             for (let event of diffRemoteDE) {
+                        //                 const directEventsPayload = await bOps.applications.for(remoteApplicationId.id).dataevents.create({ //create dataEvent for application
+                        //                     ...boilerplateDirectEvents[event].payload
+                        //                 }) //TODO: create  mapping
+                        //                 directEventsArray.push(directEventsPayload);
+                        //             }
+                        //             console.log('directEventsArray', directEventsArray)
+                        //         }
+                        //         // there is a remote application, but he has no events
+                        //     } else {
+                        //         // NO DIRECT EVENTS BUT THERE IS AN APP SO CREATE Event and mapping
+                        //         // create: event with schema, create mapping
+                        //         for (let event of config.directEvents) {
+                        //             const directEventsPayload = await bOps.applications.for(remoteApplicationId.id).dataevents.create({ //create dataEvent for application
+                        //                 ...boilerplateDirectEvents[event].payload
+                        //             }) //TODO: create  mapping
+                        //
+                        //             directEventsArray.push(directEventsPayload);
+                        //         }
+                        //     }
+                        //     // NO remote application:
+                        //     // create application, event, mapping
+                        // } else {
+                        //     alignedDirectApp = await bOps.applications.create({
+                        //         type: 'Basic'
+                        //         enabled: true,
+                        //         logoUrl: "https://universe.eu5-st1.gigya.com/assets/img/connect-application.png",
+                        //         name: "Test Application",
+                        //         securitySchemes: {}, // TODO: confirm this
+                        //         description: "R&D test application for creating customers"
+                        //     });
+                        //
+                        //     if (alignedDirectApp)
+                        //         for (let event of config.directEvents) {
+                        //             const directEventsPayload = await bOps.applications.for(alignedDirectApp.id).dataevents.create({
+                        //                 ...boilerplateDirectEvents[event].payload
+                        //             })
+                        //             directEventsArray.push(directEventsPayload);
+                        //
+                        //             console.log("directEvents", directEventsArray)
+                        //         }
+                            //TODO: create mapping
 
                             // now we have a new event, create the mapping
 
                             // targetID = dataeventId, sourceID = application
-                        }
+                        // }
+                        const alignedDirectEvent = Promise.resolve(directEventsPromise)
+                        const alignedDirectApplication = Promise.resolve(directApplicationPromise)
+                        console.log('Direct Application is aligned!', alignedDirectApp);
+                        console.log('Direct Event is aligned!', directEventsArray)
                         /*
+
                             create direct application:
                               `  name: Test Application
                                 desc: R&D test application for creating customers
@@ -264,7 +397,7 @@ export function createBoilerplate(sdk: CDP) {
                          */
                     },
                     async alignCloudStorage() {
-                        // TODO: zoe
+                        // TODO: CLOUD STORAGE
                         /*
                             get all connectors from the applibrary
                             for each cloud storage connector
@@ -298,7 +431,7 @@ export function createBoilerplate(sdk: CDP) {
                         const vOps = bOps.views.for(view.id);
 
                         const remoteAudience = await vOps.audiences.getAll().then(audiences => audiences.find(a => a.name == boilerplateAudience.name))
-
+                        // TODO: change the purpose id's to their actual ID's
                         if (remoteAudience) {
                             console.log(remoteAudience)
                             if (isEqual(remoteAudience, boilerplateAudience)) {
@@ -306,21 +439,14 @@ export function createBoilerplate(sdk: CDP) {
                                 audiencePromise = Promise.resolve(remoteAudience);
                             } else {
                                 audiencePromise = vOps.audiences.for(remoteAudience.id).update({
-                                    enabled: true,
-                                    name: boilerplateAudience.name,
-                                    purposeIds: [],
-                                    query: boilerplateAudience.query
+                                    ...boilerplateAudience
                                 });
                             }
                         } else {
-                                audiencePromise = vOps.audiences.create({
-                                    enabled: true,
-                                    name: boilerplateAudience.name,
-                                    purposeIds: boilerplateAudience.purposeIds,
-                                    query: boilerplateAudience.query
-                                });
+                            audiencePromise = vOps.audiences.create({
+                                ...boilerplateAudience
+                            });
                         }
-
 
                         const alignedAudience = await audiencePromise
                         console.log('~~~~~ Audience aligned!', alignedAudience)
@@ -354,5 +480,3 @@ export function createBoilerplate(sdk: CDP) {
         }
     };
 }
-
-
