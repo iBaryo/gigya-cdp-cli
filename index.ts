@@ -289,7 +289,7 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
             const profileMappings = await context.sdk.api.businessunits.for(context.bu.id).mappings.get({
                 sourceId: context.event.id,
                 targetId: profileSchema.id
-            }).then(m => m?.[profileSchema.id] || []);
+            }).then(m => m?.[profileSchema.id]  || []);
 
             // filter only the mappings to the profile schema && to a targetField that is an identifier and take the source field
             const eventIdentifierFields = profileMappings.map(m => {
@@ -319,12 +319,14 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
                 fit: true   // Activate all expand/shrink + wordWrap
             });
 
+            // @ts-ignore
             return showMenu(`pick an identifier:`, eventIdentifierFields, f => `${f.eventFieldPath} (-> ${f.identifier})`).then(selected => {
                 if (isFlowSymbol(selected))
                     return selected;
 
-                // const unselected = eventIdentifierFields.filter(field => selected != field).map(f => f.eventFieldPath);
+                // const unselected = eventIdentifierFields.filter(field => selected != field).map(f => f.eventFieldPath); --- was already commented
 
+                // @ts-ignore
                 return selected.eventFieldPath;
             });
         }],
