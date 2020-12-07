@@ -20,7 +20,7 @@ const buID = '4_bFuVm3ltkBppPZcn-4r9kw';
     const view = await bOps.views.getAll().then(views => views.find(v => v.type == "Marketing"));
     const vOps = bOps.views.for(view.id);
 
-    await createBoilerplate(sdk).for(buID).audiences.align()
+    await createBoilerplate(sdk).for(buID).applications.alignDirect()
 
     // return status
 })().then(console.log);

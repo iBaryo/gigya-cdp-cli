@@ -1,8 +1,9 @@
 import {Event, EventType} from "../../gigya-cdp-sdk/entities/Event";
 import {Payload} from "../../gigya-cdp-sdk/entities/common";
 import {Purpose} from "../BoilerplateConfig";
-import {FieldName} from "../../gigya-cdp-sdk/entities";
+import {FieldName, PurposeId} from "../../gigya-cdp-sdk/entities";
 import {ActivityName} from "../schemas/ActivitiesSchemas";
+import {PurposeName} from "../purposes/purposes";
 
 export type DirectEventName = 'onPurchase' | 'onPageView';
 
@@ -10,20 +11,20 @@ export type DirectEventName = 'onPurchase' | 'onPageView';
 interface EventConfig {
     payload: Payload<Event>,
     mapping: Partial<Record<ActivityName | 'profile', Array<{
-        sourceField: FieldName; //FieldName is just a string
+        sourceField: FieldName;
         targetField: FieldName;
     }>>>;
 }
 
 
-export const DirectEvents: Record<DirectEventName, EventConfig> = {
+export const boilerplateDirectEvents: Record<DirectEventName, EventConfig> = {
 
     'onPurchase': {
         payload: {
             enabled: true,
+            purposeIds: ["HKBvQ4rD59J7xunMoUB0uQ", "HHuf-Dxmf7B0NAd2zXUYTg", "HAO5gzPd_QrLf1UiiRvvRw"], // todo: purposeName[]
             name: 'onPurchase' as DirectEventName,
             description: 'money money money',
-            purposeIds: ['basic', 'marketing'] as Array<Purpose>,
             dataType: EventType.firstPartyCrmData,
             schema: {
                 'type': 'object',
@@ -117,7 +118,7 @@ export const DirectEvents: Record<DirectEventName, EventConfig> = {
             enabled: true,
             name: 'onPageView' as DirectEventName,
             description: 'see that',
-            purposeIds: ['basic'] as Array<Purpose>,
+            purposeIds: ['marketing'] as PurposeName[], // on runtime, we'll swap this with the actual purposeIds
             dataType: EventType.offlineData,
             schema: {
                 'type': 'object',
