@@ -1,7 +1,7 @@
 import {Event, EventType} from "../../gigya-cdp-sdk/entities/Event";
 import {Payload} from "../../gigya-cdp-sdk/entities/common";
-import {Purpose} from "../BoilerplateConfig";
-import {FieldName, PurposeId} from "../../gigya-cdp-sdk/entities";
+// import {Purpose} from "../BoilerplateConfig";
+import {FieldName, Purpose, PurposeId} from "../../gigya-cdp-sdk/entities";
 import {ActivityName} from "../schemas/ActivitiesSchemas";
 import {PurposeName} from "../purposes/purposes";
 
@@ -10,7 +10,7 @@ export type DirectEventName = 'onPurchase' | 'onPageView';
 
 interface EventConfig {
     payload: Payload<Event>,
-    mapping: Partial<Record<ActivityName | 'profile', Array<{
+    mapping: Partial<Record<ActivityName | 'Profile', Array<{
         sourceField: FieldName;
         targetField: FieldName;
     }>>>;
@@ -22,11 +22,10 @@ export const boilerplateDirectEvents: Record<DirectEventName, EventConfig> = {
     'onPurchase': {
         payload: {
             enabled: true,
-            purposeIds: ["HKBvQ4rD59J7xunMoUB0uQ", "HHuf-Dxmf7B0NAd2zXUYTg", "HAO5gzPd_QrLf1UiiRvvRw"], // todo: purposeName[]
             name: 'onPurchase' as DirectEventName,
             description: 'money money money',
             dataType: EventType.firstPartyCrmData,
-            schema: {
+            schema: `{
                 'type': 'object',
                 'properties': {
                     'firstName': {
@@ -64,10 +63,12 @@ export const boilerplateDirectEvents: Record<DirectEventName, EventConfig> = {
                         type: 'number'
                     }
                 }
-            }
+            }`,
+            purposeIds: ["mapping", "marketing"] as Array<PurposeId>// todo: purposeName[]
+
         },
         mapping: {
-            'profile': [
+            'Profile': [
                 {
                     'sourceField': 'firstName',
                     'targetField': 'firstName'
@@ -83,10 +84,6 @@ export const boilerplateDirectEvents: Record<DirectEventName, EventConfig> = {
                 {
                     'sourceField': 'purchasePrice',
                     'targetField': 'price'
-                },
-                {
-                    'sourceField': 'primaryPhone',
-                    'targetField': 'primaryPhone'
                 },
                 {
                     'sourceField': 'masterDataId',
@@ -104,7 +101,7 @@ export const boilerplateDirectEvents: Record<DirectEventName, EventConfig> = {
             'Orders': [
                 {
                     'sourceField': 'purchasePrice',
-                    'targetField': 'purchasePrice'
+                    'targetField': 'price'
                 },
                 {
                     'sourceField': 'orderId',
@@ -118,9 +115,9 @@ export const boilerplateDirectEvents: Record<DirectEventName, EventConfig> = {
             enabled: true,
             name: 'onPageView' as DirectEventName,
             description: 'see that',
-            purposeIds: ['marketing'] as PurposeName[], // on runtime, we'll swap this with the actual purposeIds
+            purposeIds: ["basic", "marketing"], // on runtime, we'll swap this with the actual purposeIds
             dataType: EventType.offlineData,
-            schema: {
+            schema: `{
                 'type': 'object',
                 'properties': {
                     'firstName': {
@@ -158,10 +155,10 @@ export const boilerplateDirectEvents: Record<DirectEventName, EventConfig> = {
                         type: 'number'
                     }
                 }
-            }
+            }`
         },
         mapping: {
-            'profile': [
+            'Profile': [
                 {
                     'sourceField': 'firstName',
                     'targetField': 'firstName'
@@ -179,10 +176,6 @@ export const boilerplateDirectEvents: Record<DirectEventName, EventConfig> = {
                     'targetField': 'price'
                 },
                 {
-                    'sourceField': 'primaryPhone',
-                    'targetField': 'primaryPhone'
-                },
-                {
                     'sourceField': 'masterDataId',
                     'targetField': 'masterDataId'
                 },
@@ -195,7 +188,7 @@ export const boilerplateDirectEvents: Record<DirectEventName, EventConfig> = {
                     'targetField': 'gender'
                 }
             ],
-            'Page-Views': [
+            'Page-Views': [ //only this mapping is working TODO: 1
                 {
                     'sourceField': 'pageUrl',
                     'targetField': 'pageUrl'

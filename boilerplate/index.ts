@@ -4,7 +4,7 @@ import {
     Application,
     BusinessUnitId,
     CustomerSchema,
-    Event,
+    Event, PurposeId,
     SchemaType,
     Segment
 } from "../gigya-cdp-sdk/entities";
@@ -183,7 +183,7 @@ export function createBoilerplate(sdk: CDP) {
                 purposes: { //TODO: PURPOSES
                     async align() {
                         console.log('~~~~~~  aligning Purposes')
-                        const userPurposes = await bOps.purposes.getAll().then(p => p)
+                        const userPurposes = await bOps.purposes.getAll()
                         console.log('userPurposes', userPurposes)
                         // TODO: zoe come back here
                         // basic - attributes: profile.firstName, profile.lastName, profile.primaryEmail
@@ -194,9 +194,8 @@ export function createBoilerplate(sdk: CDP) {
 
 
                 applications: { //TODO: mapping for events
+                    //TODO: AUTH FOR APPLICATION CREATED???
                     async alignDirect() {
-                        let directApplicationPromise: Promise<Application>
-                        let directEventsPromise: Promise<Event>;
                         let directEventsArray: [Event];
                         let alignedDirectApp: Application;
 
@@ -227,22 +226,33 @@ export function createBoilerplate(sdk: CDP) {
                                 description: "R&D test application for creating customers"
                             }).then(app => app.id);
                         }
+                        console.log('remoteApplicationId', remoteApplicationId)
 
                         const remoteSchemas = await bOps.ucpschemas.getAll();
 
                         const appOps = bOps.applications.for(remoteApplicationId);
                         const remoteDirectEvents = await appOps.dataevents.getAll();
 
-                        console.log('remoteDirectEvents', remoteDirectEvents);
-
                         await Promise.all(
                             Object.entries(boilerplateDirectEvents).map(async ([eventName, {payload: boilerplateEvent, mapping: boilerplateMapping}]) => {
+
+                                const defaultPurposeIds = await bOps.purposes.getAll().then(arr => arr.filter(p => boilerplateEvent.purposeIds.includes(p.name)).map(n => n.id)) as PurposeId[]
+
                                 let remoteEventId = remoteDirectEvents.find(ev => ev.name == eventName)?.id;
+                                console.log(eventName, '~~~~~~~~~~~~~')
 
-                                if (!remoteEventId) {
-                                    remoteEventId = await appOps.dataevents.create(boilerplateEvent).then(ev => ev.id);
+                                // @ts-ignore TODO: remove this
+                                boilerplateEvent = {...boilerplateEvent, purposeIds: JSON.stringify(defaultPurposeIds)};
 
-                                    await Promise.all(
+                                if (!remoteEventId || remoteDirectEvents.length < 1) {
+                                    // @ts-ignore TODO: remove this
+                                    let remoteEvent = await appOps.dataevents.create(boilerplateEvent);
+                                    remoteEventId = remoteEvent.id
+                                    console.log('remoteEventId', remoteEventId, remoteEvent, eventName);
+
+                                    console.log('purposeIds', defaultPurposeIds, eventName) // we have already aligned, therefore assume that they are what we want..
+
+                                    const newMapping = await Promise.all(
                                         Object.entries(boilerplateMapping).map(([schemaName, mappings]) => {
                                             const targetSchemaId = remoteSchemas.find(remoteSchema => remoteSchema.name == schemaName)?.id;
                                             if (!targetSchemaId)
@@ -256,14 +266,14 @@ export function createBoilerplate(sdk: CDP) {
                                         })
                                     );
 
-
+                                    console.log('aligned ==> ', newMapping, eventName);
                                 } else {
-                                    const eventOps = appOps.dataevents.for(remoteEventId);
-                                    const remoteEvent = await eventOps.get();
+                                    let remoteEvent = await appOps.dataevents.for(remoteEventId).get();
+                                    console.log('remoteEvent', remoteEvent)
 
                                     if (!isEqual(remoteEvent, boilerplateEvent)) {
-                                        await eventOps.update(boilerplateEvent);
-
+                                        await appOps.dataevents.for(remoteEventId).update(boilerplateEvent);
+                                        console.log('not equal events')
                                         // const remoteEventMapping = await bOps.mappings.get();
                                         // console.log('remoteEventMapping', remoteEventMapping)
                                         await Promise.all(
@@ -279,6 +289,8 @@ export function createBoilerplate(sdk: CDP) {
                                                 });
                                             })
                                         );
+                                    } else {
+                                        console.log('equal schemas');
                                     }
 
                                     // TODO: updating mapping
@@ -377,10 +389,8 @@ export function createBoilerplate(sdk: CDP) {
 
                             // targetID = dataeventId, sourceID = application
                         // }
-                        const alignedDirectEvent = Promise.resolve(directEventsPromise)
-                        const alignedDirectApplication = Promise.resolve(directApplicationPromise)
-                        console.log('Direct Application is aligned!', alignedDirectApp);
-                        console.log('Direct Event is aligned!', directEventsArray)
+                        console.log('~~~~~~~ Direct Application is aligned!');
+                        console.log('~~~~~~~ Direct Event is aligned!')
                         /*
 
                             create direct application:
