@@ -14,16 +14,13 @@ import {ActivityIndicator} from "../BoilerplateConfig";
 export type PurposeName = 'marketing' | 'basic';
 export type PurposeReasons = 'Marketing' | 'Consent'
 
-export const Purposes: Record<PurposeName, any> = // Purpose gives error for 'enabled' TODO: WHY LIKE THIS 'ANY' ZOE
+export const Purposes: Record<PurposeName, Payload<Purpose>> = // Purpose gives error for 'enabled' TODO: WHY LIKE THIS 'ANY' ZOE
     {
         'marketing': {
             customerAttributes: ["firstName", "primaryEmail", "lastName"] as ProfileFieldName[],
             reason: "Marketing" as PurposeReasons,
             externalId: "123456",
             name: "marketing",
-            customerSegments: ['any segment'] as SegmentName[],
-            customerActivityIndicators: ['any indicators'] as ActivityIndicatorName[],
-            customerActivities: {'ActivitySchemaName': []} as Record<ActivitySchemaName, ActivityFieldName[]>
         },
 
         'basic': {

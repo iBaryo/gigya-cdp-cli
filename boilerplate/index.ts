@@ -196,8 +196,6 @@ export function createBoilerplate(sdk: CDP) {
                 applications: { //TODO: mapping for events
                     //TODO: AUTH FOR APPLICATION CREATED???
                     async alignDirect() {
-                        let directEventsArray: [Event];
-                        let alignedDirectApp: Application;
 
                         console.log("~~~~~~~ aligning Direct applications");
                         let remoteApplicationId = await bOps.applications.getAll().then(apps =>
@@ -245,7 +243,7 @@ export function createBoilerplate(sdk: CDP) {
                                 boilerplateEvent = {...boilerplateEvent, purposeIds: JSON.stringify(defaultPurposeIds)};
 
                                 if (!remoteEventId || remoteDirectEvents.length < 1) {
-                                    // @ts-ignore TODO: remove this
+
                                     let remoteEvent = await appOps.dataevents.create(boilerplateEvent);
                                     remoteEventId = remoteEvent.id
                                     console.log('remoteEventId', remoteEventId, remoteEvent, eventName);
