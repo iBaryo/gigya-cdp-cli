@@ -21,6 +21,7 @@ export const boilerplateDirectEvents: Record<DirectEventName, EventConfig> = {
 
     'onPurchase': {
         payload: {
+            purposeIds: ["basic", "marketing"] as Array<PurposeName>,
             enabled: true,
             name: 'onPurchase' as DirectEventName,
             description: 'money money money',
@@ -64,8 +65,6 @@ export const boilerplateDirectEvents: Record<DirectEventName, EventConfig> = {
                     }
                 }
             }`,
-            purposeIds: ["mapping", "marketing"] as Array<PurposeId>// todo: purposeName[]
-
         },
         mapping: {
             'Profile': [
@@ -115,7 +114,7 @@ export const boilerplateDirectEvents: Record<DirectEventName, EventConfig> = {
             enabled: true,
             name: 'onPageView' as DirectEventName,
             description: 'see that',
-            purposeIds: ["basic", "marketing"], // on runtime, we'll swap this with the actual purposeIds
+            purposeIds: ["basic", "marketing"] as Array<PurposeName>,
             dataType: EventType.offlineData,
             schema: `{
                 'type': 'object',
