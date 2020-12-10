@@ -26,45 +26,45 @@ export const boilerplateDirectEvents: Record<DirectEventName, EventConfig> = {
             name: 'onPurchase' as DirectEventName,
             description: 'money money money',
             dataType: EventType.firstPartyCrmData,
-            schema: `{
-                'type': 'object',
-                'properties': {
-                    'firstName': {
+            schema: {
+                type: 'object',
+                properties: {
+                    firstName: {
                         type: 'string'
                     },
-                    'primaryEmail': {
+                    primaryEmail: {
                         type: 'string'
                     },
-                    'primaryPhone': {
+                    primaryPhone: {
                         type: 'string'
                     },
-                    'purchasePrice': {
+                    purchasePrice: {
                         type: 'number'
                     },
-                    'orderId': {
+                    orderId: {
                         type: 'string'
                     },
-                    'masterDataId': {
+                    masterDataId: {
                         type: 'array',
                         items: {
                             type: 'string'
                         }
                     },
-                    "birthdate": {
+                    birthdate: {
                         type: "string",
                         format: "date"
                     },
-                    "gender": {
+                    gender: {
                         type: "string"
                     },
-                    "pageUrl": {
+                    pageUrl: {
                         type: 'string'
                     },
-                    "sessionTime": {
+                    sessionTime: {
                         type: 'number'
                     }
                 }
-            }`,
+            }
         },
         mapping: {
             'Profile': [
@@ -79,10 +79,6 @@ export const boilerplateDirectEvents: Record<DirectEventName, EventConfig> = {
                 {
                     'sourceField': 'primaryPhone',
                     'targetField': 'primaryPhone'
-                },
-                {
-                    'sourceField': 'purchasePrice',
-                    'targetField': 'price'
                 },
                 {
                     'sourceField': 'masterDataId',
@@ -106,7 +102,8 @@ export const boilerplateDirectEvents: Record<DirectEventName, EventConfig> = {
                     'sourceField': 'orderId',
                     'targetField': 'orderId'
                 }
-            ]
+            ],
+            'Page-Views': []
         }
     },
     'onPageView': {
@@ -116,45 +113,45 @@ export const boilerplateDirectEvents: Record<DirectEventName, EventConfig> = {
             description: 'see that',
             purposeIds: ["basic", "marketing"] as Array<PurposeName>,
             dataType: EventType.offlineData,
-            schema: `{
-                'type': 'object',
-                'properties': {
-                    'firstName': {
+            schema: {
+                type: 'object',
+                properties: {
+                    firstName: {
                         type: 'string'
                     },
-                    'primaryEmail': {
+                    primaryEmail: {
                         type: 'string'
                     },
-                    'primaryPhone': {
+                    primaryPhone: {
                         type: 'string'
                     },
-                    'purchasePrice': {
+                    purchasePrice: {
                         type: 'number'
                     },
-                    'orderId': {
+                    orderId: {
                         type: 'string'
                     },
-                    'masterDataId': {
+                    masterDataId: {
                         type: 'array',
                         items: {
                             type: 'string'
                         }
                     },
-                    "birthdate": {
+                    birthdate: {
                         type: "string",
                         format: "date"
                     },
-                    "gender": {
+                    gender: {
                         type: "string"
                     },
-                    "pageUrl": {
+                    pageUrl: {
                         type: 'string'
                     },
-                    "sessionTime": {
+                    sessionTime: {
                         type: 'number'
                     }
                 }
-            }`
+            }
         },
         mapping: {
             'Profile': [
@@ -171,10 +168,6 @@ export const boilerplateDirectEvents: Record<DirectEventName, EventConfig> = {
                     'targetField': 'primaryPhone'
                 },
                 {
-                    'sourceField': 'purchasePrice',
-                    'targetField': 'price'
-                },
-                {
                     'sourceField': 'masterDataId',
                     'targetField': 'masterDataId'
                 },
@@ -187,7 +180,7 @@ export const boilerplateDirectEvents: Record<DirectEventName, EventConfig> = {
                     'targetField': 'gender'
                 }
             ],
-            'Page-Views': [ //only this mapping is working TODO: 1
+            'Page-Views': [
                 {
                     'sourceField': 'pageUrl',
                     'targetField': 'pageUrl'
@@ -196,7 +189,8 @@ export const boilerplateDirectEvents: Record<DirectEventName, EventConfig> = {
                     'sourceField': 'sessionTime',
                     'targetField': 'sessionTime'
                 }
-            ]
+            ],
+            'Orders': [],
         }
     }
 }
