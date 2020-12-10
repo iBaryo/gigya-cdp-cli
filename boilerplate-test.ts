@@ -7,7 +7,7 @@ const sdk = new CDP({
     forceSimple: true,
 }, {
     dataCenter: 'eu5',
-    env: 'st1',
+    // env: 'st1',
     // ignoreCertError: true,
     // proxy: 'http://127.0.0.1:8888'
 });
@@ -21,6 +21,6 @@ const buID = '4_bFuVm3ltkBppPZcn-4r9kw';
     const view = await bOps.views.getAll().then(views => views.find(v => v.type == "Marketing"));
     const vOps = bOps.views.for(view.id);
 
-    await createBoilerplate(sdk).for(buID).applications.alignDirect()
+    await createBoilerplate(sdk).for(buID).purposes.align()
 
 })().then(console.log);

@@ -14,7 +14,7 @@ import {ActivityIndicator} from "../BoilerplateConfig";
 export type PurposeName = 'marketing' | 'basic';
 export type PurposeReasons = 'Marketing' | 'Consent'
 
-export const Purposes: Record<PurposeName, Payload<Purpose>> = // Purpose gives error for 'enabled' TODO: WHY LIKE THIS 'ANY' ZOE
+export const Purposes: Record<PurposeName, Payload<Purpose>> =
     {
         'marketing': {
             customerAttributes: ["firstName", "primaryEmail", "lastName"] as ProfileFieldName[],
@@ -24,7 +24,8 @@ export const Purposes: Record<PurposeName, Payload<Purpose>> = // Purpose gives 
         },
 
         'basic': {
-            customerAttributes: ["Purchase Sum" as ActivityIndicator, "VIP" as SegmentName],
+            customerActivityIndicators: ["Purchase Sum"] as ActivityIndicator[],
+            customerSegments: ["VIP"] as SegmentName[],
             reason: "Consent" as PurposeReasons,
             externalId: "78910",
             name: 'basic'
