@@ -21,6 +21,7 @@ import {AudienceCondition} from "../gigya-cdp-sdk/entities/Audience/AudienceCond
 import {defaultDirectApplication} from "./Applications/defaultDirectApplication";
 import {Payload} from "../gigya-cdp-sdk/entities/common";
 import {PurposeReasons, Purposes as boilerplatePurposes} from "./purposes/purposes";
+import {matchingRule} from "./MatchRules/matchRules";
 
 const isEqual = require('lodash/isEqual');
 const without = require('lodash/without');
@@ -114,6 +115,26 @@ export function createBoilerplate(sdk: CDP) {
                             console.log(`~~~~~~~~aligned ${activity}`, alignedActivity);
                         }
                     }
+                },
+
+                async alignMatchRules() {
+
+                    const view = await bOps.views.getAll().then(views => views.find(v => v.type == "Marketing"));
+                    const vOps = bOps.views.for(view.id);
+                    const remoteMatchRules = await vOps.matchRules.getAll()
+
+                    const masterDataIdMR = remoteMatchRules?.find(matchRules => matchRules.attributeName == config.commonIdentifier)
+
+                    !masterDataIdMR ? await vOps.matchRules.create({
+                        attributeName: "",
+                        name: "",
+                        ucpResolutionPolicy: undefined,
+                        }) : (isEqual(masterDataIdMR, matchingRule) ?? (await vOps.matchRules.for(masterDataIdMR.id).update({
+                        attributeName: "",
+                        name: "",
+                        ucpResolutionPolicy: undefined,
+                    })))
+                    // check if
                 },
 
                 //TODO: Application Identifier
@@ -285,63 +306,63 @@ export function createBoilerplate(sdk: CDP) {
                             Object.entries(boilerplateDirectEvents).map(async ([eventName, {payload: boilerplateEvent, mapping: boilerplateMapping}]) => {
 
                                 // dealing with event's mapping
-                               const checkMappings = async(remoteEventId) => {
-                                   await Promise.all(
-                                       Object.entries(boilerplateMapping).map(async ([schemaName, mappings]) => {
+                                const checkMappings = async (remoteEventId) => {
+                                    await Promise.all(
+                                        Object.entries(boilerplateMapping).map(async ([schemaName, mappings]) => {
 
-                                           const targetSchemaId = remoteSchemas.find(remoteSchema => remoteSchema.name == schemaName)?.id
+                                            const targetSchemaId = remoteSchemas.find(remoteSchema => remoteSchema.name == schemaName)?.id
 
-                                           if (!targetSchemaId)
-                                               throw `mapping set to a non existing schema: ${schemaName}`;
+                                            if (!targetSchemaId)
+                                                throw `mapping set to a non existing schema: ${schemaName}`;
 
-                                           const remoteMappings = await bOps.mappings.get({
-                                               sourceId: remoteEventId
-                                           })
+                                            const remoteMappings = await bOps.mappings.get({
+                                                sourceId: remoteEventId
+                                            })
 
-                                           // if remote mapping is not the same as boilerplate
-                                           if (isEqual(mappings, remoteMappings[targetSchemaId])) { // if the mappings are equal!!!
-                                               // not sure what goes here
-                                               console.log('is equal')
-                                               return
-                                           } else {
-                                               console.log(`~~~~~~~ ALIGNING  ${schemaName} Mapping`)
+                                            // if remote mapping is not the same as boilerplate
+                                            if (isEqual(mappings, remoteMappings[targetSchemaId])) { // if the mappings are equal!!!
+                                                // not sure what goes here
+                                                console.log('is equal')
+                                                return
+                                            } else {
+                                                console.log(`~~~~~~~ ALIGNING  ${schemaName} Mapping`)
 
-                                               // if it has mappings and boilerplate does not - remove mappings from remote
-                                               if ((!mappings || !mappings.length) && (remoteMappings[targetSchemaId].length >= 1)) {
-                                                   console.log(`~~~~~~~ deleting ${schemaName} Mapping`)
-                                                   return bOps.mappings.delete({
-                                                       sourceId: remoteEventId,
-                                                       targetId: targetSchemaId,
-                                                       mappings: remoteMappings[targetSchemaId]
-                                                   })
+                                                // if it has mappings and boilerplate does not - remove mappings from remote
+                                                if ((!mappings || !mappings.length) && (remoteMappings[targetSchemaId].length >= 1)) {
+                                                    console.log(`~~~~~~~ deleting ${schemaName} Mapping`)
+                                                    return bOps.mappings.delete({
+                                                        sourceId: remoteEventId,
+                                                        targetId: targetSchemaId,
+                                                        mappings: remoteMappings[targetSchemaId]
+                                                    })
 
-                                                   // or do you update with [] ? in schema defined I put []
+                                                    // or do you update with [] ? in schema defined I put []
 
-                                                   // if it does not have mappings but boilerplate does, create remote mappings
-                                               } else if ((mappings.length >= 1) && (!remoteMappings[targetSchemaId])) {
-                                                   console.log(`~~~~~~~ creating ${schemaName} Mapping`)
-                                                   return bOps.mappings.create({
-                                                       sourceId: remoteEventId,
-                                                       targetId: targetSchemaId,
-                                                       mappings
-                                                   });
+                                                    // if it does not have mappings but boilerplate does, create remote mappings
+                                                } else if ((mappings.length >= 1) && (!remoteMappings[targetSchemaId])) {
+                                                    console.log(`~~~~~~~ creating ${schemaName} Mapping`)
+                                                    return bOps.mappings.create({
+                                                        sourceId: remoteEventId,
+                                                        targetId: targetSchemaId,
+                                                        mappings
+                                                    });
 
-                                                   // if they both have mappings that are not the same, update remote mappings to be the boilerplate mappings
-                                                   // TODO: this is not working
-                                               } else if ((mappings.length >= 1) && (remoteMappings[targetSchemaId].length >= 1)) {
-                                                   console.log(`~~~~~~~ updating ${schemaName} Mapping`)
-                                                   return bOps.mappings.update({
-                                                       sourceId: remoteEventId,
-                                                       targetId: targetSchemaId,
-                                                       mappings
-                                                   });
-                                               }
-                                           }
-                                       })
-                                   );
-                                   console.log("~~~~~~~ Mapping is aligned!");
-                               }
-                               // end of checking mappings
+                                                    // if they both have mappings that are not the same, update remote mappings to be the boilerplate mappings
+                                                    // TODO: this is not working
+                                                } else if ((mappings.length >= 1) && (remoteMappings[targetSchemaId].length >= 1)) {
+                                                    console.log(`~~~~~~~ updating ${schemaName} Mapping`)
+                                                    return bOps.mappings.update({
+                                                        sourceId: remoteEventId,
+                                                        targetId: targetSchemaId,
+                                                        mappings
+                                                    });
+                                                }
+                                            }
+                                        })
+                                    );
+                                    console.log("~~~~~~~ Mapping is aligned!");
+                                }
+                                // end of checking mappings
 
                                 // if there are no mappings at all and the event is new: (maybe we can just use above?)
                                 const createMappings = async (id) => {
@@ -407,14 +428,14 @@ export function createBoilerplate(sdk: CDP) {
                                             purposeIds: JSON.stringify(eventPurposeIds) as any
                                         })
                                     }
-                                // else {
-                                //         // they are equal and we still need to check mappings
-                                //
-                                //         await checkMappings(remoteEvent.id)
-                                //     }
+                                    // else {
+                                    //         // they are equal and we still need to check mappings
+                                    //
+                                    //         await checkMappings(remoteEvent.id)
+                                    //     }
                                     // same events: we are not doing anything to event --> carry on
 
-                                // now we have checked events, we can check mapping
+                                    // now we have checked events, we can check mapping
 
                                 }
                                 // we always check mappings...
@@ -447,6 +468,7 @@ export function createBoilerplate(sdk: CDP) {
                                     create mapping
                                     no schedule
                          */
+                        // const CSApps = bOps.applications.for()
                     },
                     alignAll() {
                         return Promise.all([
