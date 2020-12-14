@@ -268,8 +268,6 @@ export function createBoilerplate(sdk: CDP) {
                         })
                     }
                 },
-                //TODO: IDENTIFIER?!
-
 
                 applications: { //TODO: mapping for events
                     async alignDirect() {
