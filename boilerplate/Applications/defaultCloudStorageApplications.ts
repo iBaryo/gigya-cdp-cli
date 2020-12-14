@@ -96,8 +96,12 @@ export const cloudStorageApplications: Record<CSType, Payload<Application>> = {
             }
         },
         configValues: {
-            "writeBucketName": "sci-test-export",
-            "readBucketName": "sci-test-export"
+            "writeBucketName": "fake-configValue",
+            "readBucketName": "fake-configValue",
+            "writeFileName": "fake-configValue",
+            "readFileNameRegex": "fake-configValue",
+            "writeFilePath": "fake-configValue",
+            "readFilePath": "fake-configValue"
         },
         // version: 0,
         type: 'CloudStorage',
@@ -421,7 +425,7 @@ export const cloudStorageApplications: Record<CSType, Payload<Application>> = {
                     }
                 }
             },
-            description: "R&D test application for google cloud",
+            description: "R&D test application for SFTP",
             // resources: {
             //     "type": "sftp",
             //     "read": {
@@ -546,7 +550,7 @@ export const cloudStorageApplications: Record<CSType, Payload<Application>> = {
                 }
             },
             configValues: {
-                "host": "54.221.196.189",
+                "host": "fake-host",
                 "port": 22
             },
             // version: 0,
@@ -555,7 +559,7 @@ export const cloudStorageApplications: Record<CSType, Payload<Application>> = {
     }
 
 
-    export const cloudStorageApplication: Payload < Application > = {
+    export const cloudStorageApplication = {
     businessUnitId: "",
     connectorId: "",
     pollingConfig: undefined,

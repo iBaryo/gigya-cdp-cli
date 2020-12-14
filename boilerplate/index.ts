@@ -133,9 +133,9 @@ export function createBoilerplate(sdk: CDP) {
                         // if they are not equal, update
                         // if they are equal, don't do anything
                     }) : (!isEqual(masterDataIdMR, matchingRule) ?? (await vOps.matchRules.for(masterDataIdMR.id).update({
-                            // attributeName: config.commonIdentifier, // this seems too explicit if I have already created an interface, but ...masterDataIdMR does not work
-                            // name: config.commonIdentifier,
-                            // ucpResolutionPolicy: 'merge',
+                        // attributeName: config.commonIdentifier, // this seems too explicit if I have already created an interface, but ...masterDataIdMR does not work
+                        // name: config.commonIdentifier,
+                        // ucpResolutionPolicy: 'merge',
 
                         ...matchingRule, ...masterDataIdMR // does not work if I use this
                     })));
@@ -247,22 +247,22 @@ export function createBoilerplate(sdk: CDP) {
 
 
                                 // TODO: updating mapping priority 1* --- need to send strings.
-                                // await bOps.purposes.for(purposeId).update({
-                                //     // ...boilerplatePurposePayload,
-                                //     customerAttributes: '["firstName", "primaryEmail", "lastName"]' as any,
-                                //     reason: "Marketing" as PurposeReasons,
-                                //     externalId: "123456",
-                                //     name: "marketing",
-                                // // @ts-ignore
-                                // customerAttributes: '["firstName", "primaryEmail", "lastName"]',
-                                // //  // @ts-ignore
-                                // // customerActivities: "'" + boilerplatePurposePayload.customerActivities + "'",
-                                // // // @ts-ignore
-                                // // customerSegments: boilerplatePurposePayload.customerSegments?.toString(),
-                                // //  // @ts-ignore
-                                //         // // customerActivityIndicators: boilerplatePurposePayload.customerActivityIndicators?.toString()
-                                //     }).then(res => console.log(res))
-                                //     console.log(finalPurpose)
+                                await bOps.purposes.for(purposeId).update({
+                                    // ...boilerplatePurposePayload,
+                                    customerAttributes: ["firstName", "primaryEmail", "lastName"] as any,
+                                    reason: "Marketing" as PurposeReasons,
+                                    externalId: "123456",
+                                    name: "marketing",
+                                    // @ts-ignore
+                                    // customerAttributes: '["firstName", "primaryEmail", "lastName"]',
+                                    //  // @ts-ignore
+                                    // customerActivities: "'" + boilerplatePurposePayload.customerActivities + "'",
+                                    // // @ts-ignore
+                                    // customerSegments: boilerplatePurposePayload.customerSegments?.toString(),
+                                    //  // @ts-ignore
+                                    // // customerActivityIndicators: boilerplatePurposePayload.customerActivityIndicators?.toString()
+                                }).then(res => console.log(res))
+                                console.log(finalPurpose)
                             }
                             console.log('~~~~~~~~ Purposes aligned!', finalPurpose)
                         })
@@ -454,26 +454,34 @@ export function createBoilerplate(sdk: CDP) {
 
 
                     async alignCloudStorage() {
-                        // TODO: CLOUD STORAGE
+                        // TODO: CLOUD STORAGE MAPPING (not started)
+                        const getAppViewModel = (application) => {
+                            return {
+                                configValues: application.configValues ? application.configValues : cloudStorageApplications[application.resources.type].configValues,
+                                configSchema: application.configSchema,
+                                securitySchemes: application.securitySchemes,
+                                type: application.type,
+                                name: application.name
+                            }
+                        }
 
-                        console.log('~~~~ aligning cloud storage applications')
+
+                        console.log('~~~~ aligning cloud storage applications');
                         const remoteApplications = await bOps.applications.getAll();
 
                         const remoteCloudStorageConnectors = (await sdk.api.workspaces.for('19834500').applibrary.getAll({includePublic: true}));
-                        console.log(remoteCloudStorageConnectors)
 
                         await Promise.all(remoteCloudStorageConnectors['connectors'] && remoteCloudStorageConnectors['connectors'].map(async connector => {
 
-                            console.log(remoteApplications[0])
-
-                            const remoteCloudStorageApplication = remoteApplications.find(application => application.connectorId == connector.id);
+                            const remoteCloudStorageApplication = remoteApplications.find(application => application['originConnectorId'] == connector.id);
 
                             if (!remoteCloudStorageApplication) {
+                                console.log('creating remote app')
                                 await bOps.applications.create({
                                     configSchema: JSON.stringify(connector.configSchema) as any,
                                     configValues: cloudStorageApplications[connector.resources.type].configValues,
                                     connectorId: connector.id,
-                                    description: "",
+                                    description: cloudStorageApplications[connector.resources.type].description,
                                     enabled: false,
                                     logoUrl: connector.logoUrl,
                                     name: connector.name,
@@ -481,41 +489,34 @@ export function createBoilerplate(sdk: CDP) {
                                     securitySchemes: connector.securitySchemes,
                                     testResourcePath: "",
                                     type: 'CloudStorage'
-                                })
+                                });
                             } else {
 
-                                const viewModelCSApp = {
-                                    ...cloudStorageApplications[connector.name],
-                                    configSchema: connector.configSchema,
-                                    configValues: connector.configValues,
-                                    connectorId: connector.id,
-                                    name: connector.name,
-                                    pollingConfig: undefined,
-                                    securitySchemes: connector.securitySchemes,
-                                    type: 'CloudStorage'
-                                }
+                                const viewModelRemoteCSApp = getAppViewModel(remoteCloudStorageApplication);
+                                const viewModelCSApp = getAppViewModel(connector);
 
-                                console.log('cloudStorageApplications[connector.name]', cloudStorageApplications[connector.name])
+                                console.log('viewModelRemoteCSApp, viewModelCSApp', viewModelRemoteCSApp, viewModelCSApp);
 
-                                if (!isEqual(remoteCloudStorageApplication, viewModelCSApp)) {
-
+                                if (!isEqual(viewModelRemoteCSApp, viewModelCSApp)) {
+                                    console.log('update remote app')
                                     await bOps.applications.for(remoteCloudStorageApplication.id).update({
                                         ...remoteCloudStorageApplication,
-                                        configSchema: connector.configSchema,
-                                        configValues: connector.configValues,
+                                        configSchema: JSON.stringify(connector.configSchema) as any,
+                                        configValues: cloudStorageApplications[connector.resources.type].configValues,
                                         connectorId: connector.id,
                                         enabled: false,
                                         pollingConfig: undefined,
                                         securitySchemes: connector.securitySchemes,
                                         testResourcePath: "",
-                                        type: 'CloudStorage'
+                                        type: 'CloudStorage',
+                                        description: cloudStorageApplications[connector.resources.type].description,
+                                        logoUrl: connector.logoUrl,
+                                        name: connector.name,
                                     })
-                                } else return remoteCloudStorageApplication
+                                } else console.log('they are equal...');
+                                // else return remoteCloudStorageApplication
                             }
-                        })
-                        )
-
-
+                        }));
                     },
                     alignAll() {
                         return Promise.all([
