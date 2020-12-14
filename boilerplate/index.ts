@@ -22,6 +22,7 @@ import {defaultDirectApplication} from "./Applications/defaultDirectApplication"
 import {Payload} from "../gigya-cdp-sdk/entities/common";
 import {PurposeReasons, Purposes as boilerplatePurposes} from "./purposes/purposes";
 import {matchingRule} from "./MatchRules/matchRules";
+import {cloudStorageApplication, cloudStorageApplications} from "./Applications/defaultCloudStorageApplications";
 
 const isEqual = require('lodash/isEqual');
 const without = require('lodash/without');
@@ -121,27 +122,29 @@ export function createBoilerplate(sdk: CDP) {
 
                     const view = await bOps.views.getAll().then(views => views.find(v => v.type == "Marketing"));
                     const vOps = bOps.views.for(view.id);
-                    const remoteMatchRules = await vOps.matchRules.getAll()
+                    const remoteMatchRules = await vOps.matchRules.getAll();
 
-                    const masterDataIdMR = remoteMatchRules?.find(matchRules => matchRules.attributeName == config.commonIdentifier)
+                    const masterDataIdMR = remoteMatchRules?.find(matchRules => matchRules.attributeName == config.commonIdentifier);
 
                     !masterDataIdMR ? await vOps.matchRules.create({
-                        attributeName: "",
-                        name: "",
-                        ucpResolutionPolicy: undefined,
-                        }) : (isEqual(masterDataIdMR, matchingRule) ?? (await vOps.matchRules.for(masterDataIdMR.id).update({
-                        attributeName: "",
-                        name: "",
-                        ucpResolutionPolicy: undefined,
-                    })))
-                    // check if
+                        attributeName: config.commonIdentifier,
+                        name: config.commonIdentifier,
+                        ucpResolutionPolicy: 'merge',
+                        // if they are not equal, update
+                        // if they are equal, don't do anything
+                    }) : (!isEqual(masterDataIdMR, matchingRule) ?? (await vOps.matchRules.for(masterDataIdMR.id).update({
+                            // attributeName: config.commonIdentifier, // this seems too explicit if I have already created an interface, but ...masterDataIdMR does not work
+                            // name: config.commonIdentifier,
+                            // ucpResolutionPolicy: 'merge',
+
+                        ...matchingRule, ...masterDataIdMR // does not work if I use this
+                    })));
                 },
 
-                //TODO: Application Identifier
 
                 activityIndicators: {
                     async align() {
-                        console.log('~~~~~~~ aligning Activity Indicators')
+                        console.log('~~~~~~~ aligning Activity Indicators');
 
                         let alignedActivityIndicatorPromise: Promise<ActivityIndicator>
 
@@ -167,7 +170,7 @@ export function createBoilerplate(sdk: CDP) {
                                 });
                         }
                         const alignedActivityIndicator = await alignedActivityIndicatorPromise;
-                        console.log('~~~~~~~ aligned Activity Indicator:', alignedActivityIndicator)
+                        console.log('~~~~~~~ aligned Activity Indicator:', alignedActivityIndicator);
                     },
                 },
 
@@ -269,7 +272,6 @@ export function createBoilerplate(sdk: CDP) {
 
 
                 applications: { //TODO: mapping for events
-                    //TODO: AUTH FOR APPLICATION CREATED???
                     async alignDirect() {
 
                         console.log("~~~~~~~ aligning Direct applications");
@@ -293,7 +295,7 @@ export function createBoilerplate(sdk: CDP) {
                         }
                         console.log("~~~~~~~ Direct Application is aligned!");
 
-                        const appOps = bOps.applications.for(remoteApplicationId);
+                        const appOps = bOps.applications.for(remoteApplicationId)
 
                         const [remoteSchemas, remoteDirectEvents, bUnitPurposes] = await Promise.all([
                             bOps.ucpschemas.getAll(),
@@ -444,6 +446,7 @@ export function createBoilerplate(sdk: CDP) {
                                 await checkMappings(remoteEventId)
 
                             }));
+
                         console.log('~~~~~~~ Direct Application is aligned!');
                         console.log('~~~~~~~ Direct Events are aligned!');
                         console.log('~~~~~~~ Mappings are aligned!');
@@ -452,23 +455,67 @@ export function createBoilerplate(sdk: CDP) {
 
                     async alignCloudStorage() {
                         // TODO: CLOUD STORAGE
-                        /*
-                            get all connectors from the applibrary
-                            for each cloud storage connector
-                            create an application -
-                                name according to connector's
-                                enabled: false
-                                mock all other fields
-                                mock auth & config
-                                create an event
-                                    name: `new customers from ${app.name}`
-                                    purposes: basic
-                                    mock settings & config
-                                    create schema according to boilerplate
-                                    create mapping
-                                    no schedule
-                         */
-                        // const CSApps = bOps.applications.for()
+
+                        console.log('~~~~ aligning cloud storage applications')
+                        const remoteApplications = await bOps.applications.getAll();
+
+                        const remoteCloudStorageConnectors = (await sdk.api.workspaces.for('19834500').applibrary.getAll({includePublic: true}));
+                        console.log(remoteCloudStorageConnectors)
+
+                        await Promise.all(remoteCloudStorageConnectors['connectors'] && remoteCloudStorageConnectors['connectors'].map(async connector => {
+
+                            console.log(remoteApplications[0])
+
+                            const remoteCloudStorageApplication = remoteApplications.find(application => application.connectorId == connector.id);
+
+                            if (!remoteCloudStorageApplication) {
+                                await bOps.applications.create({
+                                    configSchema: JSON.stringify(connector.configSchema) as any,
+                                    configValues: cloudStorageApplications[connector.resources.type].configValues,
+                                    connectorId: connector.id,
+                                    description: "",
+                                    enabled: false,
+                                    logoUrl: connector.logoUrl,
+                                    name: connector.name,
+                                    pollingConfig: undefined,
+                                    securitySchemes: connector.securitySchemes,
+                                    testResourcePath: "",
+                                    type: 'CloudStorage'
+                                })
+                            } else {
+
+                                const viewModelCSApp = {
+                                    ...cloudStorageApplications[connector.name],
+                                    configSchema: connector.configSchema,
+                                    configValues: connector.configValues,
+                                    connectorId: connector.id,
+                                    name: connector.name,
+                                    pollingConfig: undefined,
+                                    securitySchemes: connector.securitySchemes,
+                                    type: 'CloudStorage'
+                                }
+
+                                console.log('cloudStorageApplications[connector.name]', cloudStorageApplications[connector.name])
+
+                                if (!isEqual(remoteCloudStorageApplication, viewModelCSApp)) {
+
+                                    await bOps.applications.for(remoteCloudStorageApplication.id).update({
+                                        ...remoteCloudStorageApplication,
+                                        configSchema: connector.configSchema,
+                                        configValues: connector.configValues,
+                                        connectorId: connector.id,
+                                        enabled: false,
+                                        pollingConfig: undefined,
+                                        securitySchemes: connector.securitySchemes,
+                                        testResourcePath: "",
+                                        type: 'CloudStorage'
+                                    })
+                                } else return remoteCloudStorageApplication
+                            }
+                        })
+                        )
+
+
                     },
                     alignAll() {
                         return Promise.all([
