@@ -228,6 +228,7 @@ export function createBoilerplate(sdk: CDP) {
 
                             const purpose = cleanedRemotePurposes.find(p => p.name == boilerplatePurposeName)
 
+
                             if (!purpose || !purposeId) {
                                 finalPurpose = await bOps.purposes.create({
                                     ...boilerplatePurposePayload
@@ -236,6 +237,7 @@ export function createBoilerplate(sdk: CDP) {
 
                             // if remote purpose is not the same as boilerplate, update the remote
                             if (!isEqual(purpose, boilerplatePurposePayload)) {
+
                                 // @ts-ignore
                                 await bOps.purposes.update({
                                     id: purposeId,
@@ -261,11 +263,12 @@ export function createBoilerplate(sdk: CDP) {
                         // no existing remoteApp --> create one
                         if (!remoteApplicationId) {
                             console.log(`~~~~~~ creating direct application...`);
+                            // @ts-ignore
                             remoteApplicationId = (await bOps.applications.create({
                                 type: 'Basic',
                                 enabled: true,
                                 logoUrl: "https://universe.eu5-st1.gigya.com/assets/img/connect-application.png",
-                                name: "Test Application",
+                                name: "Direct Test Application",
                                 securitySchemes: {}, // TODO: confirm this
                                 description: "R&D test application for creating customers"
                             })).id;
@@ -274,14 +277,72 @@ export function createBoilerplate(sdk: CDP) {
 
                         const appOps = bOps.applications.for(remoteApplicationId)
 
+                        console.log('remoteApplicationId', remoteApplicationId)
+
                         const [remoteSchemas, remoteDirectEvents, bUnitPurposes] = await Promise.all([
                             bOps.ucpschemas.getAll(),
-                            appOps.dataevents.getAll(),
+                            bOps.applications.for(remoteApplicationId).dataevents.getAll(),
                             bOps.purposes.getAll()
-                        ])
+                        ]);
 
+
+                        const updateDirectEventsFromBoilerplate = Object
+                            .entries(boilerplateDirectEvents)
+                            .reduce((matchedDirectEventNames, [eventName, {payload: boilerplateEvent, mapping: boilerplateMapping}]) =>  {
+                                // find remote direct events who have the same name as the boilerplate's
+                                const remoteDirectEventId = remoteDirectEvents.find(event => event.name === eventName).id;
+                                 // let remoteDirectEvent = bOps.applications.for(remoteApplicationId).dataevents.for(remoteDirectEventId).get().then(res => {
+                                 //     return res
+                                 // })
+
+                                const remoteDirectEvent = remoteDirectEvents.find(event => event.name === eventName);
+
+                                // TODO: no - doesnt give event...
+
+                                return remoteDirectEvent ? [...matchedDirectEventNames, {
+                                    remoteDirectEvent,
+                                    boilerplateEvent
+                                }] : matchedDirectEventNames;
+                            }, [])
+                            // filter to get only the remote direct events who have the same name & who are not equal to the boilerplate
+                            .filter(({remoteDirectEvent, boilerplateEvent}): any => {
+
+                                //manipulating remote direct event so that we can compare it with boilerplate's
+                                const remoteEvent = {
+                                    ...remoteDirectEvent,
+                                    schema: JSON.parse(remoteDirectEvent.schema.toString())
+                                };
+                                // change purposeNames to purposeIds in boilerplateEvent
+                                const eventPurposeIds = boilerplateEvent.purposeIds.map(purposeName => bUnitPurposes.find(p => p.name == purposeName)?.id).filter(Boolean);
+                                boilerplateEvent = {...boilerplateEvent, purposeIds: eventPurposeIds};
+
+                                let remoteEventToCompare = {}
+                                Object.keys(boilerplateEvent).forEach(k => {
+                                    remoteEventToCompare[k] = remoteEvent[k]
+                                })
+                                return !isEqual(boilerplateEvent, remoteEventToCompare);
+                            })
+                            .map(({remoteDirectEvent, boilerplateEvent}): any => {
+                                bOps.applications.for(remoteApplicationId).dataevents.for(remoteDirectEvent.id).update({
+                                    ...boilerplateEvent as Payload<Event>,
+                                    schema: JSON.stringify(boilerplateEvent.schema),
+                                    purposeIds: JSON.stringify(boilerplateEvent.purposeIds) as any
+                                })
+                            }); // getting array of update of direct events from boilrplate.
+
+                        // REFACTROING BY Martin Fowler.
+                        // pipe instead of loops
+                        // split loop
+                        // map
+                        // filter
+                        // reduce
+                        // Proxy object javascript.
+
+                        const updatedDirectEvents = await Promise.all(updateDirectEventsFromBoilerplate);
+                        console.log(updatedDirectEvents)
 
                         await Promise.all(
+                            // taking two boilerplate direct events and going through their entries
                             Object.entries(boilerplateDirectEvents).map(async ([eventName, {payload: boilerplateEvent, mapping: boilerplateMapping}]) => {
 
                                 // dealing with event's mapping
@@ -298,17 +359,26 @@ export function createBoilerplate(sdk: CDP) {
                                                 sourceId: remoteEventId
                                             })
 
+                                            const newMappingsObj = mappings.map(mapping => {
+                                                return {
+                                                    srcField: mapping.sourceField,
+                                                    targetField: mapping.targetField,
+                                                    target: targetSchemaId
+                                                }
+                                            })
+
                                             // if remote mapping is not the same as boilerplate
-                                            if (isEqual(mappings, remoteMappings[targetSchemaId])) { // if the mappings are equal!!!
+                                            if (isEqual(newMappingsObj, remoteMappings[targetSchemaId])) { // if the mappings are equal!!!
                                                 // not sure what goes here
                                                 console.log('is equal')
                                                 return
                                             } else {
-                                                console.log(`~~~~~~~ ALIGNING  ${schemaName} Mapping`)
 
                                                 // if it has mappings and boilerplate does not - remove mappings from remote
-                                                if ((!mappings || !mappings.length) && (remoteMappings[targetSchemaId].length >= 1)) {
-                                                    console.log(`~~~~~~~ deleting ${schemaName} Mapping`)
+                                                if ((!newMappingsObj || !newMappingsObj.length) && remoteMappings[targetSchemaId]) {
+                                                    console.log(`~~~~~~~ deleting ${schemaName} Mapping`);
+
+                                                    // TODO: this is working BUT because of updated API - need to make changes to SDK
                                                     return bOps.mappings.delete({
                                                         sourceId: remoteEventId,
                                                         targetId: targetSchemaId,
@@ -318,22 +388,32 @@ export function createBoilerplate(sdk: CDP) {
                                                     // or do you update with [] ? in schema defined I put []
 
                                                     // if it does not have mappings but boilerplate does, create remote mappings
-                                                } else if ((mappings.length >= 1) && (!remoteMappings[targetSchemaId])) {
+                                                } else if ((newMappingsObj.length >= 1) && (!remoteMappings[targetSchemaId])) {
                                                     console.log(`~~~~~~~ creating ${schemaName} Mapping`)
-                                                    return bOps.mappings.create({
-                                                        sourceId: remoteEventId,
-                                                        targetId: targetSchemaId,
-                                                        mappings
-                                                    });
+
+                                                    //TODO: this is what the request body needs to be...
+
+
+                                                    // TODO: this is not working because of updated API - need to make changes to SDK
+                                                    // @ts-ignore
+                                                    return appOps.dataevents.for(remoteEventId).mappings.create({
+                                                        // sourceId: remoteEventId,
+                                                        // targetId: targetSchemaId,
+                                                        // contextId: remoteEventId,
+                                                        // @ts-ignore
+                                                        mappings: newMappingsObj,
+                                                        // target: targetSchemaId,
+                                                    }).then(res => console.log(res, 'mappings', newMappingsObj))
 
                                                     // if they both have mappings that are not the same, update remote mappings to be the boilerplate mappings
-                                                    // TODO: this is not working
-                                                } else if ((mappings.length >= 1) && (remoteMappings[targetSchemaId].length >= 1)) {
+                                                    // TODO: this is not working because of updated API - need to make changes to SDK
+                                                } else if ((newMappingsObj.length >= 1) && (remoteMappings[targetSchemaId].length >= 1)) {
                                                     console.log(`~~~~~~~ updating ${schemaName} Mapping`)
-                                                    return bOps.mappings.update({
-                                                        sourceId: remoteEventId,
-                                                        targetId: targetSchemaId,
-                                                        mappings
+
+                                                    // @ts-ignore
+                                                    return appOps.dataevents.for(remoteEventId).mappings.update({
+                                                        // @ts-ignore
+                                                        mappings: newMappingsObj,
                                                     });
                                                 }
                                             }
@@ -352,18 +432,30 @@ export function createBoilerplate(sdk: CDP) {
                                             if (!targetSchemaId)
                                                 throw `mapping set to a non existing schema: ${schemaName}`;
 
+                                            const newMappingsObj = mappings.map(mapping => {
+                                                return {
+                                                    srcField: mapping.sourceField,
+                                                    targetField: mapping.targetField,
+                                                    target: targetSchemaId
+                                                }
+                                            })
+
                                             console.log(`~~~~~~~ creating ${schemaName} Mapping`);
-                                            return bOps.mappings.create({
-                                                sourceId: id,
-                                                targetId: targetSchemaId,
-                                                mappings
-                                            });
+                                            return appOps.dataevents.for(remoteEventId).mappings.create({
+                                                // sourceId: remoteEventId,
+                                                // targetId: targetSchemaId,
+                                                // contextId: remoteEventId,
+                                                // @ts-ignore
+                                                mappings: newMappingsObj,
+                                                // target: targetSchemaId,
+                                            }).then(res => console.log(res, 'mappings CREATED', newMappingsObj))
                                         })
                                     );
                                 }
 
                                 const eventPurposeIds =
                                     boilerplateEvent.purposeIds.map(purposeName => bUnitPurposes.find(p => p.name == purposeName)?.id).filter(Boolean);
+
 
                                 let remoteEventId = remoteDirectEvents.find(ev => ev.name == eventName)?.id;
 
@@ -372,7 +464,6 @@ export function createBoilerplate(sdk: CDP) {
                                     boilerplateEvent = {
                                         ...boilerplateEvent,
                                         schema: JSON.stringify(boilerplateEvent.schema),
-                                        // // @ts-ignore
                                         purposeIds: JSON.stringify(eventPurposeIds) as any
                                     };
 
@@ -407,14 +498,7 @@ export function createBoilerplate(sdk: CDP) {
                                             purposeIds: JSON.stringify(eventPurposeIds) as any
                                         })
                                     }
-                                    // else {
-                                    //         // they are equal and we still need to check mappings
-                                    //
-                                    //         await checkMappings(remoteEvent.id)
-                                    //     }
-                                    // same events: we are not doing anything to event --> carry on
 
-                                    // now we have checked events, we can check mapping
 
                                 }
                                 // we always check mappings...
