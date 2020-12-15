@@ -21,6 +21,10 @@ export const Purposes: Record<PurposeName, Payload<Purpose>> =
             reason: "Marketing" as PurposeReasons,
             externalId: "123456",
             name: "marketing",
+            description: "for marketing purposes",
+            customerActivities: {},
+            customerActivityIndicators: [],
+            customerSegments:[],
         },
 
         'basic': {
@@ -28,6 +32,10 @@ export const Purposes: Record<PurposeName, Payload<Purpose>> =
             customerSegments: ["VIP"] as SegmentName[],
             reason: "Consent" as PurposeReasons,
             externalId: "78910",
-            name: 'basic'
+            name: 'basic',
+            description: "for consent purposes",
+            customerActivities: {},
+            customerAttributes: [],
         }
     }
+

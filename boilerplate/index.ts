@@ -213,7 +213,6 @@ export function createBoilerplate(sdk: CDP) {
 
                         const remotePurposes = bOps.purposes.getAll()
 
-
                         let finalPurpose: Payload<Purpose>
 
                         Object.entries(boilerplatePurposes).map(async ([boilerplatePurposeName, boilerplatePurposePayload]) => {
@@ -237,30 +236,10 @@ export function createBoilerplate(sdk: CDP) {
 
                             // if remote purpose is not the same as boilerplate, update the remote
                             if (!isEqual(purpose, boilerplatePurposePayload)) {
-
-                                let stringifiedPayload = {}
-
-
-                                Object.entries(boilerplatePurposePayload).map(([k, v]) => {
-                                    stringifiedPayload[k] = JSON.stringify(v)
-                                })
-
-
-                                // TODO: updating mapping priority 1* --- need to send strings.
-                                await bOps.purposes.for(purposeId).update({
-                                    // ...boilerplatePurposePayload,
-                                    customerAttributes: ["firstName", "primaryEmail", "lastName"] as any,
-                                    reason: "Marketing" as PurposeReasons,
-                                    externalId: "123456",
-                                    name: "marketing",
-                                    // @ts-ignore
-                                    // customerAttributes: '["firstName", "primaryEmail", "lastName"]',
-                                    //  // @ts-ignore
-                                    // customerActivities: "'" + boilerplatePurposePayload.customerActivities + "'",
-                                    // // @ts-ignore
-                                    // customerSegments: boilerplatePurposePayload.customerSegments?.toString(),
-                                    //  // @ts-ignore
-                                    // // customerActivityIndicators: boilerplatePurposePayload.customerActivityIndicators?.toString()
+                                // @ts-ignore
+                                await bOps.purposes.update({
+                                    id: purposeId,
+                                    ...boilerplatePurposePayload
                                 }).then(res => console.log(res))
                                 console.log(finalPurpose)
                             }
