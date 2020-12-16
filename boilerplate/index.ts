@@ -287,7 +287,6 @@ export function createBoilerplate(sdk: CDP) {
                             .map(async ([eventName, {payload: boilerplateEvent, mapping: boilerplateMapping}]) => {
                                 // find remote direct events' id  who have the same name as the boilerplate's
                                 const remoteDirectEventId = remoteDirectEvents.find(event => event.name === eventName)?.id;
-                                console.log('remoteDirectEventId 2 ', remoteDirectEventId)
 
                                 // if no existing remote direct event, create one
                                 if (!remoteDirectEventId) {
@@ -352,84 +351,97 @@ export function createBoilerplate(sdk: CDP) {
                                 })
                             }); // getting array of update of direct events from boilerplate.
 
+
+                        const createMappingsFromBoilerplate = Object
+                            .entries(boilerplateDirectEvents)
+                            .map(([eventName, {payload: boilerplateEvent, mapping: boilerplateMapping}]) => {
+                                // find remote direct events' id  who have the same name as the boilerplate's
+                                const remoteDirectEventId = remoteDirectEvents.find(event => event.name === eventName)?.id;
+
+                                Object
+                                    .entries(boilerplateMapping)
+                                    .map(([schemaName, mappings]) => {
+                                        // find the id of the remote schema who has the same name as our schema.. eg 'Profile' / 'Orders' / 'Page-Views'
+                                        const targetSchemaId = remoteSchemas.find(remoteSchema => remoteSchema.name == schemaName)?.id
+
+                                        if (!targetSchemaId)
+                                            new Error(`mapping set to a non existing schema: ${schemaName}`);
+
+
+                                        // get the mappings for the remote direct event
+                                        const remoteMappings = bOps.mappings.get({
+                                            sourceId: remoteDirectEventId
+                                        })
+
+                                        // if there are no remote mappings for the remote direct event, create them according to boilerplate
+                                        if (!remoteMappings) {
+                                            const newBoilerplateMappingsObj = mappings.map(mapping => {
+                                                return {
+                                                    srcField: mapping.sourceField,
+                                                    targetField: mapping.targetField,
+                                                    target: targetSchemaId
+                                                }
+                                            })
+
+                                            return appOps.dataevents.for(remoteDirectEventId).mappings.create({
+                                                ...newBoilerplateMappingsObj,
+                                            })
+                                        }
+                                    })
+                            });
+
+                        const updateMappingsFromBoilerplate = Object
+                            .entries(boilerplateDirectEvents)
+                            .map(([eventName, {payload: boilerplateEvent, mapping: boilerplateMapping}]) => {
+                                const remoteDirectEventId = remoteDirectEvents.find(event => event.name === eventName)?.id;
+
+                                Object
+                                    .entries(boilerplateMapping)
+                                    .map(([schemaName, mappings]) => {
+                                        // find the id of the remote schema who has the same name as our schema.. eg 'Profile' / 'Orders' / 'Page-Views'
+                                        const targetSchemaId = remoteSchemas.find(remoteSchema => remoteSchema.name == schemaName)?.id
+                                        if (!targetSchemaId)
+                                            new Error(`mapping set to a non existing schema: ${schemaName}`);
+
+
+                                        // get the mappings for the remote direct event
+                                        const remoteMappings = bOps.mappings.get({
+                                            sourceId: remoteDirectEventId
+                                        })
+
+                                    })
+                            })
+
                         const createdDirectEvents = await Promise.all(createDirectEventsFromBoilerplate);
                         const updatedDirectEvents = await Promise.all(updateDirectEventsFromBoilerplate);
+                        const createdMappings = await Promise.all(createMappingsFromBoilerplate)
+
                         console.log('~~~~~~~~~~~Direct Events are aligned!', createdDirectEvents, updatedDirectEvents)
 
-                        // ----------------------------------------------------------------------------------------------------------------------
-//                         await Promise.all(
-//                             // taking two boilerplate direct events and going through their entries
-//                             Object.entries(boilerplateDirectEvents).map(async ([eventName, {payload: boilerplateEvent, mapping: boilerplateMapping}]) => {
-//
-//                                 // dealing with event's mapping
-//                                 const checkMappings = async (remoteEventId) => {
-//                                     await Promise.all(
-//                                         Object.entries(boilerplateMapping).map(async ([schemaName, mappings]) => {
-//
-//                                             const targetSchemaId = remoteSchemas.find(remoteSchema => remoteSchema.name == schemaName)?.id
-//
-//                                             if (!targetSchemaId)
-//                                                 throw `mapping set to a non existing schema: ${schemaName}`;
-//
-//                                             const remoteMappings = await bOps.mappings.get({
-//                                                 sourceId: remoteEventId
-//                                             })
-//
-//                                             const newMappingsObj = mappings.map(mapping => {
-//                                                 return {
-//                                                     srcField: mapping.sourceField,
-//                                                     targetField: mapping.targetField,
-//                                                     target: targetSchemaId
-//                                                 }
-//                                             })
-//
-//                                             // if remote mapping is not the same as boilerplate
-//                                             if (isEqual(newMappingsObj, remoteMappings[targetSchemaId])) { // if the mappings are equal!!!
-//                                                 // not sure what goes here
-//                                                 console.log('is equal')
-//                                                 return
+                        console.log('~~~~~~~ Mappings are aligned!', createdMappings);
+
+                    },
 //                                             } else {
 //
 //                                                 // if it has mappings and boilerplate does not - remove mappings from remote
 //                                                 if ((!newMappingsObj || !newMappingsObj.length) && remoteMappings[targetSchemaId]) {
-//                                                     console.log(`~~~~~~~ deleting ${schemaName} Mapping`);
 //
 //                                                     // TODO: this is working BUT because of updated API - need to make changes to SDK
-//                                                     return bOps.mappings.delete({
-//                                                         sourceId: remoteEventId,
-//                                                         targetId: targetSchemaId,
-//                                                         mappings: remoteMappings[targetSchemaId]
-//                                                     })
-//
-//                                                     // or do you update with [] ? in schema defined I put []
-//
+//                                                     return bOps.applications.for().dataevents.for().mappings.delete()
+////
 //                                                     // if it does not have mappings but boilerplate does, create remote mappings
 //                                                 } else if ((newMappingsObj.length >= 1) && (!remoteMappings[targetSchemaId])) {
-//                                                     console.log(`~~~~~~~ creating ${schemaName} Mapping`)
-//
-//                                                     //TODO: this is what the request body needs to be...
 //
 //
-//                                                     // TODO: this is not working because of updated API - need to make changes to SDK
-//                                                     // @ts-ignore
-//                                                     return appOps.dataevents.for(remoteEventId).mappings.create({
-//                                                         // sourceId: remoteEventId,
-//                                                         // targetId: targetSchemaId,
-//                                                         // contextId: remoteEventId,
-//                                                         // @ts-ignore
-//                                                         mappings: newMappingsObj,
-//                                                         // target: targetSchemaId,
+///                                                     return appOps.dataevents.for(remoteEventId).mappings.create({
+//                                                         newMappingsObj,
 //                                                     }).then(res => console.log(res, 'mappings', newMappingsObj))
 //
 //                                                     // if they both have mappings that are not the same, update remote mappings to be the boilerplate mappings
 //                                                     // TODO: this is not working because of updated API - need to make changes to SDK
 //                                                 } else if ((newMappingsObj.length >= 1) && (remoteMappings[targetSchemaId].length >= 1)) {
-//                                                     console.log(`~~~~~~~ updating ${schemaName} Mapping`)
-//
-//                                                     // @ts-ignore
-//                                                     return appOps.dataevents.for(remoteEventId).mappings.update({
-//                                                         // @ts-ignore
-//                                                         mappings: newMappingsObj,
+////                                                     return appOps.dataevents.for(remoteEventId).mappings.update({
+//                                                        newMappingsObj,
 //                                                     });
 //                                                 }
 //                                             }
@@ -527,137 +539,134 @@ export function createBoilerplate(sdk: CDP) {
 //
 //                             }));
 
-                        console.log('~~~~~~~ Direct Application is aligned!');
-                        console.log('~~~~~~~ Direct Events are aligned!');
-                        console.log('~~~~~~~ Mappings are aligned!');
-                    },
-
-
-                    async alignCloudStorage() {
-                        // TODO: CLOUD STORAGE MAPPING (not started)
-                        const getAppViewModel = (application) => {
-                            return {
-                                configValues: application.configValues ? application.configValues : cloudStorageApplications[application.resources.type].configValues,
-                                configSchema: application.configSchema,
-                                securitySchemes: application.securitySchemes,
-                                type: application.type,
-                                name: application.name
+                        async alignCloudStorage()
+                        {
+                            // TODO: CLOUD STORAGE MAPPING (not started)
+                            const getAppViewModel = (application) => {
+                                return {
+                                    configValues: application.configValues ? application.configValues : cloudStorageApplications[application.resources.type].configValues,
+                                    configSchema: application.configSchema,
+                                    securitySchemes: application.securitySchemes,
+                                    type: application.type,
+                                    name: application.name
+                                }
                             }
-                        }
 
 
-                        console.log('~~~~ aligning cloud storage applications');
-                        const remoteApplications = await bOps.applications.getAll();
+                            console.log('~~~~ aligning cloud storage applications');
+                            const remoteApplications = await bOps.applications.getAll();
 
-                        const remoteCloudStorageConnectors = (await sdk.api.workspaces.for('19834500').applibrary.getAll({includePublic: true}));
+                            const remoteCloudStorageConnectors = (await sdk.api.workspaces.for('19834500').applibrary.getAll({includePublic: true}));
 
-                        await Promise.all(remoteCloudStorageConnectors['connectors'] && remoteCloudStorageConnectors['connectors'].map(async connector => {
+                            await Promise.all(remoteCloudStorageConnectors['connectors'] && remoteCloudStorageConnectors['connectors'].map(async connector => {
 
-                            const remoteCloudStorageApplication = remoteApplications.find(application => application['originConnectorId'] == connector.id);
+                                const remoteCloudStorageApplication = remoteApplications.find(application => application['originConnectorId'] == connector.id);
 
-                            if (!remoteCloudStorageApplication) {
-                                console.log('creating remote app')
-                                await bOps.applications.create({
-                                    configSchema: JSON.stringify(connector.configSchema) as any,
-                                    configValues: cloudStorageApplications[connector.resources.type].configValues,
-                                    connectorId: connector.id,
-                                    description: cloudStorageApplications[connector.resources.type].description,
-                                    enabled: false,
-                                    logoUrl: connector.logoUrl,
-                                    name: connector.name,
-                                    pollingConfig: undefined,
-                                    securitySchemes: connector.securitySchemes,
-                                    testResourcePath: "",
-                                    type: 'CloudStorage'
-                                });
-                            } else {
-
-                                const viewModelRemoteCSApp = getAppViewModel(remoteCloudStorageApplication);
-                                const viewModelCSApp = getAppViewModel(connector);
-
-                                console.log('viewModelRemoteCSApp, viewModelCSApp', viewModelRemoteCSApp, viewModelCSApp);
-
-                                if (!isEqual(viewModelRemoteCSApp, viewModelCSApp)) {
-                                    console.log('update remote app')
-                                    await bOps.applications.for(remoteCloudStorageApplication.id).update({
-                                        ...remoteCloudStorageApplication,
+                                if (!remoteCloudStorageApplication) {
+                                    console.log('creating remote app')
+                                    await bOps.applications.create({
                                         configSchema: JSON.stringify(connector.configSchema) as any,
                                         configValues: cloudStorageApplications[connector.resources.type].configValues,
                                         connectorId: connector.id,
+                                        description: cloudStorageApplications[connector.resources.type].description,
                                         enabled: false,
+                                        logoUrl: connector.logoUrl,
+                                        name: connector.name,
                                         pollingConfig: undefined,
                                         securitySchemes: connector.securitySchemes,
                                         testResourcePath: "",
-                                        type: 'CloudStorage',
-                                        description: cloudStorageApplications[connector.resources.type].description,
-                                        logoUrl: connector.logoUrl,
-                                        name: connector.name,
-                                    })
-                                } else console.log('they are equal...');
-                                // else return remoteCloudStorageApplication
-                            }
-                        }));
-                    },
-                    alignAll() {
-                        return Promise.all([
-                            this.alignDirect(),
-                            this.alignCloudStorage()
-                        ]);
-                    }
-                },
-                //TODO: need purpose IDS
-                audiences: {
-                    async align() {
-                        console.log('~~~~~~~ aligning Audiences')
-                        let audiencePromise: Promise<Audience>
-                        const view = await bOps.views.getAll().then(views => views.find(v => v.type == "Marketing"));
-                        const vOps = bOps.views.for(view.id);
+                                        type: 'CloudStorage'
+                                    });
+                                } else {
 
-                        const remoteAudience = await vOps.audiences.getAll().then(audiences => audiences.find(a => a.name == boilerplateAudience.name))
-                        // TODO: change the purpose id's to their actual ID's
-                        if (remoteAudience) {
-                            if (isEqual(remoteAudience, boilerplateAudience)) {
-                                audiencePromise = Promise.resolve(remoteAudience);
+                                    const viewModelRemoteCSApp = getAppViewModel(remoteCloudStorageApplication);
+                                    const viewModelCSApp = getAppViewModel(connector);
+
+                                    console.log('viewModelRemoteCSApp, viewModelCSApp', viewModelRemoteCSApp, viewModelCSApp);
+
+                                    if (!isEqual(viewModelRemoteCSApp, viewModelCSApp)) {
+                                        console.log('update remote app')
+                                        await bOps.applications.for(remoteCloudStorageApplication.id).update({
+                                            ...remoteCloudStorageApplication,
+                                            configSchema: JSON.stringify(connector.configSchema) as any,
+                                            configValues: cloudStorageApplications[connector.resources.type].configValues,
+                                            connectorId: connector.id,
+                                            enabled: false,
+                                            pollingConfig: undefined,
+                                            securitySchemes: connector.securitySchemes,
+                                            testResourcePath: "",
+                                            type: 'CloudStorage',
+                                            description: cloudStorageApplications[connector.resources.type].description,
+                                            logoUrl: connector.logoUrl,
+                                            name: connector.name,
+                                        })
+                                    } else console.log('they are equal...');
+                                    // else return remoteCloudStorageApplication
+                                }
+                            }));
+                        }
+                    ,
+                        alignAll()
+                        {
+                            return Promise.all([
+                                this.alignDirect(),
+                                this.alignCloudStorage()
+                            ]);
+                        }
+                    },
+                    //TODO: need purpose IDS
+                    audiences: {
+                        async align() {
+                            console.log('~~~~~~~ aligning Audiences')
+                            let audiencePromise: Promise<Audience>
+                            const view = await bOps.views.getAll().then(views => views.find(v => v.type == "Marketing"));
+                            const vOps = bOps.views.for(view.id);
+
+                            const remoteAudience = await vOps.audiences.getAll().then(audiences => audiences.find(a => a.name == boilerplateAudience.name))
+                            // TODO: change the purpose id's to their actual ID's
+                            if (remoteAudience) {
+                                if (isEqual(remoteAudience, boilerplateAudience)) {
+                                    audiencePromise = Promise.resolve(remoteAudience);
+                                } else {
+                                    audiencePromise = vOps.audiences.for(remoteAudience.id).update({
+                                        ...boilerplateAudience
+                                    });
+                                }
                             } else {
-                                audiencePromise = vOps.audiences.for(remoteAudience.id).update({
+                                audiencePromise = vOps.audiences.create({
                                     ...boilerplateAudience
                                 });
                             }
-                        } else {
-                            audiencePromise = vOps.audiences.create({
-                                ...boilerplateAudience
-                            });
+
+                            const alignedAudience = await audiencePromise
+                            console.log('~~~~~ Audience aligned!', alignedAudience)
                         }
+                    },
+                    async alignAll() {
+                        await Promise.all([
+                            this.schemas.alignProfile(),
+                            this.schemas.alignActivities()
+                        ]);
 
-                        const alignedAudience = await audiencePromise
-                        console.log('~~~~~ Audience aligned!', alignedAudience)
+                        await this.activityIndicators.align();
+                        await this.segments.align();
+                        await this.purposes.align();
+
+                        await Promise.all([
+                            this.applications.alignDirect(),
+                            this.audiences.align()
+                        ]);
+                    },
+                    async ingestFakeEvents(customersNum: number, events: DirectEventName[]) {
+                        // TODO: zoe
+                        /*
+                            according to customersNum
+                                create a unique common identifier
+                                for each event in events
+                                    create a fake event using its schema and common identifier and send to ingest
+                         */
                     }
-                },
-                async alignAll() {
-                    await Promise.all([
-                        this.schemas.alignProfile(),
-                        this.schemas.alignActivities()
-                    ]);
-
-                    await this.activityIndicators.align();
-                    await this.segments.align();
-                    await this.purposes.align();
-
-                    await Promise.all([
-                        this.applications.alignDirect(),
-                        this.audiences.align()
-                    ]);
-                },
-                async ingestFakeEvents(customersNum: number, events: DirectEventName[]) {
-                    // TODO: zoe
-                    /*
-                        according to customersNum
-                            create a unique common identifier
-                            for each event in events
-                                create a fake event using its schema and common identifier and send to ingest
-                     */
                 }
             }
-        }
-    };
-}
+        };
+    }
