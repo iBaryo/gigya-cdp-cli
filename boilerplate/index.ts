@@ -339,17 +339,17 @@ export function createBoilerplate(sdk: CDP) {
                                     remoteEventToCompare[k] = remoteEvent[k]
                                 })
 
-                                return ((!isEqual(boilerplateEventAdjustedForPurposeId, remoteEventToCompare)) ? {
-                                    boilerplateEventAdjustedForPurposeId,
-                                    remoteDirectEvent
-                                } : null); // TODO: need to make it not update if they are the same...
-                            }).map(({boilerplateEventAdjustedForPurposeId, remoteDirectEventId, boilerplateEvent}): Promise<any> => {
+                                return (!isEqual(boilerplateEventAdjustedForPurposeId, remoteEventToCompare));
+                            }).map(({remoteDirectEventId, boilerplateEvent}): Promise<any> => {
+                                console.log(remoteDirectEventId, boilerplateEvent)
+                                const eventPurposeIds = boilerplateEvent.purposeIds.map(purposeName => bUnitPurposes.find(p => p.name == purposeName).id).filter(Boolean);
+
                                 // update the direct events to match our boilerplate direct event
                                 return bOps.applications.for(remoteApplicationId).dataevents.for(remoteDirectEventId).update({
                                     ...boilerplateEvent as Payload<Event>,
                                     schema: JSON.stringify(boilerplateEvent.schema),
-                                    purposeIds: JSON.stringify(boilerplateEventAdjustedForPurposeId.purposeIds) as any
-                                }).then(res => console.log(res))
+                                    purposeIds: JSON.stringify(eventPurposeIds) as any
+                                })
                             }); // getting array of update of direct events from boilerplate.
 
                         const createdDirectEvents = await Promise.all(createDirectEventsFromBoilerplate);
