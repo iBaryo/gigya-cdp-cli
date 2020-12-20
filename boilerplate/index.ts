@@ -292,8 +292,6 @@ export function createBoilerplate(sdk: CDP) {
 
                         async function createMappingsFromBoilerplate(adjustedBoilerplateMappings, remoteDirectEventId) {
                             // if there are no remote mappings for the remote direct event, create them according to boilerplate
-                            // NOT WORKING TODO
-                            // TODO: CHECK ALL RESPONSES FROM HTTP REQUESTS BECAUSE THEY ARENT WORKING
 
                             await appOps.dataevents.for(remoteDirectEventId).mappings.create({
                                 mappings: adjustedBoilerplateMappings
