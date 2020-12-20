@@ -279,55 +279,55 @@ export function createBoilerplate(sdk: CDP) {
 
                         const adjustMappingsModel = (mappings, targetSchemaId) => {
                             let adjustedMappings = []
-                                mappings?.map(mapping => {
-                                    adjustedMappings.push({
-                                        sourceField: mapping.sourceField,
-                                        targetField: mapping.targetField,
-                                        target: targetSchemaId
-                                    })
+                            mappings?.map(mapping => {
+                                adjustedMappings.push({
+                                    sourceField: mapping.sourceField,
+                                    targetField: mapping.targetField,
+                                    target: targetSchemaId
+                                })
                             })
                             return adjustedMappings
-
                         }
 
-                        async function createMappingsFromBoilerplate(adjustedBoilerplateMappings, remoteDirectEventId) {
+                        function createMappingsFromBoilerplate(adjustedBoilerplateMappings, remoteDirectEventId) {
                             // if there are no remote mappings for the remote direct event, create them according to boilerplate
-
-                            await appOps.dataevents.for(remoteDirectEventId).mappings.create({
-                                mappings: adjustedBoilerplateMappings
-                            })
+                            if (adjustedBoilerplateMappings.length) {
+                                return appOps.dataevents.for(remoteDirectEventId).mappings.create({
+                                    mappings: adjustedBoilerplateMappings
+                                }).then(res => console.log('create res ===>', res, adjustedBoilerplateMappings))
+                            }
                         }
 
                         function updateMappingsFromBoilerplate(targetSchemaId, adjustedBoilerplateMappings, remoteDirectEventId, adjustedRemoteMappings) {
 
-                            if (!isEqual(adjustedBoilerplateMappings, adjustedRemoteMappings)) {
+                            function isMappingFieldEqualToRemote(adjustedBoilerplateMappingField) {
+                                const adjustedRemoteMappingField = adjustedRemoteMappings.find(adjustedRemoteMappingField => adjustedRemoteMappingField.sourceField === adjustedBoilerplateMappingField.sourceField);
+                                return isEqual(adjustedBoilerplateMappingField, adjustedRemoteMappingField);
+                            }
 
-                                // if it has mappings and boilerplate does not - remove mappings from remote
-                                if ((adjustedBoilerplateMappings.length < 1) && (adjustedRemoteMappings.length >= 1)) {
-                                    //TODO: delete not working..
-                                    // TODO: CALL SUNNY HE IS IN CHARGE ON MAPPINGS
+                            if (!adjustedBoilerplateMappings.every(isMappingFieldEqualToRemote)) {
+                                if ((adjustedBoilerplateMappings.length <= 0) && (adjustedRemoteMappings.length >= 1)) {
                                     return appOps.dataevents.for(remoteDirectEventId).mappings.delete({
                                         target: targetSchemaId,
                                         mappings: adjustedRemoteMappings
                                     }).then(res => console.log('delete', res))
+                                }
 
-                                    // if remote does not have mappings but boilerplate does, create remote mappings
-                                } else if ((adjustedBoilerplateMappings.length >= 1) && (adjustedRemoteMappings.length < 1)) {
-                                    return createMappingsFromBoilerplate(adjustedBoilerplateMappings, remoteDirectEventId)
-
-                                    // if they both have mappings that are not the same, update remote mappings to be the boilerplate mappings
-                                    // TODO: this is not working
-                                } else
-                                    // if ((boilerplateMapping.length >= 1) && (adjustedRemoteMappings?.length >= 1))
-                                {
+                                if ((!adjustedBoilerplateMappings) && (adjustedRemoteMappings.length <= 0)) {
+                                    return appOps.dataevents.for(remoteDirectEventId).mappings.create({
+                                        mappings: adjustedBoilerplateMappings
+                                    }).then(r => console.log('creted updtae', r))
+                                } else {
                                     return appOps.dataevents.for(remoteDirectEventId).mappings.update({
                                         mappings: adjustedBoilerplateMappings
-                                    });
+                                    }).then(res => console.log(res, 'update'));
                                 }
                             }
                         }
 
-                        function checkToUpdateOrCreateMappings(remoteDirectEventId, boilerplateMapping) {
+                        async function checkToUpdateOrCreateMappings(remoteDirectEventId, boilerplateMapping) {
+                            // get the mappings for the remote direct event
+                            let remoteMappings = await appOps.dataevents.for(remoteDirectEventId).mappings.get()
 
                             Object
                                 .entries(boilerplateMapping)
@@ -340,18 +340,20 @@ export function createBoilerplate(sdk: CDP) {
                                         new Error(`mapping set to a non existing schema: ${schemaName}`);
 
 
-                                    // get the mappings for the remote direct event
-                                    let remoteMappings = await appOps.dataevents.for(remoteDirectEventId).mappings.get()
-                                    console.log('remote mappings', remoteMappings)
-
+                                    // @ts-ignore
+                                    const remoteMappingsForTarget = remoteMappings ? remoteMappings.filter(map => map.target == targetSchemaId) : []
                                     const adjustedBoilerplateMappings = adjustMappingsModel(mappings, targetSchemaId)
 
-                                    // @ts-ignore
-                                    if (remoteMappings.length < 1) {
-                                        return createMappingsFromBoilerplate(adjustedBoilerplateMappings, remoteDirectEventId)
-                                    } else {
-                                        const adjustedRemoteMappings = adjustMappingsModel(remoteMappings.mappings, targetSchemaId)
-                                        return updateMappingsFromBoilerplate(targetSchemaId, adjustedBoilerplateMappings, remoteDirectEventId, adjustedRemoteMappings)
+                                    if(adjustedBoilerplateMappings.length > 1) {
+                                        // @ts-ignore
+                                        if (remoteMappingsForTarget.length < 1) {
+                                            console.log('create', schemaName)
+                                            await createMappingsFromBoilerplate(adjustedBoilerplateMappings, remoteDirectEventId)
+                                        } else {
+                                            console.log('UPDATE', schemaName)
+                                            const adjustedRemoteMappings = adjustMappingsModel(remoteMappingsForTarget, targetSchemaId)
+                                            await updateMappingsFromBoilerplate(targetSchemaId, adjustedBoilerplateMappings, remoteDirectEventId, adjustedRemoteMappings)
+                                        }
                                     }
                                 })
                         }
@@ -399,24 +401,21 @@ export function createBoilerplate(sdk: CDP) {
                         await Promise.all(
                             Object.entries(boilerplateDirectEvents).map(async ([eventName, {payload: boilerplateEvent, mapping: boilerplateMapping}]) => {
 
-                                let remoteDirectEventId = remoteDirectEvents ? remoteDirectEvents.find(ev => ev.name == eventName)?.id : await createRemoteDirectEventId(boilerplateEvent);
+                                let remoteDirectEventId = remoteDirectEvents?.find(ev => ev.name == eventName)?.id;
                                 // if no remote event, create them
-                                // if (remoteDirectEvents) {
                                 // if there is a remoteEvent, check it and update/keep
 
                                 if (!remoteDirectEventId) {
                                     remoteDirectEventId = await createRemoteDirectEventId(boilerplateEvent)
                                     await checkToUpdateOrCreateMappings(remoteDirectEventId, boilerplateMapping);
-
                                 }
+
                                 let remoteEvent = await appOps.dataevents.for(remoteDirectEventId).get();
                                 if (!isEqual(adjustRemoteEventForComparisonWithAdjustedBpEvent(boilerplateEvent, remoteEvent), adjustBoilerplateEventForPurposeIds(boilerplateEvent))) {
-                                    await  updateRemoteDirectEvent(boilerplateEvent, remoteEvent);
+                                    await updateRemoteDirectEvent(boilerplateEvent, remoteEvent);
                                     console.log(`~~~~~ aligning ${eventName}`);
-                                    return  checkToUpdateOrCreateMappings(remoteDirectEventId, boilerplateMapping);
-
+                                    await checkToUpdateOrCreateMappings(remoteDirectEventId, boilerplateMapping);
                                 }
-                                // await checkToUpdateOrCreateMappings(remoteDirectEventId, boilerplateMapping);
                             }));
 
                         console.log('~~~~~~~ Direct Application is aligned!');

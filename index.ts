@@ -286,12 +286,13 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
             const profileSchema = await buOps.ucpschemas.getAll().then(
                 schemas => schemas.find(s => s.schemaType == SchemaType.Profile));
 
-            const profileMappings = await context.sdk.api.businessunits.for(context.bu.id).mappings.get({
+            // @ts-ignore //TODO: TAKE THIS AWAY
+            const profileMappings = await context.sdk.api.businessunits.for(context.bu.id).mappings.get({ //TODO: UPDATE THIS -- (PUT IT BACK WITH UPDATED MAPPINGS)
                 sourceId: context.event.id,
                 targetId: profileSchema.id
             }).then(m => m.mappings || []);
 
-            // filter only the mappings to the profile schema && to a targetField that is an identifier and take the source field
+            // filter only the mappings to the profile schema && to a targetField that is an identifier and take the source field //TODO: UPDATE THIS --- (PUT IT BACK WITH UPDATED MAPPINGS)
             const eventIdentifierFields = profileMappings.map(m => {
                 const identifierIndex = identifiers.indexOf(m.targetField);
                 return {
@@ -303,7 +304,7 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
 
             eventIdentifierFields.sort((a, b) => a.priority - b.priority)
 
-            terminal['table']([
+            terminal['table']([ //TODO: UPDATE THIS (PUT IT BACK WITH UPDATED MAPPINGS)
                 ['Event Field', 'To Identifier'],
                 ...eventIdentifierFields.map(f => [f.eventFieldPath, `${f.identifier} (priority: ${f.priority})` || '(None)'])
             ], {
@@ -319,12 +320,14 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
                 fit: true   // Activate all expand/shrink + wordWrap
             });
 
+            // @ts-ignore //TODO: TAKE THIS AWAY
             return showMenu(`pick an identifier:`, eventIdentifierFields, f => `${f.eventFieldPath} (-> ${f.identifier})`).then(selected => {
                 if (isFlowSymbol(selected))
                     return selected;
 
                 // const unselected = eventIdentifierFields.filter(field => selected != field).map(f => f.eventFieldPath); --- was already commented
 
+                // @ts-ignore //TODO: TAKE THIS AWAY
                 return selected.eventFieldPath;
             });
         }],

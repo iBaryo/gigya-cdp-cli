@@ -103,7 +103,7 @@ export const boilerplateDirectEvents: Record<DirectEventName, EventConfig> = {
                     'targetField': 'orderId'
                 }
             ],
-            'Page-Views': []
+            // 'Page-Views': []
         }
     },
     'onPageView': {
@@ -190,7 +190,7 @@ export const boilerplateDirectEvents: Record<DirectEventName, EventConfig> = {
                     'targetField': 'sessionTime'
                 }
             ],
-            'Orders': [],
+            // 'Orders': [],
         }
     }
 }
