@@ -22,7 +22,7 @@ import {defaultDirectApplication} from "./Applications/defaultDirectApplication"
 import {Id, Payload} from "../gigya-cdp-sdk/entities/common";
 import {PurposeReasons, Purposes as boilerplatePurposes} from "./purposes/purposes";
 import {matchingRule} from "./MatchRules/matchRules";
-import {cloudStorageApplication, cloudStorageApplications} from "./Applications/defaultCloudStorageApplications";
+import {cloudStorageApplications as boilerplateCloudStorageApplications} from "./Applications/defaultCloudStorageApplications";
 
 const isEqual = require('lodash/isEqual');
 const differenceWith = require('lodash/differenceWith');
@@ -416,11 +416,6 @@ export function createBoilerplate(sdk: CDP) {
                             }
                         }
 
-                        // TODO: UP TO HERE --> creates app + mappings, if you remove profile mappings it will create them again --- but only for profile
-                        // thinking - find the anolalies and delete those instead of updating to [] ==== this does not work.
-                        // so either delete if [] or update if there is length > 1
-
-
                         function adjustBoilerplateEventForPurposeIds(boilerplateEvent) {
                             // change purposeNames to purposeIds in boilerplateEvent
                             const eventPurposeIds = boilerplateEvent.purposeIds.map(purposeName => bUnitPurposes.find(p => p.name == purposeName).id).filter(Boolean);
@@ -490,33 +485,39 @@ export function createBoilerplate(sdk: CDP) {
 
                     async alignCloudStorage() {
                         // TODO: CLOUD STORAGE MAPPING (not started)
+                        // TODO: AUTHENTICATION BECAUSE THE APP ISNT CREATED CORRECTLY WITHOUT IT!
                         const getAppViewModel = (application) => {
                             return {
-                                configValues: application.configValues ? application.configValues : cloudStorageApplications[application.resources.type].configValues,
-                                configSchema: application.configSchema,
-                                securitySchemes: application.securitySchemes,
+                                configValues: application.configValues ? application.configValues : boilerplateCloudStorageApplications[application.resources.type].configValues,
                                 type: application.type,
-                                name: application.name
+                                name: application.name,
+                                description: application.description
                             }
                         }
 
 
                         console.log('~~~~ aligning cloud storage applications');
                         const remoteApplications = await bOps.applications.getAll();
+                        const remoteConnectors = await sdk.api.workspaces.for('19834500').applibrary.getAll({includePublic: true});
 
-                        const remoteCloudStorageConnectors = (await sdk.api.workspaces.for('19834500').applibrary.getAll({includePublic: true}));
+                        // get remote connectors that are Cloud Storage connectors
+                        const remoteCloudStorageConnectors = remoteConnectors['connectors'] && remoteConnectors['connectors'].filter(connector => connector.type === 'CloudStorage')
 
-                        await Promise.all(remoteCloudStorageConnectors['connectors'] && remoteCloudStorageConnectors['connectors'].map(async connector => {
+                        await Promise.all(remoteCloudStorageConnectors.map(async connector => {
+                            // get the corresponding cloud storage application
+                            const remoteCloudStorageApplication = remoteApplications?.find(application => application['originConnectorId'] == connector.id);
 
-                            const remoteCloudStorageApplication = remoteApplications.find(application => application['originConnectorId'] == connector.id);
-
+                            //get the corresponding boilerplate application
+                            const boilerplateCloudStorageApplication = boilerplateCloudStorageApplications[connector.resources.type]
+                            // if there is not a cloudStorageApplication of type 'azure.blob' | 'googlecloud' | 'sftp' | aws3
+                            // then create cloudStorageApplication
                             if (!remoteCloudStorageApplication) {
-                                console.log('creating remote app')
+                                console.log('no conn')
                                 await bOps.applications.create({
                                     configSchema: JSON.stringify(connector.configSchema) as any,
-                                    configValues: cloudStorageApplications[connector.resources.type].configValues,
+                                    configValues: boilerplateCloudStorageApplication.configValues,
                                     connectorId: connector.id,
-                                    description: cloudStorageApplications[connector.resources.type].description,
+                                    description: boilerplateCloudStorageApplication.description,
                                     enabled: false,
                                     logoUrl: connector.logoUrl,
                                     name: connector.name,
@@ -525,31 +526,33 @@ export function createBoilerplate(sdk: CDP) {
                                     testResourcePath: "",
                                     type: 'CloudStorage'
                                 });
-                            } else {
 
+                            } else {
+                                // if there is a cloudStorageApplication of type 'azure.blob' | 'googlecloud' | 'sftp' | aws3
+                                // adjust the model so that we can work with it
                                 const viewModelRemoteCSApp = getAppViewModel(remoteCloudStorageApplication);
                                 const viewModelCSApp = getAppViewModel(connector);
 
-                                console.log('viewModelRemoteCSApp, viewModelCSApp', viewModelRemoteCSApp, viewModelCSApp);
+                                console.log('viewModelCSApp', viewModelCSApp);
+                                console.log('viewModelRemoteCSApp', viewModelRemoteCSApp);
 
-                                if (!isEqual(viewModelRemoteCSApp, viewModelCSApp)) {
-                                    console.log('update remote app')
+                                // check if they are not equal and update to boilerplate Cloud Storage Application
+                                if (!(_.isEqual(viewModelRemoteCSApp, viewModelCSApp))) {
                                     await bOps.applications.for(remoteCloudStorageApplication.id).update({
                                         ...remoteCloudStorageApplication,
                                         configSchema: JSON.stringify(connector.configSchema) as any,
-                                        configValues: cloudStorageApplications[connector.resources.type].configValues,
+                                        configValues: boilerplateCloudStorageApplications[connector.resources.type].configValues,
                                         connectorId: connector.id,
                                         enabled: false,
                                         pollingConfig: undefined,
                                         securitySchemes: connector.securitySchemes,
                                         testResourcePath: "",
                                         type: 'CloudStorage',
-                                        description: cloudStorageApplications[connector.resources.type].description,
+                                        description: boilerplateCloudStorageApplications[connector.resources.type].description,
                                         logoUrl: connector.logoUrl,
                                         name: connector.name,
                                     })
-                                } else console.log('they are equal...');
-                                // else return remoteCloudStorageApplication
+                                }
                             }
                         }));
                     },
