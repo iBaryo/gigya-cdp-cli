@@ -8,7 +8,7 @@ export const defaultDirectApplication: Payload<Application> = {
     enabled: true,
     logoUrl: "https://universe.eu5-st1.gigya.com/assets/img/connect-application.png",
     name: "Direct Test Application",
-    securitySchemes: {}, // TODO: confirm this
+    securitySchemes: {},
     description: "R&D test application for creating customers",
     businessUnitId: ''
 };

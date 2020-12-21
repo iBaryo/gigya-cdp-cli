@@ -247,7 +247,7 @@ export function createBoilerplate(sdk: CDP) {
                     }
                 },
 
-                applications: { //TODO: mapping for events
+                applications: {
                     async alignDirect() {
 
                         console.log("~~~~~~~ aligning Direct applications");
@@ -263,7 +263,7 @@ export function createBoilerplate(sdk: CDP) {
                                 enabled: true,
                                 logoUrl: "https://universe.eu5-st1.gigya.com/assets/img/connect-application.png",
                                 name: "Direct Test Application",
-                                securitySchemes: {}, // TODO: confirm this
+                                securitySchemes: {},
                                 description: "R&D test application for creating customers"
                             }))?.id
                         }
@@ -276,37 +276,18 @@ export function createBoilerplate(sdk: CDP) {
                             bOps.purposes.getAll()
                         ])
 
-                        function normalizeMappings(mapping, targetSchemaId) {
-                            return {
-                                sourceField: mapping.sourceField ? mapping.sourceField : mapping.srcField,
-                                targetField: mapping.targetField,
-                                target: targetSchemaId || mapping.target
-                            }
-                        }
-
-                        const normaliseMappingsModel = (mappings, targetSchemaId) => {
+                        function normalizeMappings(mappings, targetSchemaId?){
                             let adjustedMappings = []
                             mappings?.map(mapping => {
                                 adjustedMappings.push({
                                     sourceField: mapping.sourceField ? mapping.sourceField : mapping.srcField,
                                     targetField: mapping.targetField,
-                                    target: targetSchemaId
+                                    target: targetSchemaId || mapping.target
                                 })
                             })
                             return adjustedMappings
                         }
 
-                        const normaliseRemoteMappingsModel = (remoteMappings) => {
-                            let adjustedMappings = []
-                            adjustedMappings = remoteMappings?.map(mapping => {
-                                adjustedMappings.push({
-                                    sourceField: mapping.sourceField ? mapping.sourceField : mapping.srcField,
-                                    targetField: mapping.targetField,
-                                    target: mapping.target
-                                })
-                            })
-                            return adjustedMappings
-                        }
 
                         function createMappingsFromBoilerplate(adjustedBoilerplateMappings, remoteDirectEventId) {
                             // if there are no remote mappings for the remote direct event, create them according to boilerplate
@@ -365,7 +346,7 @@ export function createBoilerplate(sdk: CDP) {
                                     if (!targetSchemaId)
                                         new Error(`mapping set to a non existing schema: ${schemaName}`);
 
-                                    const adjustedBoilerplateMappings = normaliseMappingsModel(mappings, targetSchemaId)
+                                    const adjustedBoilerplateMappings = normalizeMappings(mappings, targetSchemaId)
                                     mappingsArray.push(adjustedBoilerplateMappings)
                                     mappingsArray.flat()
                                 })
@@ -394,7 +375,7 @@ export function createBoilerplate(sdk: CDP) {
                                     mappings: mappingsArray.flat()
                                 })
                             } else {
-                                const adjustedRemoteMappings = normaliseRemoteMappingsModel(remoteMappings)
+                                const adjustedRemoteMappings = normalizeMappings(remoteMappings)
                                 if (!isArrayEqual(mappingsArray, adjustedRemoteMappings)) {
                                     return appOps.dataevents.for(remoteDirectEventId).mappings.create({
                                         mappings: mappingsArray.flat()
@@ -451,7 +432,7 @@ export function createBoilerplate(sdk: CDP) {
                                     remoteDirectEventId = await createRemoteDirectEventId(boilerplateEvent);
                                 }
 
-                                const remoteEvent = await appOps.dataevents.for(remoteDirectEventId).get(); // this is a promise
+                                const remoteEvent = await appOps.dataevents.for(remoteDirectEventId).get();
 
 
                                 const adjustedBPEventForPurposeIds = adjustBoilerplateEventForPurposeIds(boilerplateEvent);
@@ -471,9 +452,6 @@ export function createBoilerplate(sdk: CDP) {
 
 
                     async alignCloudStorage() {
-                        // TODO: CLOUD STORAGE MAPPING (not started)
-                        // TODO: AUTHENTICATION BECAUSE THE APP ISNT CREATED CORRECTLY WITHOUT IT!
-
                         console.log('~~~~~~~ aligning CloudStorage Applications, Events and Mappings')
                         const [remoteSchemas, bUnitPurposes] = await Promise.all([
                             bOps.ucpschemas.getAll(),
@@ -542,8 +520,6 @@ export function createBoilerplate(sdk: CDP) {
                             // get the mappings for the remote direct event
                             let remoteMappings = await bOps.applications.for(remoteCloudStorageApplicationId).dataevents.for(remoteCloudStorageEventIdForApplication).mappings.get();
 
-                            let mappingsArray = []
-                            console.log('~~~~~~ aligning Mappings')
                             // find the id of the remote schema who has the same name as our schema.. eg 'Profile'
                             const targetSchemaId = (remoteSchemas.find(remoteSchema => remoteSchema.name == 'Profile')).id
 
@@ -557,10 +533,6 @@ export function createBoilerplate(sdk: CDP) {
                             // - differenceWith, which checks the differences between values in two arrays - returns array of the difference
                             // - isEmpty which checks for empty array - returns boolean
                             // - isEqual which checks equality of two arrays - returns boolean
-                            // Lodash docs:
-                            // var objects = [{ 'x': 1, 'y': 2 }, { 'x': 2, 'y': 1 }];
-                            // _.differenceWith(objects, [{ 'x': 1, 'y': 2 }], _.isEqual);
-                            // // => [{ 'x': 2, 'y': 1 }]
                             const isArrayEqual = function (bpMappings, rMappings) {
                                 return _(bpMappings).differenceWith(rMappings, _.isEqual).isEmpty();
                             };
@@ -638,7 +610,6 @@ export function createBoilerplate(sdk: CDP) {
                             }
 
                             const remoteCloudStorageApplicationId = remoteCloudStorageApplication.id
-
                             const remoteCloudStorageEvents = await bOps.applications.for(remoteCloudStorageApplicationId).dataevents.getAll()
 
                             let remoteCloudStorageEventIdForApplication = (remoteCloudStorageEvents?.find(event => event.name === `${boilerplateCloudStorageEvent.payload.name} ${remoteCloudStorageApplication.name}`))?.id
@@ -655,8 +626,7 @@ export function createBoilerplate(sdk: CDP) {
                             // get the eventId && check if it is the same as boilerplate
                             const remoteCloudStorageEventForApplication = await bOps.applications.for(remoteCloudStorageApplicationId).dataevents.for(remoteCloudStorageEventIdForApplication).get();
 
-                            const adjustedRemoteEventForComparisonWithAdjustedBpEvent = await adjustRemoteEventForComparisonWithAdjustedBpEvent(adjustedBoilerplateEvent, remoteCloudStorageEventForApplication);
-
+                            const adjustedRemoteEventForComparisonWithAdjustedBpEvent = adjustRemoteEventForComparisonWithAdjustedBpEvent(adjustedBoilerplateEvent, remoteCloudStorageEventForApplication);
 
                             console.log('~~~~~ aligning Cloud Storage Events')
                             if (!isEqual(adjustedRemoteEventForComparisonWithAdjustedBpEvent, adjustedBoilerplateEvent)) {
@@ -666,6 +636,9 @@ export function createBoilerplate(sdk: CDP) {
                             await checkToUpdateOrCreateMappings(remoteCloudStorageEventIdForApplication, boilerplateCloudStorageEvent.mapping, remoteCloudStorageApplicationId);
 
                         })
+                        console.log('~~~~~~~ Direct Application is aligned!');
+                        console.log('~~~~~~~ Direct Events are aligned!');
+                        console.log('~~~~~~~ Mappings are aligned!');
                     },
                     alignAll() {
                         return Promise.all([
@@ -674,7 +647,7 @@ export function createBoilerplate(sdk: CDP) {
                         ]);
                     }
                 },
-                //TODO: need purpose IDS
+
                 audiences: {
                     async align() {
                         console.log('~~~~~~~ aligning Audiences')
@@ -718,7 +691,7 @@ export function createBoilerplate(sdk: CDP) {
                     ]);
                 },
                 async ingestFakeEvents(customersNum: number, events: DirectEventName[]) {
-                    // TODO: zoe
+                    // TODO: zoe + Baryo
                     /*
                         according to customersNum
                             create a unique common identifier
