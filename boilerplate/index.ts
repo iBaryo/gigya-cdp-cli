@@ -25,7 +25,8 @@ import {matchingRule} from "./MatchRules/matchRules";
 import {cloudStorageApplication, cloudStorageApplications} from "./Applications/defaultCloudStorageApplications";
 
 const isEqual = require('lodash/isEqual');
-const without = require('lodash/without');
+const differenceWith = require('lodash/differenceWith');
+const _ = require('lodash')
 
 /*
        1. always extend, never delete
@@ -281,9 +282,21 @@ export function createBoilerplate(sdk: CDP) {
                             let adjustedMappings = []
                             mappings?.map(mapping => {
                                 adjustedMappings.push({
-                                    sourceField: mapping.sourceField,
+                                    sourceField: mapping.sourceField ? mapping.sourceField : mapping.srcField,
                                     targetField: mapping.targetField,
                                     target: targetSchemaId
+                                })
+                            })
+                            return adjustedMappings
+                        }
+
+                        const adjustRemoteMappingsModel = (remoteMappings) => {
+                            let adjustedMappings = []
+                            remoteMappings?.map(mapping => {
+                                adjustedMappings.push({
+                                    sourceField: mapping.sourceField ? mapping.sourceField : mapping.srcField,
+                                    targetField: mapping.targetField,
+                                    target: mapping.target
                                 })
                             })
                             return adjustedMappings
@@ -294,19 +307,26 @@ export function createBoilerplate(sdk: CDP) {
                             if (adjustedBoilerplateMappings.length) {
                                 return appOps.dataevents.for(remoteDirectEventId).mappings.create({
                                     mappings: adjustedBoilerplateMappings
-                                }).then(res => console.log('create res ===>', res, adjustedBoilerplateMappings))
+                                });
                             }
                         }
 
                         function updateMappingsFromBoilerplate(targetSchemaId, adjustedBoilerplateMappings, remoteDirectEventId, adjustedRemoteMappings) {
 
                             function isMappingFieldEqualToRemote(adjustedBoilerplateMappingField) {
-                                const adjustedRemoteMappingField = adjustedRemoteMappings.find(adjustedRemoteMappingField => adjustedRemoteMappingField.sourceField === adjustedBoilerplateMappingField.sourceField);
+                                const adjustedRemoteMappingField = adjustedRemoteMappings.find(adjustedRemoteMappingField =>
+                                    (adjustedRemoteMappingField.sourceField === adjustedBoilerplateMappingField.sourceField)
+                                    && (adjustedRemoteMappingField.targetField === adjustedBoilerplateMappingField.targetField)
+                                );
+                                console.log('adjustedRemoteMappingField', adjustedRemoteMappingField)
                                 return isEqual(adjustedBoilerplateMappingField, adjustedRemoteMappingField);
                             }
 
-                            if (!adjustedBoilerplateMappings.every(isMappingFieldEqualToRemote)) {
+                            console.log('in equality testing', adjustedBoilerplateMappings, adjustedRemoteMappings)
+                            if (adjustedBoilerplateMappings.every(isMappingFieldEqualToRemote) == false) {
+                                console.log('not equal')
                                 if ((adjustedBoilerplateMappings.length <= 0) && (adjustedRemoteMappings.length >= 1)) {
+                                    console.log('should delete')
                                     return appOps.dataevents.for(remoteDirectEventId).mappings.delete({
                                         target: targetSchemaId,
                                         mappings: adjustedRemoteMappings
@@ -318,7 +338,7 @@ export function createBoilerplate(sdk: CDP) {
                                         mappings: adjustedBoilerplateMappings
                                     }).then(r => console.log('creted updtae', r))
                                 } else {
-                                    return appOps.dataevents.for(remoteDirectEventId).mappings.update({
+                                    return appOps.dataevents.for(remoteDirectEventId).mappings.create({
                                         mappings: adjustedBoilerplateMappings
                                     }).then(res => console.log(res, 'update'));
                                 }
@@ -328,7 +348,8 @@ export function createBoilerplate(sdk: CDP) {
                         async function checkToUpdateOrCreateMappings(remoteDirectEventId, boilerplateMapping) {
                             // get the mappings for the remote direct event
                             let remoteMappings = await appOps.dataevents.for(remoteDirectEventId).mappings.get()
-
+                            let mappingsArray = []
+                            console.log('~~~~~~ aligning Mappings')
                             Object
                                 .entries(boilerplateMapping)
                                 .map(async ([schemaName, mappings]) => {
@@ -341,22 +362,64 @@ export function createBoilerplate(sdk: CDP) {
 
 
                                     // @ts-ignore
-                                    const remoteMappingsForTarget = remoteMappings ? remoteMappings.filter(map => map.target == targetSchemaId) : []
-                                    const adjustedBoilerplateMappings = adjustMappingsModel(mappings, targetSchemaId)
+                                    // const remoteMappingsForTarget = remoteMappings ? remoteMappings.filter(map => map.target != targetSchemaId) : []
+                                    // console.log(remoteMappings, targetSchemaId, remoteMappingsForTarget)
 
-                                    if(adjustedBoilerplateMappings.length > 1) {
-                                        // @ts-ignore
-                                        if (remoteMappingsForTarget.length < 1) {
-                                            console.log('create', schemaName)
-                                            await createMappingsFromBoilerplate(adjustedBoilerplateMappings, remoteDirectEventId)
-                                        } else {
-                                            console.log('UPDATE', schemaName)
-                                            const adjustedRemoteMappings = adjustMappingsModel(remoteMappingsForTarget, targetSchemaId)
-                                            await updateMappingsFromBoilerplate(targetSchemaId, adjustedBoilerplateMappings, remoteDirectEventId, adjustedRemoteMappings)
-                                        }
-                                    }
+                                    const adjustedBoilerplateMappings = adjustMappingsModel(mappings, targetSchemaId)
+                                    mappingsArray.push(adjustedBoilerplateMappings)
+                                    mappingsArray.flat()
+
+
+                                    // if (adjustedBoilerplateMappings.length > 1) {
+                                    //
+                                    //     if (remoteMappingsForTarget.length < 1) {
+                                    //         console.log('create', schemaName)
+                                    //         return await createMappingsFromBoilerplate(adjustedBoilerplateMappings, remoteDirectEventId)
+                                    //     } else {
+                                    //         console.log('UPDATE', schemaName)
+                                    //         const adjustedRemoteMappings = adjustMappingsModel(remoteMappings, targetSchemaId)
+                                    //         return await updateMappingsFromBoilerplate(targetSchemaId, adjustedBoilerplateMappings, remoteDirectEventId, adjustedRemoteMappings)
+                                    //     }
+                                    // }
+                                    // else {
+                                    //     if (remoteMappings > 1){
+                                    //         console.log('no BP', remoteMappings, schemaName)
+                                    //     }
+                                    // }
                                 })
+
+                            // check if remote mappings and boilerplate mappings are equal
+                            // using Lodash's
+                            // - differenceWith, which checks the differences between values in two arrays - returns array of the difference
+                            // - isEmpty which checks for empty array - returns boolean
+                            // - isEqual which checks equality of two arrays - returns boolean
+                            // Lodash docs:
+                            // var objects = [{ 'x': 1, 'y': 2 }, { 'x': 2, 'y': 1 }];
+                            // _.differenceWith(objects, [{ 'x': 1, 'y': 2 }], _.isEqual);
+                            // // => [{ 'x': 2, 'y': 1 }]
+                            const isArrayEqual = function (bpMappings, rMappings) {
+                                return _(bpMappings).differenceWith(rMappings, _.isEqual).isEmpty();
+                            };
+
+                            // @ts-ignore
+                            if (remoteMappings.length < 1) {
+                                return appOps.dataevents.for(remoteDirectEventId).mappings.create({
+                                    mappings: mappingsArray.flat()
+                                }).then(r => console.log('CREATED BECAUSE DID NOT EXIST', r))
+                            } else {
+                                const adjustedRemoteMappings = adjustRemoteMappingsModel(remoteMappings)
+                                if (!isArrayEqual(mappingsArray, adjustedRemoteMappings)) {
+                                    return appOps.dataevents.for(remoteDirectEventId).mappings.create({
+                                        mappings: mappingsArray.flat()
+                                    }).then(r => console.log('CREATED BECAUSE WERE NOT EQUAL', r))
+                                }
+                            }
                         }
+
+                        // TODO: UP TO HERE --> creates app + mappings, if you remove profile mappings it will create them again --- but only for profile
+                        // thinking - find the anolalies and delete those instead of updating to [] ==== this does not work.
+                        // so either delete if [] or update if there is length > 1
+
 
                         function adjustBoilerplateEventForPurposeIds(boilerplateEvent) {
                             // change purposeNames to purposeIds in boilerplateEvent
@@ -368,14 +431,10 @@ export function createBoilerplate(sdk: CDP) {
                         }
 
                         async function adjustRemoteEventForComparisonWithAdjustedBpEvent(boilerplateEvent, remoteEvent) {
-                            const adjustedRemoteEvent = {
-                                ...remoteEvent,
-                                schema: JSON.stringify(remoteEvent.schema)
-                            };
 
                             let remoteEventToCompare = {}
                             Object.keys(boilerplateEvent).forEach(k => {
-                                remoteEventToCompare[k] = adjustedRemoteEvent[k]
+                                remoteEventToCompare[k] = remoteEvent[k]
                             })
 
                             return remoteEventToCompare
@@ -391,11 +450,12 @@ export function createBoilerplate(sdk: CDP) {
                             return remoteDirectEvent.id;
                         }
 
-                        async function updateRemoteDirectEvent(boilerplateEvent, remoteEvent) {
-                            await appOps.dataevents.for(remoteEvent.id).update({
+                        function updateRemoteDirectEvent(boilerplateEvent, remoteEvent) {
+                            return appOps.dataevents.for(remoteEvent.id).update({
                                 ...boilerplateEvent,
                                 schema: JSON.stringify(boilerplateEvent.schema),
-                            })
+                                purposeIds: JSON.stringify(boilerplateEvent.purposeIds)
+                            }).then(res => console.log(res))
                         }
 
                         await Promise.all(
@@ -404,18 +464,22 @@ export function createBoilerplate(sdk: CDP) {
                                 let remoteDirectEventId = remoteDirectEvents?.find(ev => ev.name == eventName)?.id;
                                 // if no remote event, create them
                                 // if there is a remoteEvent, check it and update/keep
-
+                                console.log('~~~~~~ aligning Direct Applications');
                                 if (!remoteDirectEventId) {
-                                    remoteDirectEventId = await createRemoteDirectEventId(boilerplateEvent)
-                                    await checkToUpdateOrCreateMappings(remoteDirectEventId, boilerplateMapping);
+                                    remoteDirectEventId = await createRemoteDirectEventId(boilerplateEvent);
                                 }
 
-                                let remoteEvent = await appOps.dataevents.for(remoteDirectEventId).get();
-                                if (!isEqual(adjustRemoteEventForComparisonWithAdjustedBpEvent(boilerplateEvent, remoteEvent), adjustBoilerplateEventForPurposeIds(boilerplateEvent))) {
-                                    await updateRemoteDirectEvent(boilerplateEvent, remoteEvent);
-                                    console.log(`~~~~~ aligning ${eventName}`);
-                                    await checkToUpdateOrCreateMappings(remoteDirectEventId, boilerplateMapping);
+                                const remoteEvent = await appOps.dataevents.for(remoteDirectEventId).get(); // this is a promise
+
+
+                                const adjustedBPEventForPurposeIds = adjustBoilerplateEventForPurposeIds(boilerplateEvent);
+                                const adjustedRemoteEventForComparisonWithAdjustedBpEvent = await adjustRemoteEventForComparisonWithAdjustedBpEvent(boilerplateEvent, remoteEvent);
+                                console.log('~~~~~ aligning Direct Events')
+                                if (!isEqual(adjustedRemoteEventForComparisonWithAdjustedBpEvent, adjustedBPEventForPurposeIds)) {
+                                    await updateRemoteDirectEvent(adjustedBPEventForPurposeIds, remoteEvent);
                                 }
+
+                                await checkToUpdateOrCreateMappings(remoteDirectEventId, boilerplateMapping);
                             }));
 
                         console.log('~~~~~~~ Direct Application is aligned!');
