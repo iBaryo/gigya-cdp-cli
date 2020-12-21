@@ -14,7 +14,6 @@ import {ConfigOverrideScope} from "../../gigya-cdp-sdk/entities/common/config";
 export type CSType = 'amazon.s3' | 'azure.blob' | 'googlecloud' | 'sftp';
 
 
-
 export const cloudStorageApplications: Record<CSType, Payload<Application>> = {
     'amazon.s3': {
         connectorId: "" as ConnectorId,
@@ -336,247 +335,210 @@ export const cloudStorageApplications: Record<CSType, Payload<Application>> = {
                 }
             },
         },
-            configValues: {
-                "projectId": "mapme-1502004780937",
-                "writeBucketName": "cdp-ingest",
-                "readBucketName": "cdp-ingest",
-                "readFileNameRegex": "",
-                "readFilePath": "",
-                "writeFileName": "",
-                "writeFilePath": ""
-            },
-            // version: 0,
-            type: "CloudStorage"
+        configValues: {
+            "projectId": "mapme-1502004780937",
+            "writeBucketName": "cdp-ingest",
+            "readBucketName": "cdp-ingest",
+            "readFileNameRegex": "",
+            "readFilePath": "",
+            "writeFileName": "",
+            "writeFilePath": ""
         },
+        // version: 0,
+        type: "CloudStorage"
+    },
 
 
-
-        'sftp': {
-            connectorId: "" as ConnectorId,
-            businessUnitId: "" as BusinessUnitId,
-            logoUrl: "https://universe.eu5-st1.gigya.com/assets/img/connect-application.png",
-            enabled: false,
-            name: "SFTP",
-            securitySchemes: {
-                "password": {
-                    "type": "object",
-                    // "allowAdditionalProperties": false,
-                    "required": [
-                        "username",
-                        "password"
-                    ],
-                    "properties": {
-                        "username": {
-                            "type": "string",
-                            "title": "Username",
-                            "description": "The remote SFTP username."
-                        },
-                        "password": {
-                            "type": "string",
-                            "title": "Password",
-                            "description": "The remote SFTP password."
-                        }
-                    }
-                },
-                "privateKey": {
-                    "type": "object",
-                    // "allowAdditionalProperties": false,
-                    "required": [
-                        "username",
-                        "privateKey"
-                    ],
-                    "properties": {
-                        "username": {
-                            "type": "string",
-                            "title": "Username",
-                            "description": "The remote SFTP username."
-                        },
-                        "privateKey": {
-                            "type": "string",
-                            "title": "Private Key",
-                            "description": "The base64 private key to use upon ssh keys authentication."
-                        },
-                        "passphrase": {
-                            "type": "string",
-                            "title": "Passphrase",
-                            "description": "The private key passphrase."
-                        }
-                    }
-                }
-            },
-            description: "R&D test application for SFTP",
-            // resources: {
-            //     "type": "sftp",
-            //     "read": {
-            //         "host": "$host",
-            //         "port": "$port",
-            //         "sortOrder": "$sortOrder",
-            //         "sortBy": "$sortBy",
-            //         "timeout": "$timeout",
-            //         "fileNameRegex": "$readFileNameRegex",
-            //         "remotePath": "$readFilePath"
-            //     },
-            //     "write": {
-            //         "host": "$host",
-            //         "port": "$port",
-            //         "timeout": "$timeout",
-            //         "remotePath": "$writeFilePath",
-            //         "temporaryUploadExtension": "$temporaryUploadExtension",
-            //         "fileName": "$writeFileName"
-            //     }
-            // },
-            // predefinedActions: [],
-            // predefinedEvents: [],
-            configSchema: {
+    'sftp': {
+        connectorId: "" as ConnectorId,
+        businessUnitId: "" as BusinessUnitId,
+        logoUrl: "https://universe.eu5-st1.gigya.com/assets/img/connect-application.png",
+        enabled: false,
+        name: "SFTP",
+        securitySchemes: {
+            "password": {
                 "type": "object",
                 // "allowAdditionalProperties": false,
                 "required": [
-                    "host",
-                    "port"
+                    "username",
+                    "password"
                 ],
                 "properties": {
-                    "host": {
+                    "username": {
                         "type": "string",
-                        "title": "Host",
-                        "description": "The remote SFTP host.",
-                        "scope": [
-                            "application"
-                        ]
+                        "title": "Username",
+                        "description": "The remote SFTP username."
                     },
-                    "readFilePath": {
+                    "password": {
                         "type": "string",
-                        "title": "Read Remote Path",
-                        "description": "The remote SFTP directory to fetch files from.",
-                        "scope": [
-                            "application",
-                            "event"
-                        ]
-                    },
-                    "writeFilePath": {
-                        "type": "string",
-                        "title": "Write Remote Path",
-                        "description": "The remote SFTP directory to store files at.",
-                        "scope": [
-                            "application",
-                            "action"
-                        ]
-                    },
-                    "readFileNameRegex": {
-                        "type": "string",
-                        "title": "File Name Regex",
-                        "description": "A regular expression to apply for file filtering.",
-                        "scope": [
-                            "application",
-                            "event"
-                        ]
-                    },
-                    "port": {
-                        "type": "integer",
-                        "title": "Port",
-                        "description": "The remote SFTP port.",
-                        "default": 22,
-                        "scope": [
-                            "application"
-                        ]
-                    },
-                    "timeout": {
-                        "type": "integer",
-                        "title": "Timeout",
-                        "description": "The timeout (in seconds) to wait for a response from SFTP. The acceptable range is 10-120.",
-                        "default": 60,
-                        "scope": [
-                            "application"
-                        ]
-                    },
-                    "sortBy": {
-                        "type": "string",
-                        "title": "Sort By",
-                        "description": "The field by which to sort the data.",
-                        "default": "time",
-                        "scope": [
-                            "application",
-                            "event"
-                        ]
-                    },
-                    "sortOrder": {
-                        "type": "string",
-                        "title": "Sort Order",
-                        "description": "The sort order: ASC: ascending (this is the default) DESC: descending",
-                        "default": "ASC",
-                        "scope": [
-                            "application",
-                            "event"
-                        ]
-                    },
-                    "temporaryUploadExtension": {
-                        "type": "string",
-                        "title": "Temporary Upload Extension",
-                        "description": "Set to 'true' to append the extension '.uploading' to the file name while it is being uploaded. This extension will be removed when the uploading process is finished.",
-                        "default": "false",
-                        "scope": [
-                            "application"
-                        ]
-                    },
-                    "writeFileName": {
-                        "type": "string",
-                        "title": "File Name",
-                        "description": "The format of the name of the file created. The name can include a fixed string or placeholders, denoted by a dollar sign '$' followed by curly brackets: ${variableName}. A range of different time stamp formats are supported. Time stamp conventions (e.g., YYYY) are also supported. now (the current time when the export job was started ); now-xD (the current time when the export job was started , minus 'x' number of days) now+xD (the current time when the export job was started , plus 'x' number of days); now+xD:yyMMdd; unix",
-                        "scope": [
-                            "application",
-                            "action"
-                        ]
+                        "title": "Password",
+                        "description": "The remote SFTP password."
                     }
                 }
             },
-            configValues: {
-                host: "fake-host",
-                port: 22,
-                readFileNameRegex: "sftp",
-                readFilePath: "sftp",
-                sortBy: "time",
-                sortOrder: "ASC",
-                temporaryUploadExtension: "false",
-                timeout: 60,
-                writeFileName: "sftp",
-                writeFilePath: "sftp"
-            },
-            // version: 0,
-            type: "CloudStorage"
-        }
+            "privateKey": {
+                "type": "object",
+                // "allowAdditionalProperties": false,
+                "required": [
+                    "username",
+                    "privateKey"
+                ],
+                "properties": {
+                    "username": {
+                        "type": "string",
+                        "title": "Username",
+                        "description": "The remote SFTP username."
+                    },
+                    "privateKey": {
+                        "type": "string",
+                        "title": "Private Key",
+                        "description": "The base64 private key to use upon ssh keys authentication."
+                    },
+                    "passphrase": {
+                        "type": "string",
+                        "title": "Passphrase",
+                        "description": "The private key passphrase."
+                    }
+                }
+            }
+        },
+        description: "R&D test application for SFTP",
+        // resources: {
+        //     "type": "sftp",
+        //     "read": {
+        //         "host": "$host",
+        //         "port": "$port",
+        //         "sortOrder": "$sortOrder",
+        //         "sortBy": "$sortBy",
+        //         "timeout": "$timeout",
+        //         "fileNameRegex": "$readFileNameRegex",
+        //         "remotePath": "$readFilePath"
+        //     },
+        //     "write": {
+        //         "host": "$host",
+        //         "port": "$port",
+        //         "timeout": "$timeout",
+        //         "remotePath": "$writeFilePath",
+        //         "temporaryUploadExtension": "$temporaryUploadExtension",
+        //         "fileName": "$writeFileName"
+        //     }
+        // },
+        // predefinedActions: [],
+        // predefinedEvents: [],
+        configSchema: {
+            "type": "object",
+            // "allowAdditionalProperties": false,
+            "required": [
+                "host",
+                "port"
+            ],
+            "properties": {
+                "host": {
+                    "type": "string",
+                    "title": "Host",
+                    "description": "The remote SFTP host.",
+                    "scope": [
+                        "application"
+                    ]
+                },
+                "readFilePath": {
+                    "type": "string",
+                    "title": "Read Remote Path",
+                    "description": "The remote SFTP directory to fetch files from.",
+                    "scope": [
+                        "application",
+                        "event"
+                    ]
+                },
+                "writeFilePath": {
+                    "type": "string",
+                    "title": "Write Remote Path",
+                    "description": "The remote SFTP directory to store files at.",
+                    "scope": [
+                        "application",
+                        "action"
+                    ]
+                },
+                "readFileNameRegex": {
+                    "type": "string",
+                    "title": "File Name Regex",
+                    "description": "A regular expression to apply for file filtering.",
+                    "scope": [
+                        "application",
+                        "event"
+                    ]
+                },
+                "port": {
+                    "type": "integer",
+                    "title": "Port",
+                    "description": "The remote SFTP port.",
+                    "default": 22,
+                    "scope": [
+                        "application"
+                    ]
+                },
+                "timeout": {
+                    "type": "integer",
+                    "title": "Timeout",
+                    "description": "The timeout (in seconds) to wait for a response from SFTP. The acceptable range is 10-120.",
+                    "default": 60,
+                    "scope": [
+                        "application"
+                    ]
+                },
+                "sortBy": {
+                    "type": "string",
+                    "title": "Sort By",
+                    "description": "The field by which to sort the data.",
+                    "default": "time",
+                    "scope": [
+                        "application",
+                        "event"
+                    ]
+                },
+                "sortOrder": {
+                    "type": "string",
+                    "title": "Sort Order",
+                    "description": "The sort order: ASC: ascending (this is the default) DESC: descending",
+                    "default": "ASC",
+                    "scope": [
+                        "application",
+                        "event"
+                    ]
+                },
+                "temporaryUploadExtension": {
+                    "type": "string",
+                    "title": "Temporary Upload Extension",
+                    "description": "Set to 'true' to append the extension '.uploading' to the file name while it is being uploaded. This extension will be removed when the uploading process is finished.",
+                    "default": "false",
+                    "scope": [
+                        "application"
+                    ]
+                },
+                "writeFileName": {
+                    "type": "string",
+                    "title": "File Name",
+                    "description": "The format of the name of the file created. The name can include a fixed string or placeholders, denoted by a dollar sign '$' followed by curly brackets: ${variableName}. A range of different time stamp formats are supported. Time stamp conventions (e.g., YYYY) are also supported. now (the current time when the export job was started ); now-xD (the current time when the export job was started , minus 'x' number of days) now+xD (the current time when the export job was started , plus 'x' number of days); now+xD:yyMMdd; unix",
+                    "scope": [
+                        "application",
+                        "action"
+                    ]
+                }
+            }
+        },
+        configValues: {
+            host: "fake-host",
+            port: 22,
+            readFileNameRegex: "sftp",
+            readFilePath: "sftp",
+            sortBy: "time",
+            sortOrder: "ASC",
+            temporaryUploadExtension: "false",
+            timeout: 60,
+            writeFileName: "sftp",
+            writeFilePath: "sftp"
+        },
+        // version: 0,
+        type: "CloudStorage"
     }
-
-
-    export const cloudStorageApplication = {
-    businessUnitId: "",
-    connectorId: "",
-    pollingConfig: undefined,
-    testResourcePath: "",
-    configSchema: undefined,
-    configValues: undefined,
-    type: 'CloudStorage',
-    enabled: false,
-    logoUrl: "https://universe.eu5-st1.gigya.com/assets/img/connect-application.png",
-    name: "",
-    securitySchemes: {},
-    description: "R&D test application for amazon s3"
 }
-
-// TODO: zoe
-
-
-/*
-                           get all connectors from the applibrary
-                           for each cloud storage connector
-                           create an application -
-                               name according to connector's
-                               enabled: false
-                               mock all other fields
-                               mock auth & config
-                               create an event
-                                   name: `new customers from ${app.name}`
-                                   purposes: basic
-                                   mock settings & config
-                                   create schema according to boilerplate
-                                   create mapping
-                                   no schedule
-                        */
