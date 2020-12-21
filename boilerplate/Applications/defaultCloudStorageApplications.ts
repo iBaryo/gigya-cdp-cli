@@ -14,6 +14,7 @@ import {ConfigOverrideScope} from "../../gigya-cdp-sdk/entities/common/config";
 export type CSType = 'amazon.s3' | 'azure.blob' | 'googlecloud' | 'sftp';
 
 
+
 export const cloudStorageApplications: Record<CSType, Payload<Application>> = {
     'amazon.s3': {
         connectorId: "" as ConnectorId,
@@ -103,7 +104,6 @@ export const cloudStorageApplications: Record<CSType, Payload<Application>> = {
             "writeFilePath": "fake-configValue",
             "readFilePath": "fake-configValue"
         },
-        // version: 0,
         type: 'CloudStorage',
         enabled: false,
         logoUrl: "https://universe.eu5-st1.gigya.com/assets/img/connect-application.png",
@@ -163,24 +163,13 @@ export const cloudStorageApplications: Record<CSType, Payload<Application>> = {
         },
         description: "R&D test application for azure",
         type: 'CloudStorage',
-        // resources: {
-        //     type: 'azure.blob',
-        //     read: {
-        //         "container": "fake-container",
-        //         "blobPrefix": "fake",
-        //         "fileNameRegex": "fake/"
-        //     },
-        //     write: {
-        //         "container": "fake-container",
-        //         "blobPrefix": "fake",
-        //         "fileName": "fake/"
-        //     },
-        // },
-        // predefinedActions: [],
-        // predefinedEvents: [],
         configValues: {
-            readContainer: "demo",
-            writeContainer: "write here",
+            readContainer: "azure",
+            readFileNameRegex: "azure",
+            readFilePath: "azure",
+            writeContainer: "azure",
+            writeFileName: "azure",
+            writeFilePath: "azure",
         },
         // version: 0,
         configSchema: {
@@ -276,23 +265,6 @@ export const cloudStorageApplications: Record<CSType, Payload<Application>> = {
             },
         },
         description: "R&D test application for google cloud",
-        // resources: {
-        //     type: "googlecloud",
-        //     read: {
-        //         "bucketName": "fake-bucket",
-        //         "projectId": "fake-projectId",
-        //         "objectKeyPrefix": "fake",
-        //         "fileNameRegex": "fake/"
-        //     },
-        //     write: {
-        //         "bucketName": "fake-bucket",
-        //         "projectId": "fake-projectId",
-        //         "objectKeyPrefix": "fake",
-        //         "fileNameRegex": "fake/"
-        //     },
-        // },
-        // predefinedActions: [],
-        // predefinedEvents: [],
         configSchema: {
             "type": "object",
             // "allowAdditionalProperties": false,
@@ -367,11 +339,18 @@ export const cloudStorageApplications: Record<CSType, Payload<Application>> = {
             configValues: {
                 "projectId": "mapme-1502004780937",
                 "writeBucketName": "cdp-ingest",
-                "readBucketName": "cdp-ingest"
+                "readBucketName": "cdp-ingest",
+                "readFileNameRegex": "",
+                "readFilePath": "",
+                "writeFileName": "",
+                "writeFilePath": ""
             },
             // version: 0,
             type: "CloudStorage"
         },
+
+
+
         'sftp': {
             connectorId: "" as ConnectorId,
             businessUnitId: "" as BusinessUnitId,
@@ -550,8 +529,16 @@ export const cloudStorageApplications: Record<CSType, Payload<Application>> = {
                 }
             },
             configValues: {
-                "host": "fake-host",
-                "port": 22
+                host: "fake-host",
+                port: 22,
+                readFileNameRegex: "sftp",
+                readFilePath: "sftp",
+                sortBy: "time",
+                sortOrder: "ASC",
+                temporaryUploadExtension: "false",
+                timeout: 60,
+                writeFileName: "sftp",
+                writeFilePath: "sftp"
             },
             // version: 0,
             type: "CloudStorage"
