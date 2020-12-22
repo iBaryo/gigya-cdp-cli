@@ -12,32 +12,35 @@ export const CampaignAudience: Payload<Audience> = {
         operator: "and",
         conditions: [
             {
-                type: 'profile',
-                fieldCondition: {
-                    operator: 'and',
-                    conditions: [
-                            {
-                                field: 'birthdate',
-                                condition: {
-                                    operand: {
-                                        type: 'date',
-                                        value: getDateEighteenYearsAgo().toISOString(),
-                                    },
-                                    operator: 'before',
-                                }
-                        },
-                        {
-                            field: "gender",
+                operator: 'and',
+                conditions: [
+                    {
+                        type: 'profile',
+                        fieldCondition: {
+                            field: 'gender',
                             condition: {
                                 operand: {
                                     type: 'string',
                                     value: 'female'
                                 },
-                                operator: 'equal',
+                                operator: 'equal'
                             }
                         }
-                    ]
-                }
+                    },
+                    {
+                        type: 'profile',
+                        fieldCondition: {
+                            field: 'birthdate',
+                            condition: {
+                                operand: {
+                                    type: 'date',
+                                    value: getDateEighteenYearsAgo().toISOString()
+                                },
+                                operator: 'before'
+                            }
+                        },
+                    }
+                ]
             },
             {
                 type: 'segment',
@@ -48,7 +51,7 @@ export const CampaignAudience: Payload<Audience> = {
     }
 }
 
-function getDateEighteenYearsAgo(){
+function getDateEighteenYearsAgo() {
     const timestampEighteenYearsAgo = new Date().setFullYear(new Date().getFullYear() - 18)
     return new Date(timestampEighteenYearsAgo)
 }
