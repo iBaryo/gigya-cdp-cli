@@ -43,7 +43,7 @@ export function createBoilerplate(sdk: CDP) {
 
             return {
                 schemas: {
-                    async alignProfile() { //TODO: age vs birthdate??
+                    async alignProfile() {
                         console.log("~~~~~~~~ aligning profile schema ~~~~~~~~");
 
                         const profileSchemaEntity = await bOps.ucpschemas.getAll().then(schemas => schemas.find(s => s.schemaType == SchemaType.Profile));
@@ -153,6 +153,8 @@ export function createBoilerplate(sdk: CDP) {
                             bOps.activityIndicators.getAll().then(a => a.find(ind => (config.activityIndicators.includes(ind.name))))
                         ]);
 
+                        console.log('remoteActivitySchema, remoteActivityIndicator', remoteActivitySchema, remoteActivityIndicator)
+
                         // haven't taken into account if more than one activity indicator... if bpConfig changes //TODO
                         if (!remoteActivityIndicator) {
                             alignedActivityIndicatorPromise = bOps.activityIndicators.create({
@@ -166,7 +168,7 @@ export function createBoilerplate(sdk: CDP) {
                                 Promise.resolve(remoteActivityIndicator)
                                 : bOps.activityIndicators.for(remoteActivityIndicator.id).update({
                                     ...boilerplateActivityIndicator,
-                                    schemaId: remoteActivityIndicator.schemaId,
+                                    schemaId: remoteActivitySchema.id,
                                 });
                         }
                         const alignedActivityIndicator = await alignedActivityIndicatorPromise;
@@ -667,7 +669,6 @@ export function createBoilerplate(sdk: CDP) {
                                 purposeIds: audiencePurposeIds
                             }
 
-                        // TODO: change the purpose id's to their actual ID's
                         if (remoteAudience) {
                             if (isEqual(remoteAudience, normalizedBoilerplateAudienceForPurposeIds)) {
                                 audiencePromise = Promise.resolve(remoteAudience);
@@ -696,10 +697,10 @@ export function createBoilerplate(sdk: CDP) {
                     await this.segments.align();
                     await this.purposes.align();
 
-                    // await Promise.all([
-                        await this.applications.alignDirect(),
-                        await this.audiences.align()
-                    // ]);
+                    await Promise.all([
+                         this.applications.alignDirect(),
+                         this.audiences.align()
+                    ]);
                 },
                 async ingestFakeEvents(customersNum: number, events: DirectEventName[]) {
                     // TODO: zoe + Baryo
