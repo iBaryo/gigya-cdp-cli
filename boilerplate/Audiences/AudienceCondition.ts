@@ -4,10 +4,10 @@ import {AudienceCondition, PurposeId, ViewId} from "../../gigya-cdp-sdk/entities
 import {PurposeName} from "../purposes/purposes";
 
 export const CampaignAudience: Payload<Audience> = {
-    // viewId: "" as ViewId,
     name: "My Campaign Audience",
     enabled: true,
-    purposeIds: ['first name', 'Test'] as PurposeId[], //TODO: actually need the purpose id's
+    purposeIds: ['basic', 'marketing'] as PurposeName[],
+    description: "Customers who are female, older than 18 and are in 'Gold' VIP segment",
     query: {
         operator: "and",
         conditions: [
@@ -16,33 +16,24 @@ export const CampaignAudience: Payload<Audience> = {
                 fieldCondition: {
                     operator: 'and',
                     conditions: [
-                        {
-                            field: 'age', // but we don't have age
-                            condition: {
-                                operator: 'greaterThan',
-                                operand: {
-                                    type: 'double',
-                                    value: 18
+                            {
+                                field: 'birthdate',
+                                condition: {
+                                    operand: {
+                                        type: 'date',
+                                        value: getDateEighteenYearsAgo().toISOString(),
+                                    },
+                                    operator: 'before',
                                 }
-                            }
-                            // {
-                            //     field: 'birthdate',
-                            //     condition: {
-                            //         operator: 'before',
-                            //         operand: {
-                            //             type: 'string', actually number
-                            //             value: new Date().setFullYear(new Date().getFullYear() - 18) but this is: 1038739299847
-                            //         }
-                            //     }
                         },
                         {
                             field: "gender",
                             condition: {
-                                operator: 'equal',
                                 operand: {
                                     type: 'string',
                                     value: 'female'
-                                }
+                                },
+                                operator: 'equal',
                             }
                         }
                     ]
@@ -55,4 +46,9 @@ export const CampaignAudience: Payload<Audience> = {
             }
         ]
     }
+}
+
+function getDateEighteenYearsAgo(){
+    const timestampEighteenYearsAgo = new Date().setFullYear(new Date().getFullYear() - 18)
+    return new Date(timestampEighteenYearsAgo)
 }
