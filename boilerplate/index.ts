@@ -24,6 +24,7 @@ import {PurposeReasons, Purposes as boilerplatePurposes} from "./purposes/purpos
 import {matchingRule} from "./MatchRules/matchRules";
 import {cloudStorageApplications as boilerplateCloudStorageApplications} from "./Applications/defaultCloudStorageApplications";
 import {boilerplateCloudStorageEvent} from "./Events/CloudStorage";
+import {terminal} from "terminal-kit";
 
 const isEqual = require('lodash/isEqual');
 const differenceWith = require('lodash/differenceWith');
@@ -40,6 +41,8 @@ export function createBoilerplate(sdk: CDP) {
     return {
         for(bUnitId: BusinessUnitId) {
             const bOps = sdk.api.businessunits.for(bUnitId);
+            terminal.bgCyan('~~~~~~~~~ Aligning your Business Unit ~~~~~~~~~~');
+            terminal('\n');
 
             return {
                 schemas: {
@@ -114,7 +117,7 @@ export function createBoilerplate(sdk: CDP) {
                                     });
                             }
                             const alignedActivity = await alignActivityPromise;
-                            console.log(`~~~~~~~~aligned ${activity}`, alignedActivity);
+                            console.log(`~~~~~~~~ aligned ${activity}`, alignedActivity);
                         }
                     }
                 },
@@ -152,8 +155,6 @@ export function createBoilerplate(sdk: CDP) {
                             bOps.ucpschemas.getAll().then(schemas => schemas.find(s => s.name == ('Orders' as ActivityName))),
                             bOps.activityIndicators.getAll().then(a => a.find(ind => (config.activityIndicators.includes(ind.name))))
                         ]);
-
-                        console.log('remoteActivitySchema, remoteActivityIndicator', remoteActivitySchema, remoteActivityIndicator)
 
                         // haven't taken into account if more than one activity indicator... if bpConfig changes //TODO
                         if (!remoteActivityIndicator) {
