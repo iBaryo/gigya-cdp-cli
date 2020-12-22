@@ -464,7 +464,7 @@ export function createBoilerplate(sdk: CDP) {
                         const getAppViewModel = (application) => {
                             return {
                                 configValues: application.configValues ? application.configValues : boilerplateCloudStorageApplications[application.resources.type].configValues,
-                                type: application.type,
+                                type: application.type || application.resources.type,
                                 name: application.name,
                                 description: application.description
                             }
@@ -555,7 +555,7 @@ export function createBoilerplate(sdk: CDP) {
 
 
                         const remoteApplications = (await bOps.applications.getAll());
-                        const remoteConnectors = await sdk.api.workspaces.for('19834500').applibrary.getAll({includePublic: true});
+                        const remoteConnectors = await sdk.api.workspaces.for(config.workspaceId).applibrary.getAll({includePublic: true});
 
                         // get remote connectors that are Cloud Storage connectors
                         const remoteCloudStorageConnectors = remoteConnectors['connectors'] && remoteConnectors['connectors'].filter(connector => connector.type === 'CloudStorage')
@@ -570,16 +570,12 @@ export function createBoilerplate(sdk: CDP) {
                             // then create cloudStorageApplication
                             if (!remoteCloudStorageApplication) {
                                 remoteCloudStorageApplication = (await bOps.applications.create({
-                                    configSchema: JSON.stringify(connector.configSchema) as any,
                                     configValues: boilerplateCloudStorageApplication.configValues,
                                     connectorId: connector.id,
                                     description: boilerplateCloudStorageApplication.description,
-                                    enabled: false,
-                                    logoUrl: connector.logoUrl,
+                                    // @ts-ignore
+                                    isDataProducer: true,
                                     name: connector.name,
-                                    pollingConfig: undefined,
-                                    securitySchemes: connector.securitySchemes,
-                                    testResourcePath: "",
                                     type: 'CloudStorage'
                                 }));
 
@@ -595,16 +591,9 @@ export function createBoilerplate(sdk: CDP) {
                                 if (!(_.isEqual(viewModelRemoteCSApp, viewModelCSApp))) {
                                     remoteCloudStorageApplication = (await bOps.applications.for(remoteCloudStorageApplication.id).update({
                                         ...remoteCloudStorageApplication,
-                                        configSchema: JSON.stringify(connector.configSchema) as any,
                                         configValues: boilerplateCloudStorageApplication.configValues,
                                         connectorId: connector.id,
-                                        enabled: false,
-                                        pollingConfig: undefined,
-                                        securitySchemes: connector.securitySchemes,
-                                        testResourcePath: "",
-                                        type: 'CloudStorage',
                                         description: boilerplateCloudStorageApplication.description,
-                                        logoUrl: connector.logoUrl,
                                         name: connector.name,
                                     }))
                                 }

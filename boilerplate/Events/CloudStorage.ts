@@ -21,7 +21,7 @@ export const boilerplateCloudStorageEvent: EventConfig = {
         dataType: EventType.firstPartyCrmData,
         // @ts-ignore
         resourcePath: 'read',
-        description: "",
+        description: " ",
         enabled: true,
         name: "New Customers from ",
         configValues: {
@@ -98,10 +98,3 @@ export const boilerplateCloudStorageEvent: EventConfig = {
         ],
     }
 }
-
-// name: `new customers from ${app.name}`
-// purposes: basic
-// mock settings & config
-// create schema according to boilerplate
-// create mapping
-// no schedule
