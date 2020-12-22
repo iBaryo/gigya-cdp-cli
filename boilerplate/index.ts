@@ -9,25 +9,23 @@ import {
     Segment,
     Purpose
 } from "../gigya-cdp-sdk/entities";
-import {DirectEventName, boilerplateDirectEvents} from "./Events/Direct";
+import {boilerplateDirectEvents} from "./Events/Direct";
 import {profileSchema as boilerplateProfileSchema} from "./schemas/ProfileSchema";
 import {ActivityName, activitySchemas as boilerplateActivitySchemas} from "./schemas/ActivitiesSchemas";
 import {purchaseSum as boilerplateActivityIndicator} from "./ActivityIndicators/PurchaseSum";
 import {VIPSegment} from "./Segments/VIPSegment";
-import {config} from "./BoilerplateConfig";
+import {config, DirectEventName} from "./BoilerplateConfig";
 import {CampaignAudience as boilerplateAudience} from "./Audiences/AudienceCondition";
 import {Audience} from "../gigya-cdp-sdk/entities/Audience";
-import {AudienceCondition} from "../gigya-cdp-sdk/entities/Audience/AudienceCondition";
 import {defaultDirectApplication as boilerplateDirectApplication} from "./Applications/defaultDirectApplication";
-import {Id, Payload} from "../gigya-cdp-sdk/entities/common";
-import {PurposeReasons, Purposes as boilerplatePurposes} from "./purposes/purposes";
+import {Payload} from "../gigya-cdp-sdk/entities/common";
+import {Purposes as boilerplatePurposes} from "./purposes/purposes";
 import {matchingRule} from "./MatchRules/matchRules";
 import {cloudStorageApplications as boilerplateCloudStorageApplications} from "./Applications/defaultCloudStorageApplications";
 import {boilerplateCloudStorageEvent} from "./Events/CloudStorage";
 import {terminal} from "terminal-kit";
 
 const isEqual = require('lodash/isEqual');
-const differenceWith = require('lodash/differenceWith');
 const _ = require('lodash')
 
 /*
@@ -454,7 +452,6 @@ export function createBoilerplate(sdk: CDP) {
                         console.log('~~~~~~~ Mappings are aligned!');
                     },
 
-
                     async alignCloudStorage() {
                         console.log('~~~~~~~ aligning CloudStorage Applications, Events and Mappings')
                         const [remoteSchemas, bUnitPurposes] = await Promise.all([
@@ -632,18 +629,15 @@ export function createBoilerplate(sdk: CDP) {
 
                             const adjustedRemoteEventForComparisonWithAdjustedBpEvent = adjustRemoteEventForComparisonWithAdjustedBpEvent(adjustedBoilerplateEvent, remoteCloudStorageEventForApplication);
 
-                            console.log('~~~~~ aligning Cloud Storage Events')
                             if (!isEqual(adjustedRemoteEventForComparisonWithAdjustedBpEvent, adjustedBoilerplateEvent)) {
                                 await updateRemoteCloudStorageEvent(adjustedBoilerplateEvent, remoteCloudStorageApplicationId, remoteCloudStorageEventIdForApplication);
                             }
-                            console.log('~~~~~~ aligning CloudStorage Mappings')
                             await checkToUpdateOrCreateMappings(remoteCloudStorageEventIdForApplication, boilerplateCloudStorageEvent.mapping, remoteCloudStorageApplicationId);
 
                         })
-                        console.log('~~~~~~~ Direct Application is aligned!');
-                        console.log('~~~~~~~ Direct Events are aligned!');
-                        console.log('~~~~~~~ Mappings are aligned!');
+                        console.log('~~~~~~~ CloudStorage Application, Events and Mappings are aligned!');
                     },
+
                     alignAll() {
                         return Promise.all([
                             this.alignDirect(),
@@ -699,12 +693,15 @@ export function createBoilerplate(sdk: CDP) {
                     await this.purposes.align();
 
                     await Promise.all([
-                         this.applications.alignDirect(),
+                         this.applications.alignAll(),
                          this.audiences.align()
                     ]);
                 },
                 async ingestFakeEvents(customersNum: number, events: DirectEventName[]) {
+                    terminal.magenta(`~~~~~~~~ ingesting faked events`);
+                    console.log('ugejhfhjdhab')
                     // TODO: zoe + Baryo
+                    // how many customers will be generated
                     /*
                         according to customersNum
                             create a unique common identifier

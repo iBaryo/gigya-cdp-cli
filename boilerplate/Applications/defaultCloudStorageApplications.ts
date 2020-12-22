@@ -18,24 +18,8 @@ export const cloudStorageApplications: Record<CSType, Payload<Application>> = {
     'amazon.s3': {
         connectorId: "" as ConnectorId,
         businessUnitId: "" as BusinessUnitId,
-        // resources: {
-        //     type: 'amazon.s3',
-        //     read: {
-        //         "bucketName": "fake-bucket",
-        //         "fileNameRegex": "fake/",
-        //         "objectKeyPrefix": "fake",
-        //     },
-        //     write: {
-        //         "bucketName": "fake-bucket",
-        //         "fileNameRegex": "fake/",
-        //         "objectKeyPrefix": "fake",
-        //     },
-        // },
-        // predefinedActions: [],
-        // predefinedEvents: [],
         configSchema: {
             "type": "object",
-            // "allowAdditionalProperties": false,
             "required": [
                 "readBucketName",
                 "writeBucketName"
@@ -110,7 +94,6 @@ export const cloudStorageApplications: Record<CSType, Payload<Application>> = {
         securitySchemes: {
             "keys": {
                 "type": "object",
-                // "allowAdditionalProperties": false,
                 "required": [
                     "accessKey",
                     "secretKey"
@@ -141,7 +124,6 @@ export const cloudStorageApplications: Record<CSType, Payload<Application>> = {
         securitySchemes: {
             "keys": {
                 "type": "object",
-                // "allowAdditionalProperties": false,
                 "required": [
                     "accountName",
                     "accountKey"
@@ -170,10 +152,8 @@ export const cloudStorageApplications: Record<CSType, Payload<Application>> = {
             writeFileName: "azure",
             writeFilePath: "azure",
         },
-        // version: 0,
         configSchema: {
             "type": "object",
-            // "allowAdditionalProperties": false,
             "required": [
                 "readContainer",
                 "writeContainer"
@@ -244,7 +224,6 @@ export const cloudStorageApplications: Record<CSType, Payload<Application>> = {
         securitySchemes: {
             "keys": {
                 "type": "object",
-                // "allowAdditionalProperties": false,
                 "required": [
                     "clientEmail",
                     "privateKey"
@@ -266,7 +245,6 @@ export const cloudStorageApplications: Record<CSType, Payload<Application>> = {
         description: "R&D test application for google cloud",
         configSchema: {
             "type": "object",
-            // "allowAdditionalProperties": false,
             "required": [
                 "readBucketName",
                 "writeBucketName",
@@ -358,7 +336,6 @@ export const cloudStorageApplications: Record<CSType, Payload<Application>> = {
         securitySchemes: {
             "password": {
                 "type": "object",
-                // "allowAdditionalProperties": false,
                 "required": [
                     "username",
                     "password"
@@ -378,7 +355,6 @@ export const cloudStorageApplications: Record<CSType, Payload<Application>> = {
             },
             "privateKey": {
                 "type": "object",
-                // "allowAdditionalProperties": false,
                 "required": [
                     "username",
                     "privateKey"
@@ -403,31 +379,8 @@ export const cloudStorageApplications: Record<CSType, Payload<Application>> = {
             }
         },
         description: "R&D test application for SFTP",
-        // resources: {
-        //     "type": "sftp",
-        //     "read": {
-        //         "host": "$host",
-        //         "port": "$port",
-        //         "sortOrder": "$sortOrder",
-        //         "sortBy": "$sortBy",
-        //         "timeout": "$timeout",
-        //         "fileNameRegex": "$readFileNameRegex",
-        //         "remotePath": "$readFilePath"
-        //     },
-        //     "write": {
-        //         "host": "$host",
-        //         "port": "$port",
-        //         "timeout": "$timeout",
-        //         "remotePath": "$writeFilePath",
-        //         "temporaryUploadExtension": "$temporaryUploadExtension",
-        //         "fileName": "$writeFileName"
-        //     }
-        // },
-        // predefinedActions: [],
-        // predefinedEvents: [],
         configSchema: {
             "type": "object",
-            // "allowAdditionalProperties": false,
             "required": [
                 "host",
                 "port"
@@ -538,7 +491,6 @@ export const cloudStorageApplications: Record<CSType, Payload<Application>> = {
             writeFileName: "sftp",
             writeFilePath: "sftp"
         },
-        // version: 0,
         type: "CloudStorage"
     }
 }
