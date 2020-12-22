@@ -4,9 +4,7 @@ import {Payload} from "../../gigya-cdp-sdk/entities/common";
 import {FieldName, Purpose, PurposeId} from "../../gigya-cdp-sdk/entities";
 import {ActivityName} from "../schemas/ActivitiesSchemas";
 import {PurposeName} from "../purposes/purposes";
-
-export type DirectEventName = 'onPurchase' | 'onPageView';
-
+import {DirectEventName} from "../BoilerplateConfig";
 
 interface EventConfig {
     payload: Payload<Event>,

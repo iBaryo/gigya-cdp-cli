@@ -1,5 +1,6 @@
 import {CDP} from "./gigya-cdp-sdk";
 import {createBoilerplate} from "./boilerplate";
+import {config} from "./boilerplate/BoilerplateConfig";
 
 const sdk = new CDP({
     userKey: 'AOwjljkx8RH8',
@@ -21,5 +22,6 @@ const buID = '4_bFuVm3ltkBppPZcn-4r9kw';
     const vOps = bOps.views.for(view.id);
 
     await createBoilerplate(sdk).for(buID).alignAll();
+    // await createBoilerplate(sdk).for(buID).ingestFakeEvents(10, config.directEventNames);
 
 })().then(console.log);
