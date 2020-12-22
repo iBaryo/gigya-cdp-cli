@@ -119,27 +119,28 @@ export function createBoilerplate(sdk: CDP) {
                     }
                 },
 
-                async alignMatchRules() {
+                matchRules: {
+                    async alignMatchRules() {
 
-                    const view = await bOps.views.getAll().then(views => views.find(v => v.type == "Marketing"));
-                    const vOps = bOps.views.for(view.id);
-                    const remoteMatchRules = await vOps.matchRules.getAll();
+                        const view = await bOps.views.getAll().then(views => views.find(v => v.type == "Marketing"));
+                        const vOps = bOps.views.for(view.id);
+                        const remoteMatchRules = await vOps.matchRules.getAll();
 
-                    const masterDataIdMR = remoteMatchRules?.find(matchRules => matchRules.attributeName == config.commonIdentifier);
+                        const masterDataIdMR = remoteMatchRules?.find(matchRules => matchRules.attributeName == config.commonIdentifier);
 
-                    !masterDataIdMR ? await vOps.matchRules.create({
-                        attributeName: config.commonIdentifier,
-                        name: config.commonIdentifier,
-                        ucpResolutionPolicy: 'merge',
-                        // if they are not equal, update
-                        // if they are equal, don't do anything
-                    }) : (!isEqual(masterDataIdMR, matchingRule) ?? (await vOps.matchRules.for(masterDataIdMR.id).update({
-                        attributeName: config.commonIdentifier, // this seems too explicit if I have already created an interface, but ...masterDataIdMR does not work
-                        name: config.commonIdentifier,
-                        ucpResolutionPolicy: 'merge',
-                    })));
+                        !masterDataIdMR ? await vOps.matchRules.create({
+                            attributeName: config.commonIdentifier,
+                            name: config.commonIdentifier,
+                            ucpResolutionPolicy: 'merge',
+                            // if they are not equal, update
+                            // if they are equal, don't do anything
+                        }) : (!isEqual(masterDataIdMR, matchingRule) ?? (await vOps.matchRules.for(masterDataIdMR.id).update({
+                            attributeName: config.commonIdentifier, // this seems too explicit if I have already created an interface, but ...masterDataIdMR does not work
+                            name: config.commonIdentifier,
+                            ucpResolutionPolicy: 'merge',
+                        })));
+                    },
                 },
-
 
                 activityIndicators: {
                     async align() {
@@ -152,11 +153,15 @@ export function createBoilerplate(sdk: CDP) {
                             bOps.activityIndicators.getAll().then(a => a.find(ind => (config.activityIndicators.includes(ind.name))))
                         ]);
 
+                        console.log('remoteActivityIndicatorremoteActivityIndicatorremoteActivityIndicatorremoteActivityIndicator', remoteActivityIndicator)
                         // haven't taken into account if more than one activity indicator... if bpConfig changes //TODO
                         if (!remoteActivityIndicator) {
                             alignedActivityIndicatorPromise = bOps.activityIndicators.create({
                                 ...boilerplateActivityIndicator,
                                 schemaId: remoteActivitySchema.id,
+                            }).then(res => {
+                                console.log('creating activity indicator', res);
+                                    return res
                             });
                         } else {
                             const fieldDiffs = Object.entries(boilerplateActivityIndicator).find(f => !Object.entries(remoteActivityIndicator).includes(f));
@@ -165,7 +170,10 @@ export function createBoilerplate(sdk: CDP) {
                                 Promise.resolve(remoteActivityIndicator)
                                 : bOps.activityIndicators.for(remoteActivityIndicator.id).update({
                                     ...boilerplateActivityIndicator,
-                                    schemaId: remoteActivityIndicator.id,
+                                    schemaId: remoteActivityIndicator.schemaId,
+                                }).then(res => {
+                                    console.log('updating activity indicator', res);
+                                    return res
                                 });
                         }
                         const alignedActivityIndicator = await alignedActivityIndicatorPromise;
@@ -276,7 +284,7 @@ export function createBoilerplate(sdk: CDP) {
                             bOps.purposes.getAll()
                         ])
 
-                        function normalizeMappings(mappings, targetSchemaId?){
+                        function normalizeMappings(mappings, targetSchemaId?) {
                             let adjustedMappings = []
                             mappings?.map(mapping => {
                                 adjustedMappings.push({
@@ -655,19 +663,29 @@ export function createBoilerplate(sdk: CDP) {
                         const view = await bOps.views.getAll().then(views => views.find(v => v.type == "Marketing"));
                         const vOps = bOps.views.for(view.id);
 
+                        const bUnitPurposes = await bOps.purposes.getAll()
+                        const audiencePurposeIds = boilerplateAudience.purposeIds.map(purposeName => bUnitPurposes.find(p => p.name == purposeName).id).filter(Boolean);
+
                         const remoteAudience = await vOps.audiences.getAll().then(audiences => audiences.find(a => a.name == boilerplateAudience.name))
+
+                        const normalizedBoilerplateAudienceForPurposeIds =
+                            {
+                                ...boilerplateAudience,
+                                purposeIds: audiencePurposeIds
+                            }
+
                         // TODO: change the purpose id's to their actual ID's
                         if (remoteAudience) {
-                            if (isEqual(remoteAudience, boilerplateAudience)) {
+                            if (isEqual(remoteAudience, normalizedBoilerplateAudienceForPurposeIds)) {
                                 audiencePromise = Promise.resolve(remoteAudience);
                             } else {
                                 audiencePromise = vOps.audiences.for(remoteAudience.id).update({
-                                    ...boilerplateAudience
+                                    ...normalizedBoilerplateAudienceForPurposeIds
                                 });
                             }
                         } else {
                             audiencePromise = vOps.audiences.create({
-                                ...boilerplateAudience
+                                ...normalizedBoilerplateAudienceForPurposeIds
                             });
                         }
 
@@ -680,15 +698,15 @@ export function createBoilerplate(sdk: CDP) {
                         this.schemas.alignProfile(),
                         this.schemas.alignActivities()
                     ]);
-
+                    await this.matchRules.alignMatchRules()
                     await this.activityIndicators.align();
                     await this.segments.align();
                     await this.purposes.align();
 
-                    await Promise.all([
-                        this.applications.alignDirect(),
-                        this.audiences.align()
-                    ]);
+                    // await Promise.all([
+                        await this.applications.alignDirect(),
+                        await this.audiences.align()
+                    // ]);
                 },
                 async ingestFakeEvents(customersNum: number, events: DirectEventName[]) {
                     // TODO: zoe + Baryo

@@ -24,6 +24,7 @@ export const Purposes: Record<PurposeName, Payload<Purpose>> =
         },
 
         'basic': {
+            customerAttributes: ["birthdate", "gender"] as ProfileFieldName[],
             customerActivityIndicators: ["Purchase Sum"] as ActivityIndicator[],
             customerSegments: ["VIP"] as SegmentName[],
             reason: "Consent" as PurposeReasons,
