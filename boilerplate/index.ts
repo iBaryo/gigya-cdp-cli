@@ -153,15 +153,11 @@ export function createBoilerplate(sdk: CDP) {
                             bOps.activityIndicators.getAll().then(a => a.find(ind => (config.activityIndicators.includes(ind.name))))
                         ]);
 
-                        console.log('remoteActivityIndicatorremoteActivityIndicatorremoteActivityIndicatorremoteActivityIndicator', remoteActivityIndicator)
                         // haven't taken into account if more than one activity indicator... if bpConfig changes //TODO
                         if (!remoteActivityIndicator) {
                             alignedActivityIndicatorPromise = bOps.activityIndicators.create({
                                 ...boilerplateActivityIndicator,
                                 schemaId: remoteActivitySchema.id,
-                            }).then(res => {
-                                console.log('creating activity indicator', res);
-                                    return res
                             });
                         } else {
                             const fieldDiffs = Object.entries(boilerplateActivityIndicator).find(f => !Object.entries(remoteActivityIndicator).includes(f));
@@ -171,9 +167,6 @@ export function createBoilerplate(sdk: CDP) {
                                 : bOps.activityIndicators.for(remoteActivityIndicator.id).update({
                                     ...boilerplateActivityIndicator,
                                     schemaId: remoteActivityIndicator.schemaId,
-                                }).then(res => {
-                                    console.log('updating activity indicator', res);
-                                    return res
                                 });
                         }
                         const alignedActivityIndicator = await alignedActivityIndicatorPromise;
