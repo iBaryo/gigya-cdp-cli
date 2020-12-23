@@ -40,14 +40,12 @@ export function createBoilerplate(sdk: CDP) {
     return {
         for(bUnitId: BusinessUnitId) {
             const bOps = sdk.api.businessunits.for(bUnitId);
-            terminal.bgCyan('~~~~~~~~~ Aligning your Business Unit ~~~~~~~~~~');
+            terminal.bgMagenta.black('~~~~~~~~~ Aligning your Business Unit ~~~~~~~~~~');
             terminal('\n');
 
             return {
                 schemas: {
                     async alignProfile() {
-                        console.log("~~~~~~~~ aligning profile schema ~~~~~~~~");
-
                         const profileSchemaEntity = await bOps.ucpschemas.getAll().then(schemas => schemas.find(s => s.schemaType == SchemaType.Profile));
 
                         let alignProfilePromise: Promise<CustomerSchema>;
@@ -56,11 +54,8 @@ export function createBoilerplate(sdk: CDP) {
                             alignProfilePromise = bOps.ucpschemas.create({
                                 enabled: true,
                                 name: "Profile",
-                                schema: JSON.stringify(boilerplateProfileSchema.properties),
+                                schema: JSON.stringify(boilerplateProfileSchema),
                                 schemaType: SchemaType.Profile
-                            }).then(res => {
-                                console.log(res);
-                                return res
                             });
                         } else {
                             const profileSchema = JSON.parse(JSON.stringify(profileSchemaEntity.schema));
@@ -78,37 +73,33 @@ export function createBoilerplate(sdk: CDP) {
                                         properties: {...boilerplateProfileSchema.properties, ...profileSchema.properties}
                                     }),
                                     schemaType: SchemaType.Profile
-                                }).then(res => {
-                                    console.log(res);
-                                        return res
                                 });
                         }
 
                         const alignedProfile = await alignProfilePromise;
-                        console.log('~~~~~ aligned profile:', alignedProfile);
+                        terminal.blue('~~~~~ aligned Profile Schema:', alignedProfile);
+                        terminal('\n');
+
                     },
 
 
                     async alignActivities() {
+
                         let alignActivityPromise: Promise<CustomerSchema>;
                         const customerSchemas = await bOps.ucpschemas.getAll();
 
                         for (const [activity, boilerplateSchema] of Object.entries(boilerplateActivitySchemas)) {
-                            console.log(`~~~~~~ aligning ${activity} Activity`);
                             const activitySchema = customerSchemas.find(s => s.name == activity && s.schemaType == SchemaType.Activity);
                             if (!activitySchema) {
                                 alignActivityPromise = bOps.ucpschemas.create({
                                     enabled: true,
                                     name: activity,
-                                    schema: boilerplateSchema,
+                                    schema: JSON.stringify(boilerplateProfileSchema),
                                     schemaType: SchemaType.Activity
                                 });
                             } else {
-                                console.log('activitySchema.schema', activitySchema.schema.toString())
                                 const remoteActivitySchema = JSON.parse(JSON.stringify(activitySchema.schema));
-                                console.log('remoteActivitySchema', remoteActivitySchema)
                                 const remoteSchemaProperties = Object.keys(remoteActivitySchema.properties);
-                                console.log('remoteSchemaProperties', remoteSchemaProperties)
                                 const fieldDiffs = Object.keys(boilerplateSchema.properties).filter(f => !remoteSchemaProperties.includes(f));
 
 
@@ -122,13 +113,12 @@ export function createBoilerplate(sdk: CDP) {
                                             properties: {...remoteActivitySchema.properties, ...boilerplateSchema.properties} //order = priority => lower, higher
                                         }),
                                         schemaType: SchemaType.Activity
-                                    }).then(res => {
-                                        console.log(res, 'llll');
-                                        return res
                                     });
                             }
                             const alignedActivity = await alignActivityPromise;
-                            console.log(`~~~~~~~~ aligned ${activity}`, alignedActivity, 'hhh');
+                            terminal.colorRgb(0, 135, 255)(`~~~~~~~~ aligned ${activity} Activity Schema`, alignedActivity);
+                            terminal('\n');
+
                         }
                     }
                 },
@@ -158,7 +148,6 @@ export function createBoilerplate(sdk: CDP) {
 
                 activityIndicators: {
                     async align() {
-                        console.log('~~~~~~~ aligning Activity Indicators');
 
                         let alignedActivityIndicatorPromise: Promise<ActivityIndicator>
 
@@ -167,7 +156,6 @@ export function createBoilerplate(sdk: CDP) {
                             bOps.activityIndicators.getAll().then(a => a.find(ind => (config.activityIndicators.includes(ind.name))))
                         ]);
 
-                        // haven't taken into account if more than one activity indicator... if bpConfig changes //TODO
                         if (!remoteActivityIndicator) {
                             alignedActivityIndicatorPromise = bOps.activityIndicators.create({
                                 ...boilerplateActivityIndicator,
@@ -184,7 +172,9 @@ export function createBoilerplate(sdk: CDP) {
                                 });
                         }
                         const alignedActivityIndicator = await alignedActivityIndicatorPromise;
-                        console.log('~~~~~~~ aligned Activity Indicator:', alignedActivityIndicator);
+                        terminal.colorRgb(0, 255, 255)('~~~~~~~ aligned Activity Indicator:', alignedActivityIndicator);
+                        terminal('\n');
+
                     },
                 },
 
@@ -193,38 +183,35 @@ export function createBoilerplate(sdk: CDP) {
 
                         let alignedSegmentPromise: Promise<Segment>;
 
-                        console.log('~~~~~~~ aligning segment');
                         const remoteSegment = await bOps.segments.getAll().then(segments => segments.find(s => s.name == VIPSegment.name));
-
+                        //get the VIP remote segment and see if its values are the same
+                        // values are the conditions with their associated value
                         if (remoteSegment) {
 
-                            let numberMatches = 0;
-                            let i = 2;
-
-                            while (i >= 0) {
-                                if (isEqual(remoteSegment.values[i].condition, VIPSegment.values[i].condition)) {
-                                    numberMatches += 1
-                                }
-                                i--
+                            // if all 3 are not the same, update the segment to be the boilerplateVIPSegment
+                            if ((remoteSegment.values.length === VIPSegment.values.length) &&
+                                VIPSegment.values.every(segmentValue =>
+                                    remoteSegment.values.some(remoteValue => isEqual(segmentValue, remoteValue)))) {
+                                alignedSegmentPromise = Promise.resolve(remoteSegment)
+                            } else {
+                                alignedSegmentPromise = bOps.segments.for(remoteSegment.id).update({
+                                    ...VIPSegment
+                                })
                             }
-                            alignedSegmentPromise = numberMatches == 3 ? Promise.resolve(remoteSegment) : bOps.segments.for(remoteSegment.id).update({
-                                ...VIPSegment
-                            });
-
                         } else {
                             alignedSegmentPromise = bOps.segments.create({
                                 ...VIPSegment
                             });
                         }
                         const alignedSegment = await alignedSegmentPromise
-                        console.log('~~~~~~ segment is aligned!', alignedSegment.values);
+
+                        terminal.colorRgb(135, 215, 255)('~~~~~~ aligned Segment', alignedSegment);
+                        terminal('\n');
                     }
                 },
 
                 purposes: {
                     async align() {
-                        console.log('~~~~~~  aligning Purposes')
-
                         const remotePurposes = bOps.purposes.getAll()
 
                         let finalPurpose: Payload<Purpose>
@@ -257,7 +244,7 @@ export function createBoilerplate(sdk: CDP) {
                                     ...boilerplatePurposePayload
                                 })
                             }
-                            console.log('~~~~~~~~ Purposes aligned!', finalPurpose)
+                            terminal.colorRgb(95, 95, 255)('~~~~~~~~ aligned Purpose', finalPurpose)
                         })
                     }
                 },
@@ -474,7 +461,7 @@ export function createBoilerplate(sdk: CDP) {
 
                         const eventPurposeIds = boilerplateCloudStorageEvent.payload.purposeIds.map(purposeName => bUnitPurposes.find(p => p.name == purposeName).id).filter(Boolean);
 
-                        const getAppViewModel = (application) => {
+                        function getAppViewModel(application) {
                             return {
                                 configValues: application.configValues ? application.configValues : boilerplateCloudStorageApplications[application.resources.type].configValues,
                                 type: application.type || application.resources.type,
@@ -581,6 +568,7 @@ export function createBoilerplate(sdk: CDP) {
                             const boilerplateCloudStorageApplication = boilerplateCloudStorageApplications[connector.resources.type]
                             // if there is not a cloudStorageApplication of type 'azure.blob' | 'googlecloud' | 'sftp' | aws3
                             // then create cloudStorageApplication
+                            //TODO:  updating App interface in sdk
                             if (!remoteCloudStorageApplication) {
                                 remoteCloudStorageApplication = (await bOps.applications.create({
                                     configValues: boilerplateCloudStorageApplication.configValues,
@@ -588,7 +576,7 @@ export function createBoilerplate(sdk: CDP) {
                                     description: boilerplateCloudStorageApplication.description,
                                     // @ts-ignore
                                     isDataProducer: true,
-                                    name: connector.name,
+                                    name: connector.name
                                 }));
 
                             } else {
@@ -602,7 +590,7 @@ export function createBoilerplate(sdk: CDP) {
                                 // check if they are not equal and update to boilerplate Cloud Storage Application
                                 if (!(_.isEqual(viewModelRemoteCSApp, viewModelCSApp))) {
 
-                                    // @ts-ignore
+                                    // @ts-ignore //TODO: takeaway ts ignore by updating App interface in sdk
                                     remoteCloudStorageApplication = (await bOps.applications.for(remoteCloudStorageApplication.id).update({
                                         configValues: boilerplateCloudStorageApplication.configValues,
                                         description: boilerplateCloudStorageApplication.description,
@@ -635,8 +623,8 @@ export function createBoilerplate(sdk: CDP) {
                             if (!isEqual(adjustedRemoteEventForComparisonWithAdjustedBpEvent, adjustedBoilerplateEvent)) {
                                 await updateRemoteCloudStorageEvent(adjustedBoilerplateEvent, remoteCloudStorageApplicationId, remoteCloudStorageEventIdForApplication);
                             }
-                            await checkToUpdateOrCreateMappings(remoteCloudStorageEventIdForApplication, boilerplateCloudStorageEvent.mapping, remoteCloudStorageApplicationId);
 
+                            await checkToUpdateOrCreateMappings(remoteCloudStorageEventIdForApplication, boilerplateCloudStorageEvent.mapping, remoteCloudStorageApplicationId);
                         })
                         console.log('~~~~~~~ CloudStorage Application, Events and Mappings are aligned!');
                     },
@@ -696,8 +684,8 @@ export function createBoilerplate(sdk: CDP) {
                     await this.purposes.align();
 
                     await Promise.all([
-                         this.applications.alignAll(),
-                         this.audiences.align()
+                        this.applications.alignAll(),
+                        this.audiences.align()
                     ]);
                 },
                 async ingestFakeEvents(customersNum: number, events: DirectEventName[]) {

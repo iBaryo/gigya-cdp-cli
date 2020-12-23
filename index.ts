@@ -286,8 +286,8 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
             const profileSchema = await buOps.ucpschemas.getAll().then(
                 schemas => schemas.find(s => s.schemaType == SchemaType.Profile));
 
-            // @ts-ignore //TODO: TAKE THIS AWAY
-            const profileMappings = await context.sdk.api.businessunits.for(context.bu.id).mappings.get({ //TODO: UPDATE THIS -- (PUT IT BACK WITH UPDATED MAPPINGS)
+
+            const profileMappings = await context.sdk.api.businessunits.for(context.bu.id).applications.for(context.app.id).dataevents.for(context.event.id).mappings.get({
                 sourceId: context.event.id,
                 targetId: profileSchema.id
             }).then(m => m.mappings || []);
