@@ -24,6 +24,7 @@ import {matchingRule} from "./MatchRules/matchRules";
 import {cloudStorageApplications as boilerplateCloudStorageApplications} from "./Applications/defaultCloudStorageApplications";
 import {boilerplateCloudStorageEvent} from "./Events/CloudStorage";
 import {terminal} from "terminal-kit";
+import {JSONSchema7} from "json-schema";
 
 const isEqual = require('lodash/isEqual');
 const _ = require('lodash')
@@ -55,11 +56,14 @@ export function createBoilerplate(sdk: CDP) {
                             alignProfilePromise = bOps.ucpschemas.create({
                                 enabled: true,
                                 name: "Profile",
-                                schema: JSON.stringify(boilerplateProfileSchema),
+                                schema: JSON.stringify(boilerplateProfileSchema.properties),
                                 schemaType: SchemaType.Profile
+                            }).then(res => {
+                                console.log(res);
+                                return res
                             });
                         } else {
-                            const profileSchema = JSON.parse(profileSchemaEntity.schema.toString());
+                            const profileSchema = JSON.parse(JSON.stringify(profileSchemaEntity.schema));
                             const profileFields = Object.keys(profileSchema.properties);
                             const boilerplateProfileFields = Object.keys(boilerplateProfileSchema.properties);
                             const fieldDiffs = boilerplateProfileFields.filter(f => !profileFields.includes(f));
@@ -71,9 +75,12 @@ export function createBoilerplate(sdk: CDP) {
                                     name: "Profile",
                                     schema: JSON.stringify({
                                         ...profileSchema,
-                                        properties: {...boilerplateProfileSchema, ...profileSchema.properties}
+                                        properties: {...boilerplateProfileSchema.properties, ...profileSchema.properties}
                                     }),
                                     schemaType: SchemaType.Profile
+                                }).then(res => {
+                                    console.log(res);
+                                        return res
                                 });
                         }
 
@@ -89,18 +96,21 @@ export function createBoilerplate(sdk: CDP) {
                         for (const [activity, boilerplateSchema] of Object.entries(boilerplateActivitySchemas)) {
                             console.log(`~~~~~~ aligning ${activity} Activity`);
                             const activitySchema = customerSchemas.find(s => s.name == activity && s.schemaType == SchemaType.Activity);
-
                             if (!activitySchema) {
                                 alignActivityPromise = bOps.ucpschemas.create({
                                     enabled: true,
                                     name: activity,
-                                    schema: JSON.stringify(boilerplateSchema),
+                                    schema: boilerplateSchema,
                                     schemaType: SchemaType.Activity
                                 });
                             } else {
-                                const remoteActivitySchema = JSON.parse(activitySchema.schema.toString());
+                                console.log('activitySchema.schema', activitySchema.schema.toString())
+                                const remoteActivitySchema = JSON.parse(JSON.stringify(activitySchema.schema));
+                                console.log('remoteActivitySchema', remoteActivitySchema)
                                 const remoteSchemaProperties = Object.keys(remoteActivitySchema.properties);
+                                console.log('remoteSchemaProperties', remoteSchemaProperties)
                                 const fieldDiffs = Object.keys(boilerplateSchema.properties).filter(f => !remoteSchemaProperties.includes(f));
+
 
                                 alignActivityPromise = !fieldDiffs.length ?
                                     Promise.resolve(activitySchema)
@@ -112,10 +122,13 @@ export function createBoilerplate(sdk: CDP) {
                                             properties: {...remoteActivitySchema.properties, ...boilerplateSchema.properties} //order = priority => lower, higher
                                         }),
                                         schemaType: SchemaType.Activity
+                                    }).then(res => {
+                                        console.log(res, 'llll');
+                                        return res
                                     });
                             }
                             const alignedActivity = await alignActivityPromise;
-                            console.log(`~~~~~~~~ aligned ${activity}`, alignedActivity);
+                            console.log(`~~~~~~~~ aligned ${activity}`, alignedActivity, 'hhh');
                         }
                     }
                 },
@@ -576,7 +589,6 @@ export function createBoilerplate(sdk: CDP) {
                                     // @ts-ignore
                                     isDataProducer: true,
                                     name: connector.name,
-                                    type: 'CloudStorage'
                                 }));
 
                             } else {
@@ -589,12 +601,14 @@ export function createBoilerplate(sdk: CDP) {
 
                                 // check if they are not equal and update to boilerplate Cloud Storage Application
                                 if (!(_.isEqual(viewModelRemoteCSApp, viewModelCSApp))) {
+
+                                    // @ts-ignore
                                     remoteCloudStorageApplication = (await bOps.applications.for(remoteCloudStorageApplication.id).update({
-                                        ...remoteCloudStorageApplication,
                                         configValues: boilerplateCloudStorageApplication.configValues,
-                                        connectorId: connector.id,
                                         description: boilerplateCloudStorageApplication.description,
                                         name: connector.name,
+                                        // @ts-ignore
+                                        isDataProducer: true
                                     }))
                                 }
                             }
