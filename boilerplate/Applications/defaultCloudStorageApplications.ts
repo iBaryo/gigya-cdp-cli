@@ -13,7 +13,7 @@ import {ConfigOverrideScope} from "../../gigya-cdp-sdk/entities/common/config";
 
 export type CSType = 'amazon.s3' | 'azure.blob' | 'googlecloud' | 'sftp';
 
-// TODO: take away ts-ignore by fixing Application interface
+// TODO: take away ts-ignore by fixing Application interface --- some fields not needed
 
 export const cloudStorageApplications: Record<CSType, Payload<Application>> = {
     // @ts-ignore

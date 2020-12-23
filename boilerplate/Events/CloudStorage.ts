@@ -48,10 +48,7 @@ export const boilerplateCloudStorageEvent: EventConfig = {
                     type: 'string'
                 },
                 masterDataId: {
-                    type: 'array',
-                    items: {
                         type: 'string'
-                    }
                 },
                 birthdate: {
                     type: "string",

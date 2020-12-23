@@ -43,10 +43,7 @@ export const boilerplateDirectEvents: Record<DirectEventName, EventConfig> = {
                         type: 'string'
                     },
                     masterDataId: {
-                        type: 'array',
-                        items: {
                             type: 'string'
-                        }
                     },
                     birthdate: {
                         type: "string",
@@ -130,10 +127,7 @@ export const boilerplateDirectEvents: Record<DirectEventName, EventConfig> = {
                         type: 'string'
                     },
                     masterDataId: {
-                        type: 'array',
-                        items: {
                             type: 'string'
-                        }
                     },
                     birthdate: {
                         type: "string",
