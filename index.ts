@@ -39,6 +39,8 @@ import {
 } from "./gigya-cdp-sdk";
 import FakerStatic = Faker.FakerStatic;
 import {detectProxy} from "./utils/proxy";
+import {EventMapping} from "./gigya-cdp-sdk/entities/Event/EventMapping";
+import {EventMappingsResponse} from "./gigya-cdp-sdk/CDPEntitiesApi";
 
 interface AppContext {
     dataCenter: DataCenter;
@@ -287,10 +289,13 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
                 schemas => schemas.find(s => s.schemaType == SchemaType.Profile));
 
 
+            //TODO: fix this according to new mappings in sdk
             const profileMappings = await context.sdk.api.businessunits.for(context.bu.id).applications.for(context.app.id).dataevents.for(context.event.id).mappings.get({
                 sourceId: context.event.id,
                 targetId: profileSchema.id
-            }).then(m => m.mappings || []);
+            }).then((m: EventMappingsResponse ) => m.mappings  || []); //TODO: this is a little hack for now because of inconsistency with the back
+
+
 
             // filter only the mappings to the profile schema && to a targetField that is an identifier and take the source field //TODO: UPDATE THIS --- (PUT IT BACK WITH UPDATED MAPPINGS)
             const eventIdentifierFields = profileMappings.map(m => {

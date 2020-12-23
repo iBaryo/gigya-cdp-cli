@@ -16,7 +16,7 @@ export const VIPSegment: Payload<Segment> = {
                 },
                 operator: 'greaterThan',
                 operand: {
-                    type: 'double',
+                    type: 'long',
                     value: 1000
                 }
             },
@@ -33,7 +33,7 @@ export const VIPSegment: Payload<Segment> = {
                         },
                         operator: 'greaterThan',
                         operand: {
-                            type: 'double',
+                            type: 'long',
                             value: 500
                         }
                     },
@@ -44,7 +44,7 @@ export const VIPSegment: Payload<Segment> = {
                         },
                         operator: 'lessThan',
                         operand: {
-                            type: 'double',
+                            type: 'long',
                             value: 1000
                         }
                     },
@@ -63,7 +63,7 @@ export const VIPSegment: Payload<Segment> = {
                         },
                         operator: 'greaterThan',
                         operand: {
-                            type: 'double',
+                            type: 'long',
                             value: 300
                         }
                     },
@@ -74,7 +74,7 @@ export const VIPSegment: Payload<Segment> = {
                         },
                         operator: 'lessThan',
                         operand: {
-                            type: 'double',
+                            type: 'long',
                             value: 500
                         }
                     },
