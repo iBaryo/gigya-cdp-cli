@@ -6,10 +6,10 @@ export const activitySchemas: Record<ActivityName, JSONSchema7> = {
         type: 'object',
         properties: {
             "orderId": {
-                type: "string"
+                "type": "string"
             },
             "price": {
-                type: "number"
+                "type": "number"
             }
         }
     },
@@ -17,10 +17,10 @@ export const activitySchemas: Record<ActivityName, JSONSchema7> = {
         type: 'object',
         properties: {
             "pageUrl": {
-                type: 'string',
+                "type": 'string',
             },
             "sessionTime": {
-                type: 'number'
+                "type": 'number'
             }
         }
     }
