@@ -3,6 +3,7 @@ import {PurposeName} from "./purposes/purposes";
 export const config = {
     workspaceId: '19834500',
     commonIdentifier: 'masterDataId',
+    commonIdentifierFaker: 'random.uuid',
     purposes: ['basic', 'marketing'] as PurposeName[],
     activityIndicators: ['Purchase Sum'],
     activities: ['Orders', 'Page-Views'],
