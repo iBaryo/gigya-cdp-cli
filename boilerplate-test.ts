@@ -3,8 +3,8 @@ import {createBoilerplate} from "./boilerplate";
 import {config} from "./boilerplate/BoilerplateConfig";
 
 const sdk = new CDP({
-    userKey: 'AOwjljkx8RH8',
-    secret: 'Tzrkw0y4wtRNILpk7+uqkT+LmpO9zZeG',
+    userKey: 'AESG3I4qtOir',
+    secret: 'Ab5l98IIshk1Hc+YZMf4SxaJr9E3Jgm2\n',
     forceSimple: true,
 }, {
     dataCenter: 'eu5',
@@ -13,10 +13,10 @@ const sdk = new CDP({
     // proxy: 'http://127.0.0.1:8888'
 });
 
-const buID = '4_bFuVm3ltkBppPZcn-4r9kw';
+const buID = '4_7ry88WuHxDQ0hr443XJmxw';
 
 (async () => {
-    const bOps = sdk.api.businessunits.for('4_bFuVm3ltkBppPZcn-4r9kw');
+    const bOps = sdk.api.businessunits.for(buID);
     const bu = await bOps.get().then(x => x)
     const view = await bOps.views.getAll().then(views => views.find(v => v.type == "Marketing"));
     const vOps = bOps.views.for(view.id);

@@ -46,12 +46,16 @@ export function createBoilerplate(sdk: CDP) {
     return {
         for(bUnitId: BusinessUnitId) {
             const bOps = sdk.api.businessunits.for(bUnitId);
-            terminal.bgMagenta.black('~~~~~~~~~ Aligning your Business Unit ~~~~~~~~~~');
-            terminal('\n');
 
             return {
+
                 schemas: {
+
                     async alignProfile() {
+
+                        terminal.colorRgb(255, 192, 203)('~~~~~~~~~ aligning Profile Schema ~~~~~~~~');
+                        terminal('\n');
+
                         const profileSchemaEntity = await bOps.ucpschemas.getAll().then(schemas => schemas.find(s => s.schemaType == SchemaType.Profile));
 
                         let alignProfilePromise: Promise<CustomerSchema>;
@@ -83,7 +87,8 @@ export function createBoilerplate(sdk: CDP) {
                         }
 
                         const alignedProfile = await alignProfilePromise;
-                        terminal.blue('~~~~~ aligned Profile Schema:');
+                        terminal('\n');
+                        terminal.colorRgb(255, 192, 203)('~~~~~ aligned Profile Schema:');
                         terminal('\n');
                         console.log(alignedProfile)
 
@@ -91,6 +96,8 @@ export function createBoilerplate(sdk: CDP) {
 
 
                     async alignActivities() {
+                        terminal.colorRgb(215, 95, 175)(`~~~~~~~~~ aligning Activities Schema ~~~~~~~~~~~`);
+                        terminal('\n');
 
                         let alignActivityPromise: Promise<CustomerSchema>;
                         const customerSchemas = await bOps.ucpschemas.getAll();
@@ -123,7 +130,7 @@ export function createBoilerplate(sdk: CDP) {
                                     });
                             }
                             const alignedActivity = await alignActivityPromise;
-                            terminal.colorRgb(0, 135, 255)(`~~~~~~~~ aligned ${activity} Activity Schema`);
+                            terminal.colorRgb(215, 95, 175)(`~~~~~~~~ aligned ${activity} Activity Schema`);
                             terminal('\n');
                             console.log(alignedActivity)
 
@@ -133,6 +140,8 @@ export function createBoilerplate(sdk: CDP) {
 
                 matchRules: {
                     async alignMatchRules() {
+                        terminal.colorRgb(255, 135, 215)('~~~~~~~ aligning Match Rules ~~~~~~~~');
+                        terminal('\n');
 
                         const view = await bOps.views.getAll().then(views => views.find(v => v.type == "Marketing"));
                         const vOps = bOps.views.for(view.id);
@@ -140,7 +149,7 @@ export function createBoilerplate(sdk: CDP) {
 
                         const masterDataIdMR = remoteMatchRules?.find(matchRules => matchRules.attributeName == config.commonIdentifier);
 
-                        !masterDataIdMR ? await vOps.matchRules.create({
+                        const alignedMatchRules = !masterDataIdMR ? await vOps.matchRules.create({
                             attributeName: config.commonIdentifier,
                             name: config.commonIdentifier,
                             ucpResolutionPolicy: 'merge',
@@ -151,11 +160,17 @@ export function createBoilerplate(sdk: CDP) {
                             name: config.commonIdentifier,
                             ucpResolutionPolicy: 'merge',
                         })));
+
+                        terminal.colorRgb(255, 135, 215)('~~~~~~ aligned Match Rules!');
+                        terminal('\n');
+                        console.log(alignedMatchRules)
                     },
                 },
 
                 activityIndicators: {
                     async align() {
+                        terminal.colorRgb(255, 215, 215)(`~~~~~~~~ aligning Activity Indicator!`);
+                        terminal('\n');
 
                         let alignedActivityIndicatorPromise: Promise<ActivityIndicator>
 
@@ -180,7 +195,8 @@ export function createBoilerplate(sdk: CDP) {
                                 });
                         }
                         const alignedActivityIndicator = await alignedActivityIndicatorPromise;
-                        terminal.colorRgb(0, 255, 255)('~~~~~~~ aligned Activity Indicator:');
+                        terminal('\n');
+                        terminal.colorRgb(255, 215, 215)('~~~~~~~ aligned Activity Indicator:');
                         terminal('\n');
                         console.log(alignedActivityIndicator)
 
@@ -189,6 +205,8 @@ export function createBoilerplate(sdk: CDP) {
 
                 segments: {
                     async align() {
+                        terminal.colorRgb(215, 95, 135)('~~~~~~~ aligning Segments ~~~~~~~~~ ');
+                        terminal('\n');
 
                         let alignedSegmentPromise: Promise<Segment>;
 
@@ -214,7 +232,7 @@ export function createBoilerplate(sdk: CDP) {
                         }
                         const alignedSegment = await alignedSegmentPromise
 
-                        terminal.colorRgb(135, 215, 255)('~~~~~~ aligned Segment');
+                        terminal.colorRgb(215, 95, 135)('~~~~~~ aligned Segment: ');
                         terminal('\n');
                         console.log(alignedSegment);
                     }
@@ -222,6 +240,9 @@ export function createBoilerplate(sdk: CDP) {
 
                 purposes: {
                     async align() {
+                        terminal.colorRgb(255, 192, 203)('~~~~~~~~ aligning Purposes');
+                        terminal('\n')
+
                         const remotePurposes = bOps.purposes.getAll()
 
                         let finalPurpose: Payload<Purpose>
@@ -254,8 +275,8 @@ export function createBoilerplate(sdk: CDP) {
                                     ...boilerplatePurposePayload
                                 })
                             }
-                            terminal.colorRgb(95, 95, 255)('~~~~~~~~ aligned Purpose');
-                            terminal('/n');
+                            terminal.colorRgb(255, 192, 203)('~~~~~~~~ aligned Purpose');
+                            terminal('\n');
                             console.log(finalPurpose);
                         })
                     }
@@ -263,8 +284,10 @@ export function createBoilerplate(sdk: CDP) {
 
                 applications: {
                     async alignDirect() {
+                        terminal('\n');
+                        terminal.colorRgb(255, 135, 135)("~~~~~~~ aligning Direct applications");
+                        terminal('\n');
 
-                        console.log("~~~~~~~ aligning Direct applications");
                         let remoteApplications = await bOps.applications.getAll();
 
                         let remoteApplication = (remoteApplications?.find(app =>
@@ -342,8 +365,8 @@ export function createBoilerplate(sdk: CDP) {
                                     }) as EventMappingsResponse
                                 }
                             }
-                            terminal.colorRgb(175, 0, 135)(`aligned Direct Event Mappings`);
-                            terminal('/n')
+                            terminal.colorRgb(255, 135, 135)(`aligned Direct Event Mappings`);
+                            terminal('\n');
                             console.log(alignedMappings.mappings);
                         }
 
@@ -383,8 +406,8 @@ export function createBoilerplate(sdk: CDP) {
                             }).then(res => console.log(res))
                         }
 
-                        terminal.colorRgb(175, 0, 135)(`aligned Direct Application`);
-                        terminal('/n');
+                        terminal.colorRgb(255, 135, 135)(`aligned Direct Application`);
+                        terminal('\n');
                         console.log(remoteApplication);
 
                         await Promise.all(
@@ -397,7 +420,7 @@ export function createBoilerplate(sdk: CDP) {
                                     const remoteDirectEvent = await createRemoteDirectEvent(boilerplateEvent);
                                     remoteDirectEventId = remoteDirectEvent.id;
                                     terminal.colorRgb(175, 0, 135)(`aligned ${eventName} Direct Event`);
-                                    terminal('/n');
+                                    terminal('\n');
                                     terminal.colorRgb(175, 0, 135)(remoteDirectEvent);
                                 }
 
@@ -409,7 +432,7 @@ export function createBoilerplate(sdk: CDP) {
                                 if (!isEqual(adjustedRemoteEventForComparisonWithAdjustedBpEvent, adjustedBPEventForPurposeIds)) {
                                     const alignedDirectEvent = await updateRemoteDirectEvent(adjustedBPEventForPurposeIds, remoteEvent);
                                     terminal.colorRgb(175, 0, 135)(`aligned ${eventName} Direct Event`);
-                                    terminal('/n');
+                                    terminal('\n');
                                     console.log(alignedDirectEvent);
                                 }
 
@@ -524,6 +547,8 @@ export function createBoilerplate(sdk: CDP) {
                         // get remote connectors that are Cloud Storage connectors
                         const remoteCloudStorageConnectors = remoteConnectors['connectors'] && remoteConnectors['connectors'].filter(connector => connector.type === 'CloudStorage')
 
+
+
                         remoteCloudStorageConnectors.map(async connector => {
                             // get the corresponding cloud storage application
                             let remoteCloudStorageApplication = remoteApplications?.find(application => application['originConnectorId'] == connector.id);
@@ -533,6 +558,8 @@ export function createBoilerplate(sdk: CDP) {
                             // if there is not a cloudStorageApplication of type 'azure.blob' | 'googlecloud' | 'sftp' | aws3
                             // then create cloudStorageApplication
                             //TODO:  updating App interface in sdk
+
+
                             if (!remoteCloudStorageApplication) {
                                 remoteCloudStorageApplication = (await bOps.applications.create({
                                     configValues: boilerplateCloudStorageApplication.configValues,
@@ -565,6 +592,9 @@ export function createBoilerplate(sdk: CDP) {
                                 }
                             }
 
+                            terminal.colorRgb(255, 175, 215)(`~~~~~~ aligning ${remoteCloudStorageApplication.name} CloudStorage Application`);
+                            terminal('\n');
+
                             const remoteCloudStorageApplicationId = remoteCloudStorageApplication.id
                             const remoteCloudStorageEvents = await bOps.applications.for(remoteCloudStorageApplicationId).dataevents.getAll()
 
@@ -582,15 +612,18 @@ export function createBoilerplate(sdk: CDP) {
                             // get the eventId && check if it is the same as boilerplate
                             const remoteCloudStorageEventForApplication = await bOps.applications.for(remoteCloudStorageApplicationId).dataevents.for(remoteCloudStorageEventIdForApplication).get();
 
+                            terminal.colorRgb(255, 175, 215)(`~~~~~~ aligning ${remoteCloudStorageEventForApplication.name} CloudStorage Event`);
+                            terminal('\n');
+
                             const adjustedRemoteEventForComparisonWithAdjustedBpEvent = adjustRemoteEventForComparisonWithAdjustedBpEvent(adjustedBoilerplateEvent, remoteCloudStorageEventForApplication);
 
                             if (!isEqual(adjustedRemoteEventForComparisonWithAdjustedBpEvent, adjustedBoilerplateEvent)) {
                                 await updateRemoteCloudStorageEvent(adjustedBoilerplateEvent, remoteCloudStorageApplicationId, remoteCloudStorageEventIdForApplication);
                             }
-
+                            terminal.colorRgb(255, 175, 215)(`~~~~~~ aligning ${remoteCloudStorageEventForApplication.name} CloudStorage Event Mappings`);
+                            terminal('\n');
                             await checkToUpdateOrCreateMappings(remoteCloudStorageEventIdForApplication, boilerplateCloudStorageEvent.mapping, remoteCloudStorageApplicationId);
                         })
-                        console.log('~~~~~~~ CloudStorage Application, Events and Mappings are aligned!');
                     },
 
                     alignAll() {
@@ -603,6 +636,9 @@ export function createBoilerplate(sdk: CDP) {
 
                 audiences: {
                     async align() {
+                        terminal.colorRgb(255,95,135)('~~~~~~~~ aligning Audience');
+                        terminal('\n');
+
                         let audiencePromise: Promise<Audience>
                         const view = await bOps.views.getAll().then(views => views.find(v => v.type == "Marketing"));
                         const vOps = bOps.views.for(view.id);
@@ -633,10 +669,17 @@ export function createBoilerplate(sdk: CDP) {
                         }
 
                         const alignedAudience = await audiencePromise
-                        console.log('~~~~~ Audience aligned!', alignedAudience)
+                        terminal.colorRgb(255,95,135)('~~~~~ Audience aligned!');
+                        terminal('\n');
+                        console.log(alignedAudience)
                     }
                 },
                 async alignAll() {
+                    terminal.bgMagenta.black('~~~~~~~~~ Aligning your Business Unit ~~~~~~~~~~');
+                    terminal('\n');
+                    terminal('\n');
+
+
                     await Promise.all([
                         this.schemas.alignProfile(),
                         this.schemas.alignActivities()
@@ -659,7 +702,8 @@ export function createBoilerplate(sdk: CDP) {
                         delayBetweenCustomers: number;
                         customersInParallel: number;
                     }>) {
-                    terminal.magenta(`~~~~~~~~ ingesting faked events`);
+                    terminal.colorRgb(255, 105, 180)(`~~~~~~~~ Ingesting Faked Events ~~~~~~~~~`);
+                    terminal('\n')
 
                     console.log(`fetching direct app...`);
                     const directApp =
@@ -670,7 +714,9 @@ export function createBoilerplate(sdk: CDP) {
                     const appOps =
                         bOps.applications.for(directApp.id);
 
-                    console.log(`setting fakers...`);
+                    terminal.colorRgb(255, 105, 180)(`setting fakers...`);
+                    terminal('/n');
+
                     const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./boilerplateFakers.json');
                     const fieldFakers = fieldFakersStore.exists() ? fieldFakersStore.get() : fieldFakersStore.set({
                         "primaryEmail": "email",
@@ -683,7 +729,9 @@ export function createBoilerplate(sdk: CDP) {
 
                     Object.assign(defaultSchemaPropFakers, fieldFakers);
 
-                    console.log(`fetching direct events...`);
+                    terminal.colorRgb(255, 105, 180)(`fetching direct events...`);
+                    terminal('\n');
+
                     const allEvents =
                         await appOps.dataevents.getAll()
                             .then(evs => evs.filter(e => eventNames.includes(e.name)))
@@ -746,7 +794,8 @@ export function createBoilerplate(sdk: CDP) {
                     } else {
                         const results = await Promise.all(
                             Object.entries(customersEvents).map(([customerId, events]) => {
-                                console.log(`sending events for ${customerId}`);
+                                terminal.colorRgb(255, 105, 180)(`sending events for ${customerId}`);
+                                terminal('\n');
                                 return Promise.all(
                                     Object.entries(events).map(([eventId, event]) => {
                                         return event.send();
@@ -754,7 +803,11 @@ export function createBoilerplate(sdk: CDP) {
                                 );
                             })
                         );
-                        console.log(`~~~ done.`, results);
+                        terminal.colorRgb(255, 105, 180)('~~~~~ Ingested Faked Events!');
+                        terminal('\n');
+                        terminal('\n');
+
+                        terminal.bgMagenta.black('~~~~~~~~~ Business Unit is aligned! ~~~~~~~~~~');
                     }
                 }
             }
