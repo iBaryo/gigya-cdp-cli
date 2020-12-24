@@ -27,6 +27,10 @@ import {terminal} from "terminal-kit";
 import {JSONSchema7} from "json-schema";
 import {EventMapping} from "../gigya-cdp-sdk/entities/Event/EventMapping";
 import {EventMappingsResponse} from "../gigya-cdp-sdk/CDPEntitiesApi";
+import {createArray, createFakeEventForIdentifier, JSONSchemaFaker, resolveFake} from "../utils/schema";
+import {defaultSchemaPropFakers, fakify} from "json-schema-fakify";
+import {initStore} from "../secure-store";
+
 
 const isEqual = require('lodash/isEqual');
 const _ = require('lodash')
@@ -79,8 +83,9 @@ export function createBoilerplate(sdk: CDP) {
                         }
 
                         const alignedProfile = await alignProfilePromise;
-                        terminal.blue('~~~~~ aligned Profile Schema:', alignedProfile);
+                        terminal.blue('~~~~~ aligned Profile Schema:');
                         terminal('\n');
+                        console.log(alignedProfile)
 
                     },
 
@@ -118,8 +123,9 @@ export function createBoilerplate(sdk: CDP) {
                                     });
                             }
                             const alignedActivity = await alignActivityPromise;
-                            terminal.colorRgb(0, 135, 255)(`~~~~~~~~ aligned ${activity} Activity Schema`, alignedActivity);
+                            terminal.colorRgb(0, 135, 255)(`~~~~~~~~ aligned ${activity} Activity Schema`);
                             terminal('\n');
+                            console.log(alignedActivity)
 
                         }
                     }
@@ -174,8 +180,9 @@ export function createBoilerplate(sdk: CDP) {
                                 });
                         }
                         const alignedActivityIndicator = await alignedActivityIndicatorPromise;
-                        terminal.colorRgb(0, 255, 255)('~~~~~~~ aligned Activity Indicator:', alignedActivityIndicator);
+                        terminal.colorRgb(0, 255, 255)('~~~~~~~ aligned Activity Indicator:');
                         terminal('\n');
+                        console.log(alignedActivityIndicator)
 
                     },
                 },
@@ -209,7 +216,7 @@ export function createBoilerplate(sdk: CDP) {
 
                         terminal.colorRgb(135, 215, 255)('~~~~~~ aligned Segment');
                         terminal('\n');
-                        console.log(alignedSegment)
+                        console.log(alignedSegment);
                     }
                 },
 
@@ -247,7 +254,9 @@ export function createBoilerplate(sdk: CDP) {
                                     ...boilerplatePurposePayload
                                 })
                             }
-                            terminal.colorRgb(95, 95, 255)('~~~~~~~~ aligned Purpose', finalPurpose)
+                            terminal.colorRgb(95, 95, 255)('~~~~~~~~ aligned Purpose');
+                            terminal('/n');
+                            console.log(finalPurpose);
                         })
                     }
                 },
@@ -311,16 +320,15 @@ export function createBoilerplate(sdk: CDP) {
                                     if (!targetSchemaId)
                                         new Error(`mapping set to a non existing schema: ${schemaName}`);
 
-                                    const adjustedBoilerplateMappings = normalizeMappings(mappings, targetSchemaId)
-                                    mappingsArray.push(adjustedBoilerplateMappings)
-                                    mappingsArray.flat()
+                                    const adjustedBoilerplateMappings = normalizeMappings(mappings, targetSchemaId);
+                                    mappingsArray.push(adjustedBoilerplateMappings);
+                                    mappingsArray.flat();
                                 })
 
                             // check if remote mappings and boilerplate mappings are equal
                             const isArrayEqual = function (bpMappings, rMappings) {
                                 return _(bpMappings).differenceWith(rMappings, _.isEqual).isEmpty();
                             };
-
 
                             if (remoteMappings.length < 1) {
                                 alignedMappings = await appOps.dataevents.for(remoteDirectEventId).mappings.create({
@@ -334,7 +342,7 @@ export function createBoilerplate(sdk: CDP) {
                                     }) as EventMappingsResponse
                                 }
                             }
-                            terminal.colorRgb(175,0,135)(`aligned Direct Event Mappings`);
+                            terminal.colorRgb(175, 0, 135)(`aligned Direct Event Mappings`);
                             terminal('/n')
                             console.log(alignedMappings.mappings);
                         }
@@ -360,7 +368,7 @@ export function createBoilerplate(sdk: CDP) {
 
                         async function createRemoteDirectEvent(boilerplateEvent) {
                             const adjustedBoilerplateEvent = adjustBoilerplateEventForPurposeIds(boilerplateEvent);
-                            return  appOps.dataevents.create({
+                            return appOps.dataevents.create({
                                 ...adjustedBoilerplateEvent,
                                 schema: JSON.stringify(boilerplateEvent.schema),
                                 purposeIds: JSON.stringify(adjustedBoilerplateEvent.purposeIds) as any
@@ -375,12 +383,12 @@ export function createBoilerplate(sdk: CDP) {
                             }).then(res => console.log(res))
                         }
 
-                        terminal.colorRgb(175,0,135)(`aligned Direct Application`);
-                        terminal('/n')
+                        terminal.colorRgb(175, 0, 135)(`aligned Direct Application`);
+                        terminal('/n');
                         console.log(remoteApplication);
 
                         await Promise.all(
-                        Object.entries(boilerplateDirectEvents).map(async ([eventName, {payload: boilerplateEvent, mapping: boilerplateMapping}]) => {
+                            Object.entries(boilerplateDirectEvents).map(async ([eventName, {payload: boilerplateEvent, mapping: boilerplateMapping}]) => {
 
                                 let remoteDirectEventId = remoteDirectEvents?.find(ev => ev.name == eventName)?.id;
                                 // if no remote event, create them
@@ -388,9 +396,9 @@ export function createBoilerplate(sdk: CDP) {
                                 if (!remoteDirectEventId) {
                                     const remoteDirectEvent = await createRemoteDirectEvent(boilerplateEvent);
                                     remoteDirectEventId = remoteDirectEvent.id;
-                                    terminal.colorRgb(175,0,135)(`aligned ${eventName} Direct Event`);
-                                    terminal('/n')
-                                    terminal.colorRgb(175,0,135)(remoteDirectEvent);
+                                    terminal.colorRgb(175, 0, 135)(`aligned ${eventName} Direct Event`);
+                                    terminal('/n');
+                                    terminal.colorRgb(175, 0, 135)(remoteDirectEvent);
                                 }
 
                                 const remoteEvent = await appOps.dataevents.for(remoteDirectEventId).get();
@@ -400,17 +408,14 @@ export function createBoilerplate(sdk: CDP) {
                                 const adjustedRemoteEventForComparisonWithAdjustedBpEvent = await adjustRemoteEventForComparisonWithAdjustedBpEvent(boilerplateEvent, remoteEvent);
                                 if (!isEqual(adjustedRemoteEventForComparisonWithAdjustedBpEvent, adjustedBPEventForPurposeIds)) {
                                     const alignedDirectEvent = await updateRemoteDirectEvent(adjustedBPEventForPurposeIds, remoteEvent);
-                                    terminal.colorRgb(175,0,135)(`aligned ${eventName} Direct Event`);
-                                    terminal('/n')
+                                    terminal.colorRgb(175, 0, 135)(`aligned ${eventName} Direct Event`);
+                                    terminal('/n');
                                     console.log(alignedDirectEvent);
                                 }
 
                                 await checkToUpdateOrCreateMappings(remoteDirectEventId, boilerplateMapping);
                             }));
 
-                        console.log('~~~~~~~ Direct Application is aligned!');
-                        console.log('~~~~~~~ Direct Events are aligned!');
-                        console.log('~~~~~~~ Mappings are aligned!');
                     },
 
                     async alignCloudStorage() {
@@ -549,7 +554,7 @@ export function createBoilerplate(sdk: CDP) {
                                 // check if they are not equal and update to boilerplate Cloud Storage Application
                                 if (!(_.isEqual(viewModelRemoteCSApp, viewModelCSApp))) {
 
-                                     //TODO: takeaway green line & ts-ignore by updating App interface in sdk
+                                    //TODO: takeaway green line & ts-ignore by updating App interface in sdk
                                     remoteCloudStorageApplication = (await bOps.applications.for(remoteCloudStorageApplication.id).update({
                                         configValues: boilerplateCloudStorageApplication.configValues,
                                         description: boilerplateCloudStorageApplication.description,
@@ -646,19 +651,118 @@ export function createBoilerplate(sdk: CDP) {
                         this.audiences.align()
                     ]);
                 },
-                async ingestFakeEvents(customersNum: number, events: DirectEventName[]) {
+                ingestFakeEvents: async function (
+                    customersNum: number,
+                    eventNames: DirectEventName[],
+                    options?: Partial<{
+                        delayBetweenEvents: number;
+                        delayBetweenCustomers: number;
+                        customersInParallel: number;
+                    }>) {
                     terminal.magenta(`~~~~~~~~ ingesting faked events`);
-                    console.log('ugejhfhjdhab')
-                    // TODO: zoe + Baryo
-                    // how many customers will be generated
-                    /*
-                        according to customersNum
-                            create a unique common identifier
-                            for each event in events
-                                create a fake event using its schema and common identifier and send to ingest
-                     */
+
+                    console.log(`fetching direct app...`);
+                    const directApp =
+                        await bOps.applications.getAll().then(apps => apps.find(app => app.name == boilerplateDirectApplication.name && (app.type == 'Basic' || app.type == 'Basic' as unknown)));
+
+                    if (!directApp)
+                        throw 'direct app not found (align business-unit with boilerplate?)';
+                    const appOps =
+                        bOps.applications.for(directApp.id);
+
+                    console.log(`setting fakers...`);
+                    const fieldFakersStore = initStore<typeof defaultSchemaPropFakers>('./boilerplateFakers.json');
+                    const fieldFakers = fieldFakersStore.exists() ? fieldFakersStore.get() : fieldFakersStore.set({
+                        "primaryEmail": "email",
+                        "primaryPhone": "phoneNumber",
+                        "purchasePrice": "price",
+                        "orderId": "uuid",
+                        "sessionTime": "number",
+                        "pageUrl": "url"
+                    }, "");
+
+                    Object.assign(defaultSchemaPropFakers, fieldFakers);
+
+                    console.log(`fetching direct events...`);
+                    const allEvents =
+                        await appOps.dataevents.getAll()
+                            .then(evs => evs.filter(e => eventNames.includes(e.name)))
+                            .then(evs => Promise.all(
+                                evs.map(ev => appOps.dataevents.for(ev.id).get()
+                                    .then(fullEvent => ({
+                                        ...fullEvent,
+                                        schema: fakify(getSchemaObject(fullEvent.schema))
+                                    }))
+                                )
+                                )
+                            );
+
+
+                    const events = eventNames.map(name => allEvents.find(e => e.name == name)).filter(Boolean);
+
+                    if (events.length < eventNames.length)
+                        console.warn(`not all events were found (align business-unit with boilerplate?)`);
+
+                    const identifierSchema: JSONSchemaFaker = {
+                        type: 'string',
+                        faker: config.commonIdentifierFaker
+                    };
+
+                    const identifiers = await Promise.all(createArray(customersNum).map(async () => ({
+                        name: config.commonIdentifier,
+                        value: await resolveFake(identifierSchema) as object
+                    })));
+
+                    interface CustomersEvents {
+                        [customerId: string]: {
+                            [eventId: string]: {
+                                send(): Promise<unknown>
+                            }
+                        }
+                    }
+
+                    const customersEvents =
+                        events.reduce((res: CustomersEvents, event) => {
+                                const eventOps = appOps.dataevents.for(event.id);
+                                return identifiers.reduce((res, identifier) => {
+                                        const customerId = identifier.value.toString();
+                                        if (!res[customerId]) {
+                                            res[customerId] = {};
+                                        }
+                                        res[customerId][event.id] = {
+                                            send: async () => {
+                                                const fakeEvent = await createFakeEventForIdentifier(identifier, getSchemaObject(event.schema));
+                                                console.log(fakeEvent);
+                                                return eventOps.event.create(fakeEvent);
+                                            }
+                                        };
+                                        return res;
+                                    },
+                                    res);
+                            },
+                            {});
+                    if (options) {
+                        // TODO: options.customersInParallel && options.delayBetweenCustomers && options.delayBetweenEvents
+                    } else {
+                        const results = await Promise.all(
+                            Object.entries(customersEvents).map(([customerId, events]) => {
+                                console.log(`sending events for ${customerId}`);
+                                return Promise.all(
+                                    Object.entries(events).map(([eventId, event]) => {
+                                        return event.send();
+                                    })
+                                );
+                            })
+                        );
+                        console.log(`~~~ done.`, results);
+                    }
                 }
             }
         }
     };
+}
+
+
+function getSchemaObject(schema: string | JSONSchema7): JSONSchema7 {
+    return typeof schema == 'string' ? JSON.parse(schema) : schema;
 }
