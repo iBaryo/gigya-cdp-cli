@@ -53,7 +53,7 @@ export function createBoilerplate(sdk: CDP) {
 
                     async alignProfile() {
 
-                        terminal.colorRgb(255, 192, 203)('~~~~~~~~~ aligning Profile Schema ~~~~~~~~');
+                        terminal.colorRgb(255, 192, 203)('~~~~~~~~~ aligning Profile Schema');
                         terminal('\n');
 
                         const profileSchemaEntity = await bOps.ucpschemas.getAll().then(schemas => schemas.find(s => s.schemaType == SchemaType.Profile));
@@ -96,7 +96,7 @@ export function createBoilerplate(sdk: CDP) {
 
 
                     async alignActivities() {
-                        terminal.colorRgb(215, 95, 175)(`~~~~~~~~~ aligning Activities Schema ~~~~~~~~~~~`);
+                        terminal.colorRgb(215, 95, 175)(`~~~~~~~~~ aligning Activities Schema`);
                         terminal('\n');
 
                         let alignActivityPromise: Promise<CustomerSchema>;
@@ -140,7 +140,7 @@ export function createBoilerplate(sdk: CDP) {
 
                 matchRules: {
                     async alignMatchRules() {
-                        terminal.colorRgb(255, 135, 215)('~~~~~~~ aligning Match Rules ~~~~~~~~');
+                        terminal.colorRgb(255, 135, 215)('~~~~~~~ aligning Match Rules');
                         terminal('\n');
 
                         const view = await bOps.views.getAll().then(views => views.find(v => v.type == "Marketing"));
@@ -205,7 +205,7 @@ export function createBoilerplate(sdk: CDP) {
 
                 segments: {
                     async align() {
-                        terminal.colorRgb(215, 95, 135)('~~~~~~~ aligning Segments ~~~~~~~~~ ');
+                        terminal.colorRgb(215, 95, 135)('~~~~~~~ aligning Segments');
                         terminal('\n');
 
                         let alignedSegmentPromise: Promise<Segment>;
@@ -249,7 +249,8 @@ export function createBoilerplate(sdk: CDP) {
 
                         Object.entries(boilerplatePurposes).map(async ([boilerplatePurposeName, boilerplatePurposePayload]) => {
 
-                            const purposeId = (await remotePurposes.then(purposes => purposes.find(p => p.name == boilerplatePurposeName)))?.id
+                            const remotePurpose = await remotePurposes.then(purposes => purposes.find(p => p.name == boilerplatePurposeName))
+
 
                             const cleanedRemotePurposes = await remotePurposes.then(purposes => purposes.map(purpose => {
                                 delete purpose.id
@@ -261,11 +262,13 @@ export function createBoilerplate(sdk: CDP) {
                             const purpose = cleanedRemotePurposes.find(p => p.name == boilerplatePurposeName)
 
 
-                            if (!purpose || !purposeId) {
+                            if (!purpose || !remotePurpose) {
                                 finalPurpose = await bOps.purposes.create({
                                     ...boilerplatePurposePayload
                                 })
                             }
+
+                            const purposeId = remotePurpose.id
 
                             // if remote purpose is not the same as boilerplate, update the remote
                             if (!isEqual(purpose, boilerplatePurposePayload)) {
@@ -276,8 +279,6 @@ export function createBoilerplate(sdk: CDP) {
                                 })
                             }
                             terminal.colorRgb(255, 192, 203)('~~~~~~~~ aligned Purpose');
-                            terminal('\n');
-                            console.log(finalPurpose);
                         })
                     }
                 },
@@ -367,7 +368,6 @@ export function createBoilerplate(sdk: CDP) {
                             }
                             terminal.colorRgb(255, 135, 135)(`aligned Direct Event Mappings`);
                             terminal('\n');
-                            console.log(alignedMappings.mappings);
                         }
 
                         function adjustBoilerplateEventForPurposeIds(boilerplateEvent) {
@@ -403,7 +403,7 @@ export function createBoilerplate(sdk: CDP) {
                                 ...boilerplateEvent,
                                 schema: JSON.stringify(boilerplateEvent.schema),
                                 purposeIds: JSON.stringify(boilerplateEvent.purposeIds)
-                            }).then(res => console.log(res))
+                            })
                         }
 
                         terminal.colorRgb(255, 135, 135)(`aligned Direct Application`);
@@ -430,10 +430,9 @@ export function createBoilerplate(sdk: CDP) {
                                 const adjustedBPEventForPurposeIds = adjustBoilerplateEventForPurposeIds(boilerplateEvent);
                                 const adjustedRemoteEventForComparisonWithAdjustedBpEvent = await adjustRemoteEventForComparisonWithAdjustedBpEvent(boilerplateEvent, remoteEvent);
                                 if (!isEqual(adjustedRemoteEventForComparisonWithAdjustedBpEvent, adjustedBPEventForPurposeIds)) {
-                                    const alignedDirectEvent = await updateRemoteDirectEvent(adjustedBPEventForPurposeIds, remoteEvent);
+                                    await updateRemoteDirectEvent(adjustedBPEventForPurposeIds, remoteEvent);
                                     terminal.colorRgb(175, 0, 135)(`aligned ${eventName} Direct Event`);
                                     terminal('\n');
-                                    console.log(alignedDirectEvent);
                                 }
 
                                 await checkToUpdateOrCreateMappings(remoteDirectEventId, boilerplateMapping);
@@ -548,7 +547,6 @@ export function createBoilerplate(sdk: CDP) {
                         const remoteCloudStorageConnectors = remoteConnectors['connectors'] && remoteConnectors['connectors'].filter(connector => connector.type === 'CloudStorage')
 
 
-
                         remoteCloudStorageConnectors.map(async connector => {
                             // get the corresponding cloud storage application
                             let remoteCloudStorageApplication = remoteApplications?.find(application => application['originConnectorId'] == connector.id);
@@ -636,7 +634,7 @@ export function createBoilerplate(sdk: CDP) {
 
                 audiences: {
                     async align() {
-                        terminal.colorRgb(255,95,135)('~~~~~~~~ aligning Audience');
+                        terminal.colorRgb(255, 95, 135)('~~~~~~~~ aligning Audience');
                         terminal('\n');
 
                         let audiencePromise: Promise<Audience>
@@ -669,7 +667,7 @@ export function createBoilerplate(sdk: CDP) {
                         }
 
                         const alignedAudience = await audiencePromise
-                        terminal.colorRgb(255,95,135)('~~~~~ Audience aligned!');
+                        terminal.colorRgb(255, 95, 135)('~~~~~ Audience aligned!');
                         terminal('\n');
                         console.log(alignedAudience)
                     }
@@ -680,19 +678,16 @@ export function createBoilerplate(sdk: CDP) {
                     terminal('\n');
 
 
-                    await Promise.all([
-                        this.schemas.alignProfile(),
-                        this.schemas.alignActivities()
-                    ]);
-                    await this.matchRules.alignMatchRules()
+                    await this.schemas.alignProfile();
+                    await this.schemas.alignActivities();
+
+                    await this.matchRules.alignMatchRules();
                     await this.activityIndicators.align();
                     await this.segments.align();
                     await this.purposes.align();
 
-                    await Promise.all([
-                        this.applications.alignAll(),
-                        this.audiences.align()
-                    ]);
+                    await this.applications.alignAll(); // we need to wait a little before audiences.
+                    await this.audiences.align();
                 },
                 ingestFakeEvents: async function (
                     customersNum: number,
