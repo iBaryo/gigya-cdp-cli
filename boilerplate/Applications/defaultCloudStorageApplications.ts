@@ -21,12 +21,12 @@ export const cloudStorageApplications: Record<CSType, Payload<Application>> = {
         connectorId: "" as ConnectorId,
         businessUnitId: "" as BusinessUnitId,
         configValues: {
-            "writeBucketName": "fake-configValue",
-            "readBucketName": "fake-configValue",
-            "writeFileName": "fake-configValue",
-            "readFileNameRegex": "fake-configValue",
-            "writeFilePath": "fake-configValue",
-            "readFilePath": "fake-configValue"
+            "writeBucketName": "my bucket",
+            "readBucketName": "my bucket",
+            "writeFileName": "zoeFile",
+            "readFileNameRegex": "zoeFile",
+            "writeFilePath": "zoe/",
+            "readFilePath": "zoe/"
         },
         type: 'CloudStorage',
         name: "AWS Application",
@@ -83,12 +83,12 @@ export const cloudStorageApplications: Record<CSType, Payload<Application>> = {
         description: "R&D test application for azure",
         type: 'CloudStorage',
         configValues: {
-            readContainer: "azure",
-            readFileNameRegex: "azure",
-            readFilePath: "azure",
-            writeContainer: "azure",
-            writeFileName: "azure",
-            writeFilePath: "azure",
+            readContainer: "my container",
+            readFileNameRegex: "zoe",
+            readFilePath: "filePath",
+            writeContainer: "my container",
+            writeFileName: "zoe",
+            writeFilePath: "filePath",
         },
     },
 
