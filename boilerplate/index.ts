@@ -108,7 +108,7 @@ export function createBoilerplate(sdk: CDP) {
                                 alignActivityPromise = bOps.ucpschemas.create({
                                     enabled: true,
                                     name: activity,
-                                    schema: JSON.stringify(boilerplateProfileSchema),
+                                    schema: JSON.stringify(boilerplateSchema),
                                     schemaType: SchemaType.Activity
                                 });
                             } else {
@@ -135,7 +135,7 @@ export function createBoilerplate(sdk: CDP) {
                             console.log(alignedActivity)
 
                         }
-                    }
+                    } // Orders, Page-Views
                 },
 
                 matchRules: {
@@ -165,7 +165,7 @@ export function createBoilerplate(sdk: CDP) {
                         terminal('\n');
                         console.log(alignedMatchRules)
                     },
-                },
+                }, // masterDataId
 
                 activityIndicators: {
                     async align() {
@@ -201,7 +201,7 @@ export function createBoilerplate(sdk: CDP) {
                         console.log(alignedActivityIndicator)
 
                     },
-                },
+                }, // Standard: Total Orders & Total Page-Views.. Purchase Sum
 
                 segments: {
                     async align() {
@@ -236,54 +236,55 @@ export function createBoilerplate(sdk: CDP) {
                         terminal('\n');
                         console.log(alignedSegment);
                     }
-                },
+                }, // VIP
 
-                purposes: {
+                purposes: { //basic, marketing
                     async align() {
                         terminal.colorRgb(255, 192, 203)('~~~~~~~~ aligning Purposes');
-                        terminal('\n')
+                        terminal('\n');
 
-                        const remotePurposes = bOps.purposes.getAll()
+                        const remotePurposes = await bOps.purposes.getAll();
 
-                        let finalPurpose: Payload<Purpose>
+                        let remotePurpose: typeof remotePurposes[0];
 
+                        // changes over here
                         Object.entries(boilerplatePurposes).map(async ([boilerplatePurposeName, boilerplatePurposePayload]) => {
 
-                            const remotePurpose = await remotePurposes.then(purposes => purposes.find(p => p.name == boilerplatePurposeName))
 
-
-                            const cleanedRemotePurposes = await remotePurposes.then(purposes => purposes.map(purpose => {
-                                delete purpose.id
-                                delete purpose.created;
-                                delete purpose.updated;
-                                return purpose
-                            }))
-
-                            const purpose = cleanedRemotePurposes.find(p => p.name == boilerplatePurposeName)
-
-
-                            if (!purpose || !remotePurpose) {
-                                finalPurpose = await bOps.purposes.create({
+                            if (remotePurposes.length < 1 || !remotePurposes) {
+                                remotePurpose = await bOps.purposes.create({
                                     ...boilerplatePurposePayload
-                                })
+                                });
+                            } else {
+                                remotePurpose = remotePurposes.find(p => p.name == boilerplatePurposeName);
                             }
 
                             const purposeId = remotePurpose.id
 
+                            const {
+                                id,
+                                created,
+                                updated,
+                                ...normalizedRemotePurpose
+                            } = remotePurpose;
+
+
                             // if remote purpose is not the same as boilerplate, update the remote
-                            if (!isEqual(purpose, boilerplatePurposePayload)) {
+                            if (!isEqual(normalizedRemotePurpose, boilerplatePurposePayload)) {
                                 // @ts-ignore
-                                finalPurpose = await bOps.purposes.update({
+                                remotePurpose = await bOps.purposes.update({
                                     id: purposeId,
                                     ...boilerplatePurposePayload
                                 })
                             }
-                            terminal.colorRgb(255, 192, 203)('~~~~~~~~ aligned Purpose');
+                            terminal.colorRgb(255, 192, 203)('~~~~~~~~ aligned Purpose:');
+                            console.log(remotePurpose)
+                            return remotePurpose
                         })
                     }
                 },
 
-                applications: {
+                applications: { //Direct Test = 2 Events, 1 Application per CloudStorage = 1 event per CS (same)
                     async alignDirect() {
                         terminal('\n');
                         terminal.colorRgb(255, 135, 135)("~~~~~~~ aligning Direct applications");
@@ -421,7 +422,6 @@ export function createBoilerplate(sdk: CDP) {
                                     remoteDirectEventId = remoteDirectEvent.id;
                                     terminal.colorRgb(175, 0, 135)(`aligned ${eventName} Direct Event`);
                                     terminal('\n');
-                                    terminal.colorRgb(175, 0, 135)(remoteDirectEvent);
                                 }
 
                                 const remoteEvent = await appOps.dataevents.for(remoteDirectEventId).get();
@@ -446,7 +446,7 @@ export function createBoilerplate(sdk: CDP) {
                             bOps.purposes.getAll()
                         ])
 
-                        const eventPurposeIds = boilerplateCloudStorageEvent.payload.purposeIds.map(purposeName => bUnitPurposes.find(p => p.name == purposeName).id).filter(Boolean);
+                        const eventPurposeIds = boilerplateCloudStorageEvent.payload.purposeIds.map(purposeName => (bUnitPurposes.find(p => p.name == purposeName)).id).filter(Boolean);
 
                         function getAppViewModel(application) {
                             return {
@@ -624,7 +624,7 @@ export function createBoilerplate(sdk: CDP) {
                         })
                     },
 
-                    alignAll() {
+                    async alignAll() {
                         return Promise.all([
                             this.alignDirect(),
                             this.alignCloudStorage()
@@ -677,16 +677,20 @@ export function createBoilerplate(sdk: CDP) {
                     terminal('\n');
                     terminal('\n');
 
-
-                    await this.schemas.alignProfile();
-                    await this.schemas.alignActivities();
+                    await Promise.all(
+                        [
+                            this.schemas.alignProfile(),
+                            this.schemas.alignActivities()
+                        ]
+                    )
 
                     await this.matchRules.alignMatchRules();
                     await this.activityIndicators.align();
                     await this.segments.align();
-                    await this.purposes.align();
+                     await this.purposes.align();
+                     await this.applications.alignAll();
 
-                    await this.applications.alignAll(); // we need to wait a little before audiences.
+                    // we need to wait a little before audiences.
                     await this.audiences.align();
                 },
                 ingestFakeEvents: async function (
