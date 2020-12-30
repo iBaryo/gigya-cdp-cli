@@ -293,12 +293,12 @@ export function createBoilerplate(sdk: CDP) {
                         let remoteApplications = await bOps.applications.getAll();
 
                         let remoteApplication = (remoteApplications?.find(app =>
-                            app.type === boilerplateDirectApplication.type && app.name === boilerplateDirectApplication.name))
+                            app.type === ('Basic' || 'Direct') && app.name === boilerplateDirectApplication.name))
 
                         // no existing remoteApp --> create one
                         if (!remoteApplication) {
                             remoteApplication = (await bOps.applications.create({
-                                type: 'Basic',
+                                type: 'Direct',
                                 enabled: true,
                                 logoUrl: "https://universe.eu5-st1.gigya.com/assets/img/connect-application.png",
                                 name: "Direct Test Application",
@@ -706,7 +706,7 @@ export function createBoilerplate(sdk: CDP) {
 
                     console.log(`fetching direct app...`);
                     const directApp =
-                        await bOps.applications.getAll().then(apps => apps.find(app => app.name == boilerplateDirectApplication.name && (app.type == 'Basic' || app.type == 'Basic' as unknown)));
+                        await bOps.applications.getAll().then(apps => apps.find(app => app.name == boilerplateDirectApplication.name && (app.type == 'Direct' || app.type == 'Basic' as unknown)));
 
                     if (!directApp)
                         throw 'direct app not found (align business-unit with boilerplate?)';

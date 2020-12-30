@@ -325,14 +325,12 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
                 fit: true   // Activate all expand/shrink + wordWrap
             });
 
-            // @ts-ignore //TODO: TAKE THIS @ts-ignore AWAY
             return showMenu(`pick an identifier:`, eventIdentifierFields, f => `${f.eventFieldPath} (-> ${f.identifier})`).then(selected => {
                 if (isFlowSymbol(selected))
                     return selected;
 
                 // const unselected = eventIdentifierFields.filter(field => selected != field).map(f => f.eventFieldPath); --- was already commented
 
-                // @ts-ignore //TODO: TAKE THIS @ts-ignore AWAY
                 return selected.eventFieldPath;
             });
         }],
