@@ -40,7 +40,6 @@ import {
 import FakerStatic = Faker.FakerStatic;
 import {detectProxy} from "./utils/proxy";
 import {EventMapping} from "./gigya-cdp-sdk/entities/Event/EventMapping";
-import {EventMappingsResponse} from "./gigya-cdp-sdk/CDPEntitiesApi";
 
 interface AppContext {
     dataCenter: DataCenter;
@@ -291,13 +290,13 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
 
             //TODO: fix this according to new mappings in sdk
             const profileMappings = await context.sdk.api.businessunits.for(context.bu.id).applications.for(context.app.id).dataevents.for(context.event.id).mappings.get({
-                sourceId: context.event.id,
+                // sourceId: context.event.id,
                 targetId: profileSchema.id
-            }).then((m: EventMappingsResponse ) => m.mappings  || []); //TODO: this is a little hack for now because of inconsistency with the back
+            }).then((m: EventMapping[] ) => m || []);
 
 
 
-            // filter only the mappings to the profile schema && to a targetField that is an identifier and take the source field //TODO: UPDATE THIS --- (PUT IT BACK WITH UPDATED MAPPINGS)
+            // filter only the mappings to the profile schema && to a targetField that is an identifier and take the source field
             const eventIdentifierFields = profileMappings.map(m => {
                 const identifierIndex = identifiers.indexOf(m.targetField);
                 return {
@@ -309,7 +308,7 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
 
             eventIdentifierFields.sort((a, b) => a.priority - b.priority)
 
-            terminal['table']([ //TODO: UPDATE THIS (PUT IT BACK WITH UPDATED MAPPINGS)
+            terminal['table']([
                 ['Event Field', 'To Identifier'],
                 ...eventIdentifierFields.map(f => [f.eventFieldPath, `${f.identifier} (priority: ${f.priority})` || '(None)'])
             ], {
@@ -328,8 +327,6 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
             return showMenu(`pick an identifier:`, eventIdentifierFields, f => `${f.eventFieldPath} (-> ${f.identifier})`).then(selected => {
                 if (isFlowSymbol(selected))
                     return selected;
-
-                // const unselected = eventIdentifierFields.filter(field => selected != field).map(f => f.eventFieldPath); --- was already commented
 
                 return selected.eventFieldPath;
             });
