@@ -16,7 +16,7 @@ import {config, DirectEventName} from "./BoilerplateConfig";
 import {CampaignAudience as boilerplateAudience} from "./Audiences/AudienceCondition";
 import {Audience} from "../gigya-cdp-sdk/entities/Audience";
 import {defaultDirectApplication as boilerplateDirectApplication} from "./Applications/defaultDirectApplication";
-import {Payload, WithEnabled, WithType} from "../gigya-cdp-sdk/entities/common";
+import { WithType} from "../gigya-cdp-sdk/entities/common";
 import {Purposes as boilerplatePurposes} from "./purposes/purposes";
 import {matchingRule} from "./MatchRules/matchRules";
 import {cloudStorageApplications as boilerplateCloudStorageApplications} from "./Applications/defaultCloudStorageApplications";
@@ -28,13 +28,6 @@ import {ServerOnlyFields} from "../gigya-cdp-sdk/CDPEntitiesApi";
 import {createArray, createFakeEventForIdentifier, JSONSchemaFaker, resolveFake} from "../utils/schema";
 import {defaultSchemaPropFakers, fakify} from "json-schema-fakify";
 import {initStore} from "../secure-store";
-import {WithSecuritySchemes} from "../gigya-cdp-sdk/entities/Connector/Auth";
-import {
-    WithConfigSchema,
-    WithConfigValues,
-    WithPollingConfig,
-    WithResourcePath, WithTestResourcePath
-} from "../gigya-cdp-sdk/entities/common/config";
 import {WithResources} from "../gigya-cdp-sdk/entities/Application/ApplicationResource";
 
 
@@ -148,7 +141,7 @@ export function createBoilerplate(sdk: CDP) {
                             console.log(alignedActivity)
 
                         }
-                    } // Orders, Page-Views
+                    }
                 },
 
                 matchRules: {
@@ -378,7 +371,7 @@ export function createBoilerplate(sdk: CDP) {
                             if (remoteMappings.length < 1) {
                                 await appOps.dataevents.for(remoteDirectEventId).mappings.create({
                                     mappings: mappingsArray.flat()
-                                }).then(res => console.log('-------', res))
+                                })
                             } else {
                                 const adjustedRemoteMappings = normalizeMappings(remoteMappings)
                                 if (!isArrayEqual(mappingsArray, adjustedRemoteMappings)) {
@@ -568,7 +561,7 @@ export function createBoilerplate(sdk: CDP) {
                                     await bOps.applications.for(remoteCloudStorageApplicationId).dataevents
                                         .for(remoteCloudStorageEventIdForApplication).mappings.create(
                                             {mappings: adjustedBoilerplateMappings}
-                                        ).then(res => console.log('fghjkjhgvvvvvvvv', res))
+                                        )
                                 }
                             }
                         }
