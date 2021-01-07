@@ -8,6 +8,7 @@
   },
   "scripts": {
     "start": "tsc && node index.js",
+    "boilerplate": "tsc && node boilerplate-test.js",
     "build": "tsc",
     "test": "tsc",
     "prepublish": "npm run test",
@@ -42,6 +43,7 @@
     "jose": "^2.0.2",
     "json-schema-faker": "^0.5.0-rcv.29",
     "json-schema-fakify": "^1.0.9",
+    "lodash": "^4.17.20",
     "request": "^2.88.2",
     "strict-uri-encode": "^2.0.0",
     "terminal-kit": "^1.43.0"
