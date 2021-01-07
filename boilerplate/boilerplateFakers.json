@@ -1,0 +1,9 @@
+{
+  "primaryEmail": "email",
+  "primaryPhone": "phoneNumber",
+  "purchasePrice": "price",
+  "orderId": "uuid",
+  "sessionTime": "number",
+  "pageUrl": "url"
+}
+

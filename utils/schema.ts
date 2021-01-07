@@ -73,27 +73,33 @@ export function getFakers(category: keyof FakerStatic) {
         .map(([k]) => k);
 }
 
-export function createArray<T>(size: number, fn: (i: number) => T): T[] {
-    return new Array(size).fill(0).map((_, i) => fn(i));
+export function createArray<T>(size: number, fn?: (i: number) => T): T[] {
+    return new Array(size).fill(0).map((_, i) => fn?.(i));
 }
-
 export function resolveFake(schema: JSONSchemaFaker) {
     return jsf.resolve(schema);
 }
-
 export function getFakedEvents(identifierName: string, schema: JSONSchemaFaker, eventsNum: number, customersNum = 0): Promise<object[]> {
     const identifierSchema = findField(identifierName, schema);
-        return Promise.all(
-                createArray(Math.max(1, customersNum), async () => {
-                    const id = await resolveFake(identifierSchema);
-                    console.log(`~~~~`, identifierName, id);
-                    return Promise.all(
-                        createArray(eventsNum, async () => Object.assign(await resolveFake(schema), {
-                            [identifierName]: id
-                        }))
-                    );
-                })
-        ).then(res => res.reduce((res, cur) => res.concat(cur), []));
+    return Promise.all(
+        createArray(Math.max(1, customersNum), async () => {
+            const id: unknown = await resolveFake(identifierSchema);
+            console.log(`~~~~`, identifierName, id);
+            return Promise.all(
+                createArray(eventsNum, () => createFakeEventForIdentifier({
+                    name: identifierName,
+                    value: id
+                }, schema))
+            );
+        })
+    ).then(res => res.reduce((res, cur) => res.concat(cur), []));
+}
+export async function createFakeEventForIdentifier(
+    identifier: { name: string; value: unknown },
+    schema: JSONSchemaFaker) {
+    return Object.assign(await resolveFake(schema), {
+        [identifier.name]: identifier.value
+    });
 }
 
 function findField(fieldPath: string, schema: JSONSchemaFaker): JSONSchemaFaker {

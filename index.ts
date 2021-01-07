@@ -39,6 +39,7 @@ import {
 } from "./gigya-cdp-sdk";
 import FakerStatic = Faker.FakerStatic;
 import {detectProxy} from "./utils/proxy";
+import {EventMapping} from "./gigya-cdp-sdk/entities/Event/EventMapping";
 
 interface AppContext {
     dataCenter: DataCenter;
@@ -286,10 +287,14 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
             const profileSchema = await buOps.ucpschemas.getAll().then(
                 schemas => schemas.find(s => s.schemaType == SchemaType.Profile));
 
-            const profileMappings = await context.sdk.api.businessunits.for(context.bu.id).mappings.get({
-                sourceId: context.event.id,
+
+            //TODO: fix this according to new mappings in sdk
+            const profileMappings = await context.sdk.api.businessunits.for(context.bu.id).applications.for(context.app.id).dataevents.for(context.event.id).mappings.get({
+                // sourceId: context.event.id,
                 targetId: profileSchema.id
-            }).then(m => m?.[profileSchema.id] || []);
+            }).then((m: EventMapping[] ) => m || []);
+
+
 
             // filter only the mappings to the profile schema && to a targetField that is an identifier and take the source field
             const eventIdentifierFields = profileMappings.map(m => {
@@ -322,8 +327,6 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
             return showMenu(`pick an identifier:`, eventIdentifierFields, f => `${f.eventFieldPath} (-> ${f.identifier})`).then(selected => {
                 if (isFlowSymbol(selected))
                     return selected;
-
-                // const unselected = eventIdentifierFields.filter(field => selected != field).map(f => f.eventFieldPath);
 
                 return selected.eventFieldPath;
             });
