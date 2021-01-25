@@ -419,7 +419,7 @@ export function createBoilerplate(sdk: CDP) {
                                 ...boilerplateEvent,
                                 schema: JSON.stringify(boilerplateEvent.schema),
                                 purposeIds: JSON.stringify(boilerplateEvent.purposeIds)
-                            })
+                            }).then(r => console.log('r', r))
                         }
 
                         terminal.colorRgb(255, 135, 135)(`aligned Direct Application`);
@@ -723,7 +723,6 @@ export function createBoilerplate(sdk: CDP) {
                     await this.purposes.align();
                     await this.applications.alignAll();
 
-                    // we need to wait a little before audiences.
                     await this.audiences.align();
                 },
                 ingestFakeEvents: async function (
