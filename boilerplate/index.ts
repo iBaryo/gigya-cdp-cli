@@ -399,7 +399,7 @@ export function createBoilerplate(sdk: CDP) {
                             return appOps.dataevents.create({
                                 ...adjustedBoilerplateEvent,
                                 schema: JSON.stringify(boilerplateEvent.schema),
-                                purposeIds: JSON.stringify(adjustedBoilerplateEvent.purposeIds) as any
+                                purposeIds: adjustedBoilerplateEvent.purposeIds
                             });
                         }
 
@@ -407,7 +407,7 @@ export function createBoilerplate(sdk: CDP) {
                             return appOps.dataevents.for(remoteEvent.id).update({
                                 ...boilerplateEvent,
                                 schema: JSON.stringify(boilerplateEvent.schema),
-                                purposeIds: JSON.stringify(boilerplateEvent.purposeIds)
+                                purposeIds: boilerplateEvent.purposeIds
                             });
                         }
 
@@ -491,7 +491,7 @@ export function createBoilerplate(sdk: CDP) {
                             return bOps.applications.for(remoteCloudStorageApplication.id).dataevents.create({
                                 ...boilerplateEvent,
                                 schema: JSON.stringify(boilerplateEvent.schema),
-                                purposeIds: JSON.stringify(boilerplateEvent.purposeIds) as any
+                                purposeIds: boilerplateEvent.purposeIds
                             });
                         }
 
@@ -510,7 +510,7 @@ export function createBoilerplate(sdk: CDP) {
                                 .update({
                                     ...adjustedBoilerplateEvent,
                                     schema: JSON.stringify(adjustedBoilerplateEvent.schema),
-                                    purposeIds: JSON.stringify(adjustedBoilerplateEvent.purposeIds) as any
+                                    purposeIds: adjustedBoilerplateEvent.purposeIds
                                 });
                         }
 

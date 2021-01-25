@@ -1,6 +1,5 @@
 import {Audience} from "../../gigya-cdp-sdk/entities/Audience";
 import {Payload} from "../../gigya-cdp-sdk/entities/common";
-import {AudienceCondition, PurposeId, ViewId} from "../../gigya-cdp-sdk/entities";
 import {PurposeName} from "../purposes/purposes";
 
 export const CampaignAudience: Payload<Audience> = {
