@@ -6,4 +6,4 @@ node_modules/
 *.creds.json
 test.ts
 defaultSchemaFakers.json
-bp-test/
+bp-test.*
