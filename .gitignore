@@ -6,3 +6,5 @@ node_modules/
 *.creds.json
 test.ts
 defaultSchemaFakers.json
+boilerplate/bp-test.ts
+.git.bfg-report/
