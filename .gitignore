@@ -7,3 +7,4 @@ node_modules/
 test.ts
 defaultSchemaFakers.json
 boilerplate/bp-test.ts
+.git.bfg-report/*
