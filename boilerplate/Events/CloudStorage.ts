@@ -1,8 +1,6 @@
 import {Payload} from "../../gigya-cdp-sdk/entities/common";
 import {Event, EventType} from "../../gigya-cdp-sdk/entities/Event";
-import {config} from "../BoilerplateConfig";
 import {PurposeName} from "../purposes/purposes";
-import {ActivityName} from "../schemas/ActivitiesSchemas";
 import {FieldName} from "../../gigya-cdp-sdk/entities";
 
 
