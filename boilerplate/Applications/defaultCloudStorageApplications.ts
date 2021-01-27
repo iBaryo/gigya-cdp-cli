@@ -2,9 +2,8 @@ import {Payload, WithType} from "../../gigya-cdp-sdk/entities/common";
 import {Application, CloudStorageApplication} from "../../gigya-cdp-sdk/entities/Application";
 import {ConnectorId} from "../../gigya-cdp-sdk/entities/Connector";
 import {BusinessUnitId} from "../../gigya-cdp-sdk/entities";
-import {ServerOnlyFields} from "../../gigya-cdp-sdk/CDPEntitiesApi";
 
-export type CSType = 'amazon.s3' | 'azure.blob' | 'googlecloud' | 'sftp';
+export type CSType = 'AWS S3' | 'Microsoft Azure Blob' | 'Google Cloud Storage' | 'SFTP';
 
 // TODO: please check application interface, below there is a type error (I have also tried without 'type:cloudstorage' and using CloudStorageApplication
 
@@ -12,7 +11,7 @@ export type CSType = 'amazon.s3' | 'azure.blob' | 'googlecloud' | 'sftp';
 // @ts-ignore
 export const cloudStorageApplications: Record<CSType, Payload<CloudStorageApplication>> = {
     // @ts-ignore
-    'amazon.s3': {
+    'AWS S3': {
         connectorId: "" as ConnectorId,
         businessUnitId: "" as BusinessUnitId,
         configValues: {
@@ -27,7 +26,7 @@ export const cloudStorageApplications: Record<CSType, Payload<CloudStorageApplic
         description: "R&D test application for amazon s3",
     },
     // @ts-ignore
-    'azure.blob': {
+    'Microsoft Azure Blob': {
         connectorId: "" as ConnectorId,
         businessUnitId: "" as BusinessUnitId,
         name: "Azure Application",
@@ -42,7 +41,7 @@ export const cloudStorageApplications: Record<CSType, Payload<CloudStorageApplic
         },
     },
 // @ts-ignore
-    'googlecloud': {
+    'Google Cloud Storage': {
         connectorId: "" as ConnectorId,
         businessUnitId: "" as BusinessUnitId,
         name: "Google Cloud",
@@ -58,7 +57,7 @@ export const cloudStorageApplications: Record<CSType, Payload<CloudStorageApplic
         },
     },
     // @ts-ignore
-    'sftp': {
+    'SFTP': {
         connectorId: "" as ConnectorId,
         businessUnitId: "" as BusinessUnitId,
         name: "SFTP",
