@@ -16,7 +16,7 @@ import {config, DirectEventName} from "./BoilerplateConfig";
 import {CampaignAudience as boilerplateAudience} from "./Audiences/AudienceCondition";
 import {Audience} from "../gigya-cdp-sdk/entities/Audience";
 import {defaultDirectApplication as boilerplateDirectApplication} from "./Applications/defaultDirectApplication";
-import {WithType} from "../gigya-cdp-sdk/entities/common";
+import { WithType} from "../gigya-cdp-sdk/entities/common";
 import {Purposes as boilerplatePurposes} from "./purposes/purposes";
 import {matchingRule} from "./MatchRules/matchRules";
 import {cloudStorageApplications as boilerplateCloudStorageApplications} from "./Applications/defaultCloudStorageApplications";
@@ -90,9 +90,10 @@ export function createBoilerplate(sdk: CDP) {
                         terminal('\n');
                         terminal.colorRgb(255, 192, 203)('~~~~~ aligned Profile Schema:');
                         terminal('\n');
-                        console.log(alignedProfile);
+                        console.log(alignedProfile)
 
                     },
+
 
                     async alignActivities() {
                         terminal.colorRgb(215, 95, 175)(`~~~~~~~~~ aligning Activities Schema`);
@@ -117,6 +118,7 @@ export function createBoilerplate(sdk: CDP) {
                                 const remoteSchemaProperties = Object.keys(remoteActivitySchema.properties);
                                 const fieldDiffs = Object.keys(boilerplateSchema.properties)
                                     .filter(f => !remoteSchemaProperties.includes(f));
+
 
                                 alignActivityPromise = !fieldDiffs.length ?
                                     Promise.resolve(activitySchema)
@@ -240,7 +242,7 @@ export function createBoilerplate(sdk: CDP) {
                         terminal('\n');
                         console.log(alignedSegment);
                     }
-                },
+                }, // VIP
 
                 purposes: { //basic, marketing
                     async align() {
@@ -254,6 +256,7 @@ export function createBoilerplate(sdk: CDP) {
                         // changes over here
                         Object.entries(boilerplatePurposes)
                             .map(async ([boilerplatePurposeName, boilerplatePurposePayload]) => {
+
 
                                 if (remotePurposes.length < 1 || !remotePurposes) {
                                     remotePurpose = await bOps.purposes.create({
@@ -271,6 +274,7 @@ export function createBoilerplate(sdk: CDP) {
                                     updated,
                                     ...normalizedRemotePurpose
                                 } = remotePurpose;
+
 
                                 // if remote purpose is not the same as boilerplate, update the remote
                                 if (!isEqual(normalizedRemotePurpose, boilerplatePurposePayload)) {
@@ -334,6 +338,7 @@ export function createBoilerplate(sdk: CDP) {
                             });
                             return adjustedMappings
                         }
+
 
                         async function checkToUpdateOrCreateMappings(remoteDirectEventId, boilerplateMapping) {
                             // get the mappings for the remote direct event
