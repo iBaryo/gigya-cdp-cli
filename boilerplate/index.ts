@@ -556,17 +556,18 @@ export function createBoilerplate(sdk: CDP) {
                         const remoteConnectors = await sdk.api.workspaces.for(config.workspaceId).applibrary.getAll({includePublic: true});
 
                         // get remote connectors that are Cloud Storage connectors
-                        const remoteCloudStorageConnectors = remoteConnectors['connectors'] &&
-                            (remoteConnectors['connectors'].filter(connector => connector.type === 'CloudStorage'));
+                        const remoteCloudStorageConnectors = remoteConnectors &&
+                            (remoteConnectors.filter(connector => connector.type === 'CloudStorage'));
 
                         remoteCloudStorageConnectors.map(async connector => {
+
                             // get the corresponding cloud storage application
                             let remoteCloudStorageApplication = remoteApplications?.find(application => application['originConnectorId'] == connector.id);
 
                             //get the corresponding boilerplate application
-                            const boilerplateCloudStorageApplication = boilerplateCloudStorageApplications[connector.resources.type];
+                            const boilerplateCloudStorageApplication = boilerplateCloudStorageApplications[connector.name];
 
-                            /**  if there is not a cloudStorageApplication of type 'azure.blob' | 'googlecloud' | 'sftp' | aws3
+                            /**  if there is not a cloudStorageApplication of type 'AWS S3' | 'Microsoft Azure Blob' | 'Google Cloud Storage' | 'SFTP'
                              then create cloudStorageApplication
                              **/
                             type CloudStorageApplicationPayload = Omit<CloudStorageApplication, ServerOnlyFields | keyof WithType<any> | keyof WithResources<any>>;
@@ -586,7 +587,7 @@ export function createBoilerplate(sdk: CDP) {
                                 // adjust the model so that we can work with it
                                 const viewModelRemoteCSApp = getAppViewModel(remoteCloudStorageApplication);
                                 const viewModelCSApp = getAppViewModel(connector);
-                                const boilerplateCloudStorageApplication = boilerplateCloudStorageApplications[connector.resources.type];
+                                const boilerplateCloudStorageApplication = boilerplateCloudStorageApplications[connector.name];
                                 // check if they are not equal and update to boilerplate Cloud Storage Application
                                 if (!(_.isEqual(viewModelRemoteCSApp, viewModelCSApp))) {
                                     const payload: CloudStorageApplicationPayload = {
