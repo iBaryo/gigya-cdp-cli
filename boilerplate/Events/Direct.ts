@@ -16,7 +16,6 @@ interface EventConfig {
 
 
 export const boilerplateDirectEvents: Record<DirectEventName, EventConfig> = {
-
     'onPurchase': {
         payload: {
             purposeIds: ["basic", "marketing"] as Array<PurposeName>,

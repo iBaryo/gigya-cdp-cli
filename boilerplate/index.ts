@@ -138,8 +138,7 @@ export function createBoilerplate(sdk: CDP) {
                             const alignedActivity = await alignActivityPromise;
                             terminal.colorRgb(215, 95, 175)(`~~~~~~~~ aligned ${activity} Activity Schema`);
                             terminal('\n');
-                            console.log(alignedActivity)
-
+                            console.log(alignedActivity);
                         }
                     }
                 },
@@ -171,7 +170,7 @@ export function createBoilerplate(sdk: CDP) {
 
                         terminal.colorRgb(255, 135, 215)('~~~~~~ aligned Match Rules!');
                         terminal('\n');
-                        console.log(alignedMatchRules)
+                        console.log(alignedMatchRules);
                     },
                 }, // masterDataId
 
@@ -180,7 +179,7 @@ export function createBoilerplate(sdk: CDP) {
                         terminal.colorRgb(255, 215, 215)(`~~~~~~~~ aligning Activity Indicator!`);
                         terminal('\n');
 
-                        let alignedActivityIndicatorPromise: Promise<ActivityIndicator>
+                        let alignedActivityIndicatorPromise: Promise<ActivityIndicator>;
 
                         const [remoteActivitySchema, remoteActivityIndicator] = await Promise.all([
                             bOps.ucpschemas.getAll().then(schemas => schemas.find(s => s.name == ('Orders' as ActivityName))),
@@ -207,8 +206,7 @@ export function createBoilerplate(sdk: CDP) {
                         terminal('\n');
                         terminal.colorRgb(255, 215, 215)('~~~~~~~ aligned Activity Indicator:');
                         terminal('\n');
-                        console.log(alignedActivityIndicator)
-
+                        console.log(alignedActivityIndicator);
                     },
                 }, // Standard: Total Orders & Total Page-Views.. Purchase Sum
 
@@ -223,7 +221,6 @@ export function createBoilerplate(sdk: CDP) {
                         //get the VIP remote segment and see if its values are the same
                         // values are the conditions with their associated value
                         if (remoteSegment) {
-
                             // if all 3 are not the same, update the segment to be the boilerplateVIPSegment
                             if ((remoteSegment.values.length === VIPSegment.values.length) &&
                                 VIPSegment.values.every(segmentValue =>
@@ -232,7 +229,7 @@ export function createBoilerplate(sdk: CDP) {
                             } else {
                                 alignedSegmentPromise = bOps.segments.for(remoteSegment.id).update({
                                     ...VIPSegment
-                                })
+                                });
                             }
                         } else {
                             alignedSegmentPromise = bOps.segments.create({
@@ -269,7 +266,7 @@ export function createBoilerplate(sdk: CDP) {
                                     remotePurpose = remotePurposes.find(p => p.name == boilerplatePurposeName);
                                 }
 
-                                const purposeId = remotePurpose.id
+                                const purposeId = remotePurpose.id;
 
                                 const {
                                     id,
@@ -303,7 +300,7 @@ export function createBoilerplate(sdk: CDP) {
                         let remoteApplications = await bOps.applications.getAll();
 
                         let remoteApplication = remoteApplications?.find(app =>
-                            app.type === ('Basic' || 'Direct') && app.name === boilerplateDirectApplication.name)
+                            app.type === ('Basic' || 'Direct') && app.name === boilerplateDirectApplication.name);
 
                         type DirectApplicationPayload = Omit<DirectApplication, ServerOnlyFields>;
 
@@ -328,7 +325,7 @@ export function createBoilerplate(sdk: CDP) {
                             bOps.ucpschemas.getAll(),
                             appOps.dataevents.getAll(),
                             bOps.purposes.getAll()
-                        ])
+                        ]);
 
                         function normalizeMappings(mappings, targetSchemaId?) {
                             let adjustedMappings = []
@@ -337,31 +334,29 @@ export function createBoilerplate(sdk: CDP) {
                                     sourceField: mapping.sourceField ? mapping.sourceField : mapping.srcField,
                                     targetField: mapping.targetField,
                                     target: targetSchemaId || mapping.target
-                                })
-                            })
+                                });
+                            });
                             return adjustedMappings
                         }
 
 
                         async function checkToUpdateOrCreateMappings(remoteDirectEventId, boilerplateMapping) {
                             // get the mappings for the remote direct event
-                            let remoteMappings = await appOps.dataevents.for(remoteDirectEventId).mappings.get() as EventMapping[]
-                            let mappingsArray = []
-                            let alignedMappings: EventMapping[]
+                            let remoteMappings = await appOps.dataevents.for(remoteDirectEventId).mappings.get() as EventMapping[];
+                            let mappingsArray = [];
 
                             Object
                                 .entries(boilerplateMapping)
                                 .map(async ([schemaName, mappings]) => {
                                     // find the id of the remote schema who has the same name as our schema.. eg 'Profile' / 'Orders' / 'Page-Views'
                                     const targetSchemaId = (remoteSchemas.find(remoteSchema => remoteSchema.name == schemaName)).id
-
                                     if (!targetSchemaId)
                                         new Error(`mapping set to a non existing schema: ${schemaName}`);
 
                                     const adjustedBoilerplateMappings = normalizeMappings(mappings, targetSchemaId);
                                     mappingsArray.push(adjustedBoilerplateMappings);
                                     mappingsArray.flat();
-                                })
+                                });
 
                             // check if remote mappings and boilerplate mappings are equal
                             const isArrayEqual = function (bpMappings, rMappings) {
@@ -369,15 +364,15 @@ export function createBoilerplate(sdk: CDP) {
                             };
 
                             if (remoteMappings.length < 1) {
-                                await appOps.dataevents.for(remoteDirectEventId).mappings.create({
-                                    mappings: mappingsArray.flat()
-                                })
+                                await appOps.dataevents.for(remoteDirectEventId).mappings.create(
+                                    mappingsArray.flat()
+                                )
                             } else {
                                 const adjustedRemoteMappings = normalizeMappings(remoteMappings)
                                 if (!isArrayEqual(mappingsArray, adjustedRemoteMappings)) {
-                                    await appOps.dataevents.for(remoteDirectEventId).mappings.create({
-                                        mappings: mappingsArray.flat()
-                                    })
+                                    await appOps.dataevents.for(remoteDirectEventId).mappings.create(
+                                        mappingsArray.flat()
+                                    )
                                 }
                             }
                             terminal.colorRgb(255, 135, 135)(`aligned Direct Event Mappings`);
@@ -400,8 +395,7 @@ export function createBoilerplate(sdk: CDP) {
                             let remoteEventToCompare = {}
                             Object.keys(boilerplateEvent).forEach(k => {
                                 remoteEventToCompare[k] = remoteEvent[k]
-                            })
-
+                            });
                             return remoteEventToCompare
                         }
 
@@ -410,7 +404,7 @@ export function createBoilerplate(sdk: CDP) {
                             return appOps.dataevents.create({
                                 ...adjustedBoilerplateEvent,
                                 schema: JSON.stringify(boilerplateEvent.schema),
-                                purposeIds: JSON.stringify(adjustedBoilerplateEvent.purposeIds) as any
+                                purposeIds: adjustedBoilerplateEvent.purposeIds
                             });
                         }
 
@@ -418,8 +412,8 @@ export function createBoilerplate(sdk: CDP) {
                             return appOps.dataevents.for(remoteEvent.id).update({
                                 ...boilerplateEvent,
                                 schema: JSON.stringify(boilerplateEvent.schema),
-                                purposeIds: JSON.stringify(boilerplateEvent.purposeIds)
-                            })
+                                purposeIds: boilerplateEvent.purposeIds
+                            });
                         }
 
                         terminal.colorRgb(255, 135, 135)(`aligned Direct Application`);
@@ -442,8 +436,6 @@ export function createBoilerplate(sdk: CDP) {
                                     }
 
                                     const remoteEvent = await appOps.dataevents.for(remoteDirectEventId).get();
-
-
                                     const adjustedBPEventForPurposeIds = adjustBoilerplateEventForPurposeIds(boilerplateEvent);
                                     const adjustedRemoteEventForComparisonWithAdjustedBpEvent = await adjustRemoteEventForComparisonWithAdjustedBpEvent(boilerplateEvent, remoteEvent);
                                     if (!isEqual(adjustedRemoteEventForComparisonWithAdjustedBpEvent, adjustedBPEventForPurposeIds)) {
@@ -451,7 +443,6 @@ export function createBoilerplate(sdk: CDP) {
                                         terminal.colorRgb(175, 0, 135)(`aligned ${eventName} Direct Event`);
                                         terminal('\n');
                                     }
-
                                     await checkToUpdateOrCreateMappings(remoteDirectEventId, boilerplateMapping);
                                 }));
 
@@ -461,7 +452,7 @@ export function createBoilerplate(sdk: CDP) {
                         const [remoteSchemas, bUnitPurposes] = await Promise.all([
                             bOps.ucpschemas.getAll(),
                             bOps.purposes.getAll()
-                        ])
+                        ]);
 
                         const eventPurposeIds = boilerplateCloudStorageEvent.payload.purposeIds
                             .map(purposeName => (bUnitPurposes.find(p => p.name == purposeName)).id)
@@ -498,15 +489,15 @@ export function createBoilerplate(sdk: CDP) {
                                     targetField: mapping.targetField,
                                     target: targetSchemaId || mapping.target
                                 }
-                            })
+                            });
                         }
 
                         function createCloudStorageEvent(boilerplateEvent, remoteCloudStorageApplication) {
                             return bOps.applications.for(remoteCloudStorageApplication.id).dataevents.create({
                                 ...boilerplateEvent,
                                 schema: JSON.stringify(boilerplateEvent.schema),
-                                purposeIds: JSON.stringify(boilerplateEvent.purposeIds) as any
-                            })
+                                purposeIds: boilerplateEvent.purposeIds
+                            });
                         }
 
                         function adjustRemoteEventForComparisonWithAdjustedBpEvent(boilerplateEvent, remoteEvent) {
@@ -514,7 +505,7 @@ export function createBoilerplate(sdk: CDP) {
                             let remoteEventToCompare = {}
                             Object.keys(boilerplateEvent).forEach(k => {
                                 remoteEventToCompare[k] = remoteEvent[k]
-                            })
+                            });
                             return remoteEventToCompare
                         }
 
@@ -524,8 +515,8 @@ export function createBoilerplate(sdk: CDP) {
                                 .update({
                                     ...adjustedBoilerplateEvent,
                                     schema: JSON.stringify(adjustedBoilerplateEvent.schema),
-                                    purposeIds: JSON.stringify(adjustedBoilerplateEvent.purposeIds) as any
-                                })
+                                    purposeIds: adjustedBoilerplateEvent.purposeIds
+                                });
                         }
 
                         async function checkToUpdateOrCreateMappings(remoteCloudStorageEventIdForApplication, boilerplateCloudStorageEventMapping, remoteCloudStorageApplicationId) {
@@ -539,7 +530,7 @@ export function createBoilerplate(sdk: CDP) {
                             if (!targetSchemaId)
                                 new Error(`mapping set to a non existing schema: Profile`);
 
-                            const adjustedBoilerplateMappings = normalizeMappings(boilerplateCloudStorageEventMapping['Profile'], targetSchemaId)
+                            const adjustedBoilerplateMappings = normalizeMappings(boilerplateCloudStorageEventMapping['Profile'], targetSchemaId);
 
                             // check if remote mappings and boilerplate mappings are equal
                             // using Lodash's
@@ -553,36 +544,35 @@ export function createBoilerplate(sdk: CDP) {
                             if (remoteMappings.length < 1) {
                                 return bOps.applications.for(remoteCloudStorageApplicationId).dataevents
                                     .for(remoteCloudStorageEventIdForApplication).mappings.create(
-                                        {mappings: adjustedBoilerplateMappings}
+                                        adjustedBoilerplateMappings
                                     )
                             } else {
                                 const adjustedRemoteMappings = normalizeMappings(remoteMappings)
                                 if (!isArrayEqual(adjustedBoilerplateMappings, adjustedRemoteMappings)) {
                                     await bOps.applications.for(remoteCloudStorageApplicationId).dataevents
                                         .for(remoteCloudStorageEventIdForApplication).mappings.create(
-                                            {mappings: adjustedBoilerplateMappings}
-                                        )
+                                            adjustedBoilerplateMappings
+                                        );
                                 }
                             }
                         }
-
 
                         const remoteApplications = (await bOps.applications.getAll());
                         const remoteConnectors = await sdk.api.workspaces.for(config.workspaceId).applibrary.getAll({includePublic: true});
 
                         // get remote connectors that are Cloud Storage connectors
-                        const remoteCloudStorageConnectors = remoteConnectors['connectors'] &&
-                            (remoteConnectors['connectors'].filter(connector => connector.type === 'CloudStorage'))
-
+                        const remoteCloudStorageConnectors = remoteConnectors &&
+                            (remoteConnectors.filter(connector => connector.type === 'CloudStorage'));
 
                         remoteCloudStorageConnectors.map(async connector => {
+
                             // get the corresponding cloud storage application
                             let remoteCloudStorageApplication = remoteApplications?.find(application => application['originConnectorId'] == connector.id);
 
                             //get the corresponding boilerplate application
-                            const boilerplateCloudStorageApplication = boilerplateCloudStorageApplications[connector.resources.type]
+                            const boilerplateCloudStorageApplication = boilerplateCloudStorageApplications[connector.name];
 
-                            /**  if there is not a cloudStorageApplication of type 'azure.blob' | 'googlecloud' | 'sftp' | aws3
+                            /**  if there is not a cloudStorageApplication of type 'AWS S3' | 'Microsoft Azure Blob' | 'Google Cloud Storage' | 'SFTP'
                              then create cloudStorageApplication
                              **/
                             type CloudStorageApplicationPayload = Omit<CloudStorageApplication, ServerOnlyFields | keyof WithType<any> | keyof WithResources<any>>;
@@ -595,7 +585,6 @@ export function createBoilerplate(sdk: CDP) {
                                     configValues: boilerplateCloudStorageApplication.configValues,
                                     enabled: true
                                 };
-
                                 remoteCloudStorageApplication = await bOps.applications.create(cloudStoragePayload);
 
                             } else {
@@ -603,19 +592,15 @@ export function createBoilerplate(sdk: CDP) {
                                 // adjust the model so that we can work with it
                                 const viewModelRemoteCSApp = getAppViewModel(remoteCloudStorageApplication);
                                 const viewModelCSApp = getAppViewModel(connector);
-
-                                const boilerplateCloudStorageApplication = boilerplateCloudStorageApplications[connector.resources.type]
-
+                                const boilerplateCloudStorageApplication = boilerplateCloudStorageApplications[connector.name];
                                 // check if they are not equal and update to boilerplate Cloud Storage Application
                                 if (!(_.isEqual(viewModelRemoteCSApp, viewModelCSApp))) {
-
                                     const payload: CloudStorageApplicationPayload = {
                                         name: connector.name,
                                         enabled: true,
                                         description: boilerplateCloudStorageApplication.description,
                                         configValues: boilerplateCloudStorageApplication.configValues,
                                     };
-
                                     remoteCloudStorageApplication = await bOps.applications.for(remoteCloudStorageApplication.id).update(payload);
                                 }
                             }
@@ -623,13 +608,15 @@ export function createBoilerplate(sdk: CDP) {
                             terminal.colorRgb(255, 175, 215)(`~~~~~~ aligning ${remoteCloudStorageApplication.name} CloudStorage Application`);
                             terminal('\n');
 
-                            const remoteCloudStorageApplicationId = remoteCloudStorageApplication.id
-                            const remoteCloudStorageEvents = await bOps.applications.for(remoteCloudStorageApplicationId).dataevents.getAll()
+                            const remoteCloudStorageApplicationId = remoteCloudStorageApplication.id;
+                            const remoteCloudStorageEvents = await bOps.applications.for(remoteCloudStorageApplicationId).dataevents.getAll();
 
-                            let remoteCloudStorageEventIdForApplication = (remoteCloudStorageEvents?.find(event => event.name === `${boilerplateCloudStorageEvent.payload.name} ${remoteCloudStorageApplication.name}`))?.id
+                            let remoteCloudStorageEventIdForApplication = (remoteCloudStorageEvents?.find(event =>
+                                event.name === `${boilerplateCloudStorageEvent.payload.name} ${remoteCloudStorageApplication.name}`
+                            ))?.id;
 
-                            const adjustedBoilerplateEventRecord = adjustBoilerplateEventForPurposeIdsAndName(remoteCloudStorageApplication)
-                            const adjustedBoilerplateEvent = adjustedBoilerplateEventRecord.payload
+                            const adjustedBoilerplateEventRecord = adjustBoilerplateEventForPurposeIdsAndName(remoteCloudStorageApplication);
+                            const adjustedBoilerplateEvent = adjustedBoilerplateEventRecord.payload;
 
                             // if there is no id for the remote cloud storage event, create it
                             if (!remoteCloudStorageEventIdForApplication) {
@@ -723,7 +710,6 @@ export function createBoilerplate(sdk: CDP) {
                     await this.purposes.align();
                     await this.applications.alignAll();
 
-                    // we need to wait a little before audiences.
                     await this.audiences.align();
                 },
                 ingestFakeEvents: async function (
@@ -779,7 +765,6 @@ export function createBoilerplate(sdk: CDP) {
                                 )
                                 )
                             );
-
 
                     const events = eventNames.map(name => allEvents.find(e => e.name == name)).filter(Boolean);
 
