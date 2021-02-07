@@ -1,65 +1,62 @@
-import {Payload, WithType} from "../../gigya-cdp-sdk/entities/common";
+import {Payload, WithEnabled, WithType} from "../../gigya-cdp-sdk/entities/common";
 import {Application, CloudStorageApplication} from "../../gigya-cdp-sdk/entities/Application";
 import {ConnectorId} from "../../gigya-cdp-sdk/entities/Connector";
 import {BusinessUnitId} from "../../gigya-cdp-sdk/entities";
+import {ServerOnlyFields} from "../../gigya-cdp-sdk/CDPEntitiesApi";
+import {WithResources} from "../../gigya-cdp-sdk/entities/Application/ApplicationResource";
+import {WithConfigSchema, WithConfigValues} from "../../gigya-cdp-sdk/entities/common/config";
+import {WithSecuritySchemes} from "../../gigya-cdp-sdk/entities/Connector/Auth";
 
-export type CSType = 'AWS S3' | 'Microsoft Azure Blob' | 'Google Cloud Storage' | 'SFTP';
+export type CSType = 'amazon.s3' | 'azure.blob' | 'googlecloud' | 'sftp';
 
 // TODO: please check application interface, below there is a type error (I have also tried without 'type:cloudstorage' and using CloudStorageApplication
 
+type CSApplication = Omit<CloudStorageApplication,  ServerOnlyFields | keyof WithConfigSchema | keyof WithResources<any> | keyof WithSecuritySchemes | keyof WithEnabled | keyof WithType<any>>
 
 // @ts-ignore
-export const cloudStorageApplications: Record<CSType, Payload<CloudStorageApplication>> = {
-    // @ts-ignore
-    'AWS S3': {
+export const cloudStorageApplications: Record<CSType, CSApplication> = {
+    'amazon.s3': {
         connectorId: "" as ConnectorId,
-        businessUnitId: "" as BusinessUnitId,
         configValues: {
-            "writeBucketName": "my bucket",
-            "readBucketName": "my bucket",
-            "writeFileName": "zoeFile",
-            "readFileNameRegex": "zoeFile",
-            "writeFilePath": "zoe/",
-            "readFilePath": "zoe/"
+            writeBucketName: "boilerplate-bucket",
+            readBucketName: "boilerplate-bucket",
+            writeFileName: "boilerplate-file",
+            readFileNameRegex: "boilerplate-file",
+            writeFilePath: "boilerplate-file/",
+            readFilePath: "boilerplate-file/"
         },
         name: "AWS Application",
         description: "R&D test application for amazon s3",
     },
-    // @ts-ignore
-    'Microsoft Azure Blob': {
+    'azure.blob': {
         connectorId: "" as ConnectorId,
-        businessUnitId: "" as BusinessUnitId,
         name: "Azure Application",
         description: "R&D test application for azure",
         configValues: {
-            readContainer: "my container",
-            readFileNameRegex: "zoe",
-            readFilePath: "filePath",
-            writeContainer: "my container",
-            writeFileName: "zoe",
-            writeFilePath: "filePath",
+            readContainer: "boilerplate-container",
+            writeContainer: "boilerplate-container",
+            writeFileName: "boilerplate-file",
+            readFileNameRegex: "boilerplate-file",
+            writeFilePath: "boilerplate-file/",
+            readFilePath: "boilerplate-file/"
         },
     },
-// @ts-ignore
-    'Google Cloud Storage': {
+    'googlecloud': {
         connectorId: "" as ConnectorId,
-        businessUnitId: "" as BusinessUnitId,
         name: "Google Cloud",
         description: "R&D test application for google cloud",
         configValues: {
-            "projectId": "mapme-1502004780937",
-            "writeBucketName": "cdp-ingest",
-            "readBucketName": "cdp-ingest",
-            "readFileNameRegex": "",
-            "readFilePath": "",
-            "writeFileName": "",
-            "writeFilePath": ""
+            projectId: "id-1502004780937",
+            readBucketName: "boilerplate-bucket",
+            writeFileName: "boilerplate-file",
+            readFileNameRegex: "boilerplate-file",
+            writeFilePath: "boilerplate-file/",
+            readFilePath: "boilerplate-file/",
+            objectKeyPrefix: "prefix"
         },
     },
-    // @ts-ignore
-    'SFTP': {
+    'sftp': {
         connectorId: "" as ConnectorId,
-        businessUnitId: "" as BusinessUnitId,
         name: "SFTP",
         description: "R&D test application for SFTP",
         configValues: {
