@@ -482,7 +482,6 @@ export function createBoilerplate(sdk: CDP) {
                         }
 
                         function normalizeMappings(mappings, targetSchemaId?) {
-                            console.log(mappings, 'kkkkkk')
                             return mappings?.map(mapping => {
                                 return {
                                     sourceField: mapping.sourceField ?
@@ -614,7 +613,6 @@ export function createBoilerplate(sdk: CDP) {
 
                             terminal.colorRgb(255, 175, 215)(`~~~~~~ aligning ${remoteCloudStorageApplication.name} CloudStorage Application`);
                             terminal('\n');
-                            console.log('lllllll', remoteCloudStorageApplication)
                             remoteCloudStorageApplicationId = remoteCloudStorageApplication.id;
                             const remoteCloudStorageEvents = await bOps.applications.for(remoteCloudStorageApplicationId).dataevents.getAll();
 
@@ -641,7 +639,6 @@ export function createBoilerplate(sdk: CDP) {
                             const adjustedRemoteEventForComparisonWithAdjustedBpEvent = adjustRemoteEventForComparisonWithAdjustedBpEvent(adjustedBoilerplateEvent, remoteCloudStorageEventForApplication);
 
                             if (!isEqual(adjustedRemoteEventForComparisonWithAdjustedBpEvent, adjustedBoilerplateEvent)) {
-                                console.log('hereeee', remoteCloudStorageApplicationId,)
                                 await updateRemoteCloudStorageEvent(adjustedBoilerplateEvent, remoteCloudStorageApplicationId, remoteCloudStorageEventIdForApplication);
                             }
                             terminal.colorRgb(255, 175, 215)(`~~~~~~ aligning ${remoteCloudStorageEventForApplication.name} CloudStorage Event Mappings`);
