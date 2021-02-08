@@ -7,15 +7,12 @@ import {WithResources} from "../../gigya-cdp-sdk/entities/Application/Applicatio
 import {WithConfigSchema, WithConfigValues} from "../../gigya-cdp-sdk/entities/common/config";
 import {WithSecuritySchemes} from "../../gigya-cdp-sdk/entities/Connector/Auth";
 
-export type CSType = 'amazon.s3' | 'azure.blob' | 'googlecloud' | 'sftp';
-
-// TODO: please check application interface, below there is a type error (I have also tried without 'type:cloudstorage' and using CloudStorageApplication
+export type CSType = 'AWS S3' | 'Microsoft Azure Blob' | 'Google Cloud Storage' | 'SFTP';
 
 type CSApplication = Omit<CloudStorageApplication,  ServerOnlyFields | keyof WithConfigSchema | keyof WithResources<any> | keyof WithSecuritySchemes | keyof WithEnabled | keyof WithType<any>>
 
-// @ts-ignore
 export const cloudStorageApplications: Record<CSType, CSApplication> = {
-    'amazon.s3': {
+    'AWS S3': {
         connectorId: "" as ConnectorId,
         configValues: {
             writeBucketName: "boilerplate-bucket",
@@ -25,12 +22,12 @@ export const cloudStorageApplications: Record<CSType, CSApplication> = {
             writeFilePath: "boilerplate-file/",
             readFilePath: "boilerplate-file/"
         },
-        name: "AWS Application",
+        name: "AWS S3",
         description: "R&D test application for amazon s3",
     },
-    'azure.blob': {
+    'Microsoft Azure Blob': {
         connectorId: "" as ConnectorId,
-        name: "Azure Application",
+        name: "Microsoft Azure Blob",
         description: "R&D test application for azure",
         configValues: {
             readContainer: "boilerplate-container",
@@ -41,9 +38,9 @@ export const cloudStorageApplications: Record<CSType, CSApplication> = {
             readFilePath: "boilerplate-file/"
         },
     },
-    'googlecloud': {
+    'Google Cloud Storage': {
         connectorId: "" as ConnectorId,
-        name: "Google Cloud",
+        name: "Google Cloud Storage",
         description: "R&D test application for google cloud",
         configValues: {
             projectId: "id-1502004780937",
@@ -52,10 +49,10 @@ export const cloudStorageApplications: Record<CSType, CSApplication> = {
             readFileNameRegex: "boilerplate-file",
             writeFilePath: "boilerplate-file/",
             readFilePath: "boilerplate-file/",
-            objectKeyPrefix: "prefix"
+            writeBucketName: "boilerplate-bucket",
         },
     },
-    'sftp': {
+    'SFTP': {
         connectorId: "" as ConnectorId,
         name: "SFTP",
         description: "R&D test application for SFTP",
