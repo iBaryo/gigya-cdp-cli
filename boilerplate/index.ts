@@ -300,8 +300,8 @@ export function createBoilerplate(sdk: CDP) {
                         // bOps: sdk.api.businessunits.for(bUnitId)
                         let remoteApplications = await bOps.applications.getAll();
 
-                        let remoteApplication = remoteApplications?.find(app =>
-                            app.type === ('Basic' || 'Direct') && app.name === boilerplateDirectApplication.name);
+                        let remoteApplication = remoteApplications && remoteApplications.find(app =>
+                            app.type === ('Direct') && app.name === boilerplateDirectApplication.name);
 
                         type DirectApplicationPayload = Omit<DirectApplication, ServerOnlyFields>;
 
@@ -313,12 +313,13 @@ export function createBoilerplate(sdk: CDP) {
                             description: "R&D test application for creating customers"
                         }
 
+                        let remoteApplicationId = remoteApplication && remoteApplication.id
+
                         // no existing remoteApp --> create one
                         if (!remoteApplication) {
-                            remoteApplication = await bOps.applications.create(remoteDirectApplicationPayload)
+                            remoteApplication = await bOps.applications.create(remoteDirectApplicationPayload);
+                            remoteApplicationId = remoteApplication.id;
                         }
-
-                        const remoteApplicationId = remoteApplication?.id
 
                         const appOps = bOps.applications.for(remoteApplicationId)
 

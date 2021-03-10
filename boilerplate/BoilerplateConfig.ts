@@ -1,7 +1,7 @@
 import {PurposeName} from "./purposes/purposes";
 
 export const config = {
-    workspaceId: '44233047',
+    workspaceId: '13108767',
     commonIdentifier: 'masterDataId',
     commonIdentifierFaker: 'random.uuid',
     purposes: ['basic', 'marketing'] as PurposeName[],
