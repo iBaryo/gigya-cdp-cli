@@ -19,7 +19,10 @@ import {defaultDirectApplication as boilerplateDirectApplication} from "./Applic
 import {WithType} from "../gigya-cdp-sdk/entities/common";
 import {Purposes as boilerplatePurposes} from "./purposes/purposes";
 import {matchingRule} from "./MatchRules/matchRules";
-import {cloudStorageApplications as boilerplateCloudStorageApplications} from "./Applications/defaultCloudStorageApplications";
+import {
+    cloudStorageApplications as boilerplateCloudStorageApplications,
+    CSType
+} from "./Applications/defaultCloudStorageApplications";
 import {boilerplateCloudStorageEvent} from "./Events/CloudStorage";
 import {terminal} from "terminal-kit";
 import {JSONSchema7} from "json-schema";
@@ -564,10 +567,11 @@ export function createBoilerplate(sdk: CDP) {
 
                         const remoteConnectors = await sdk.api.workspaces.for(config.workspaceId).applibrary.getAll({includePublic: true});
 
+                        const boilerplateConnectorTypes: CSType[] = [ 'AWS S3', 'Microsoft Azure Blob', 'Google Cloud Storage', 'SFTP']
+
                         // get remote connectors that are Cloud Storage connectors
                         const remoteCloudStorageConnectors = remoteConnectors &&
-                            (remoteConnectors?.filter(connector => connector.type === 'CloudStorage'));
-                        let remoteCloudStorageApplication: Application;
+                            (remoteConnectors?.filter(connector => connector.type === 'CloudStorage' && (connector.name in boilerplateConnectorTypes)));
 
                         remoteCloudStorageConnectors.map(async connector => {
                             // get the corresponding cloud storage application
