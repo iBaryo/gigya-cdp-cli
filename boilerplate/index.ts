@@ -653,10 +653,9 @@ export function createBoilerplate(sdk: CDP) {
                     },
 
                     async alignAll() {
-                        return Promise.all([
-                            this.alignDirect(),
-                            this.alignCloudStorage()
-                        ]);
+                            // take into account timing - use await rather than Promise.all([])
+                            await this.alignDirect();
+                            await this.alignCloudStorage()
                     }
                 },
 
