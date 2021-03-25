@@ -571,7 +571,7 @@ export function createBoilerplate(sdk: CDP) {
 
                         // get remote connectors that are Cloud Storage connectors
                         const remoteCloudStorageConnectors = remoteConnectors &&
-                            (remoteConnectors?.filter(connector => connector.type === 'CloudStorage' && (connector.name in boilerplateConnectorTypes)));
+                            (remoteConnectors?.filter(connector => connector.type === 'CloudStorage' && (boilerplateConnectorTypes.includes(connector.name as CSType))));
 
                         remoteCloudStorageConnectors.map(async connector => {
                             // get the corresponding cloud storage application
