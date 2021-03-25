@@ -19,7 +19,10 @@ import {defaultDirectApplication as boilerplateDirectApplication} from "./Applic
 import {WithType} from "../gigya-cdp-sdk/entities/common";
 import {Purposes as boilerplatePurposes} from "./purposes/purposes";
 import {matchingRule} from "./MatchRules/matchRules";
-import {cloudStorageApplications as boilerplateCloudStorageApplications} from "./Applications/defaultCloudStorageApplications";
+import {
+    cloudStorageApplications as boilerplateCloudStorageApplications,
+    CSType
+} from "./Applications/defaultCloudStorageApplications";
 import {boilerplateCloudStorageEvent} from "./Events/CloudStorage";
 import {terminal} from "terminal-kit";
 import {JSONSchema7} from "json-schema";
@@ -301,7 +304,7 @@ export function createBoilerplate(sdk: CDP) {
                         let remoteApplications = await bOps.applications.getAll();
 
                         let remoteApplication = remoteApplications?.find(app =>
-                            app.type === ('Basic' || 'Direct') && app.name === boilerplateDirectApplication.name);
+                            app.type === ('Direct') && app.name === boilerplateDirectApplication.name);
 
                         type DirectApplicationPayload = Omit<DirectApplication, ServerOnlyFields>;
 
@@ -313,12 +316,13 @@ export function createBoilerplate(sdk: CDP) {
                             description: "R&D test application for creating customers"
                         }
 
+                        let remoteApplicationId = remoteApplication?.id
+
                         // no existing remoteApp --> create one
                         if (!remoteApplication) {
-                            remoteApplication = await bOps.applications.create(remoteDirectApplicationPayload)
+                            remoteApplication = await bOps.applications.create(remoteDirectApplicationPayload);
+                            remoteApplicationId = remoteApplication.id;
                         }
-
-                        const remoteApplicationId = remoteApplication?.id
 
                         const appOps = bOps.applications.for(remoteApplicationId)
 
@@ -563,10 +567,11 @@ export function createBoilerplate(sdk: CDP) {
 
                         const remoteConnectors = await sdk.api.workspaces.for(config.workspaceId).applibrary.getAll({includePublic: true});
 
+                        const boilerplateConnectorTypes: CSType[] = [ 'AWS S3', 'Microsoft Azure Blob', 'Google Cloud Storage', 'SFTP']
+
                         // get remote connectors that are Cloud Storage connectors
                         const remoteCloudStorageConnectors = remoteConnectors &&
-                            (remoteConnectors?.filter(connector => connector.type === 'CloudStorage'));
-                        let remoteCloudStorageApplication: Application;
+                            (remoteConnectors?.filter(connector => connector.type === 'CloudStorage' && (boilerplateConnectorTypes.includes(connector.name as CSType))));
 
                         remoteCloudStorageConnectors.map(async connector => {
                             // get the corresponding cloud storage application
@@ -648,10 +653,9 @@ export function createBoilerplate(sdk: CDP) {
                     },
 
                     async alignAll() {
-                        return Promise.all([
-                            this.alignDirect(),
-                            this.alignCloudStorage()
-                        ]);
+                            // take into account timing - use await rather than Promise.all([])
+                            await this.alignDirect();
+                            await this.alignCloudStorage()
                     }
                 },
 
