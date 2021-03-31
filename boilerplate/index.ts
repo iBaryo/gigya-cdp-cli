@@ -592,7 +592,7 @@ export function createBoilerplate(sdk: CDP) {
                         remoteCloudStorageConnectors.map(async connector => {
                             // get the corresponding cloud storage application
 
-                            //get cloud storage applications with the same type as connector // npt working
+                            //get cloud storage applications with the same type as connector
                             let remoteCloudStorageApplication = allCloudStorageRemoteApplications?.find(application => (application['originConnectorId'] === connector.id))
 
                             let remoteCloudStorageApplicationId: ApplicationId;
@@ -612,7 +612,6 @@ export function createBoilerplate(sdk: CDP) {
                                     configValues: boilerplateCloudStorageApplication.configValues,
                                     enabled: true
                                 };
-                                remoteCloudStorageApplication = await bOps.applications.create(cloudStoragePayload).then(app => bOps.applications.for(app.id).get());
                                 remoteCloudStorageApplication = await bOps.applications.create(cloudStoragePayload).then(app => {
                                     if (app.name !== "Microsoft Azure Blob") {
                                         bOps.applications.for(app.id).auth.create({
