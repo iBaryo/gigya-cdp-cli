@@ -612,7 +612,6 @@ export function createBoilerplate(sdk: CDP) {
                                 // adjust the model so that we can work with it
                                 const viewModelRemoteCSApp = getAppViewModel(remoteCloudStorageApplication);
                                 const viewModelCSApp = getAppViewModel(connector);
-                                const boilerplateCloudStorageApplication = boilerplateCloudStorageApplications[connector.name];
                                 // check if they are not equal and update to boilerplate Cloud Storage Application
                                 if (!(_.isEqual(viewModelRemoteCSApp, viewModelCSApp))) {
                                     const payload: CloudStorageApplicationPayload = {
