@@ -5,7 +5,7 @@ import {
     CustomerSchema,
     SchemaType,
     Segment,
-    Application, DirectApplication, CloudStorageApplication, ApplicationId,
+    Application, DirectApplication, CloudStorageApplication, ApplicationId, Connector,
 } from "../gigya-cdp-sdk/entities";
 import {boilerplateDirectEvents} from "./Events/Direct";
 import {profileSchema as boilerplateProfileSchema} from "./schemas/ProfileSchema";
@@ -25,13 +25,14 @@ import {
 } from "./Applications/defaultCloudStorageApplications";
 import {boilerplateCloudStorageEvent} from "./Events/CloudStorage";
 import {terminal} from "terminal-kit";
-import {JSONSchema7} from "json-schema";
+import {JSONSchema7, JSONSchema7Object} from "json-schema";
 import {EventMapping} from "../gigya-cdp-sdk/entities/Event/EventMapping";
 import {ServerOnlyFields} from "../gigya-cdp-sdk/CDPEntitiesApi";
 import {createArray, createFakeEventForIdentifier, JSONSchemaFaker, resolveFake} from "../utils/schema";
 import {defaultSchemaPropFakers, fakify} from "json-schema-fakify";
 import {initStore} from "../secure-store";
 import {WithResources} from "../gigya-cdp-sdk/entities/Application/ApplicationResource";
+import {keepUnique} from "./utils/helper-functions";
 
 
 const isEqual = require('lodash/isEqual');
@@ -58,33 +59,29 @@ export function createBoilerplate(sdk: CDP) {
                         terminal.colorRgb(255, 192, 203)('~~~~~~~~~ aligning Profile Schema');
                         terminal('\n');
 
-                        const profileSchemaEntity = await bOps.ucpschemas.getAll()
+                        const profileSchemaEntity = await bOps.customerschemas.getAll()
                             .then(schemas => schemas.find(s => s.schemaType == SchemaType.Profile));
 
                         let alignProfilePromise: Promise<CustomerSchema>;
-
                         if (!profileSchemaEntity) {
-                            alignProfilePromise = bOps.ucpschemas.create({
-                                enabled: true,
+                            alignProfilePromise = bOps.customerschemas.create({
                                 name: "Profile",
-                                schema: JSON.stringify(boilerplateProfileSchema),
+                                schema: boilerplateProfileSchema,
                                 schemaType: SchemaType.Profile
                             });
                         } else {
-                            const profileSchema = JSON.parse(JSON.stringify(profileSchemaEntity.schema));
-                            const profileFields = Object.keys(profileSchema.properties);
+                            const profileFields = Object.keys(profileSchemaEntity.schema.properties);
                             const boilerplateProfileFields = Object.keys(boilerplateProfileSchema.properties);
                             const fieldDiffs = boilerplateProfileFields.filter(f => !profileFields.includes(f));
 
                             alignProfilePromise = !fieldDiffs.length ?
                                 Promise.resolve(profileSchemaEntity)
-                                : bOps.ucpschemas.for(profileSchemaEntity.id).update({
-                                    enabled: true,
+                                : bOps.customerschemas.for(profileSchemaEntity.id).update({
                                     name: "Profile",
-                                    schema: JSON.stringify({
-                                        ...profileSchema,
-                                        properties: {...boilerplateProfileSchema.properties, ...profileSchema.properties}
-                                    }),
+                                    schema: {
+                                        ...profileSchemaEntity.schema as Object,
+                                        properties: {...boilerplateProfileSchema.properties, ...profileSchemaEntity.schema.properties}
+                                    },
                                     schemaType: SchemaType.Profile
                                 });
                         }
@@ -94,30 +91,31 @@ export function createBoilerplate(sdk: CDP) {
                         terminal.colorRgb(255, 192, 203)('~~~~~ aligned Profile Schema:');
                         terminal('\n');
                         console.log(alignedProfile)
+                        terminal('\n');
 
                     },
 
 
                     async alignActivities() {
+
                         terminal.colorRgb(215, 95, 175)(`~~~~~~~~~ aligning Activities Schema`);
                         terminal('\n');
 
                         let alignActivityPromise: Promise<CustomerSchema>;
-                        const customerSchemas = await bOps.ucpschemas.getAll();
+                        const customerSchemas = await bOps.customerschemas.getAll();
 
                         for (const [activity, boilerplateSchema] of Object.entries(boilerplateActivitySchemas)) {
                             const activitySchema = customerSchemas.find(s => {
                                 return s.name == activity && s.schemaType == SchemaType.Activity
                             });
                             if (!activitySchema) {
-                                alignActivityPromise = bOps.ucpschemas.create({
-                                    enabled: true,
+                                alignActivityPromise = bOps.customerschemas.create({
                                     name: activity,
-                                    schema: JSON.stringify(boilerplateSchema),
+                                    schema: boilerplateSchema,
                                     schemaType: SchemaType.Activity
                                 });
                             } else {
-                                const remoteActivitySchema = JSON.parse(JSON.stringify(activitySchema.schema));
+                                const remoteActivitySchema = activitySchema.schema;
                                 const remoteSchemaProperties = Object.keys(remoteActivitySchema.properties);
                                 const fieldDiffs = Object.keys(boilerplateSchema.properties)
                                     .filter(f => !remoteSchemaProperties.includes(f));
@@ -125,16 +123,15 @@ export function createBoilerplate(sdk: CDP) {
 
                                 alignActivityPromise = !fieldDiffs.length ?
                                     Promise.resolve(activitySchema)
-                                    : bOps.ucpschemas.for(activitySchema.id).update({
-                                        enabled: true,
+                                    : bOps.customerschemas.for(activitySchema.id).update({
                                         name: activity,
-                                        schema: JSON.stringify({
-                                            ...remoteActivitySchema,
+                                        schema: {
+                                            ...remoteActivitySchema as Object,
                                             properties: {
                                                 ...remoteActivitySchema.properties,
                                                 ...boilerplateSchema.properties
                                             } //order = priority => lower, higher
-                                        }),
+                                        },
                                         schemaType: SchemaType.Activity
                                     });
                             }
@@ -185,7 +182,7 @@ export function createBoilerplate(sdk: CDP) {
                         let alignedActivityIndicatorPromise: Promise<ActivityIndicator>;
 
                         const [remoteActivitySchema, remoteActivityIndicator] = await Promise.all([
-                            bOps.ucpschemas.getAll().then(schemas => schemas.find(s => s.name == ('Orders' as ActivityName))),
+                            bOps.customerschemas.getAll().then(schemas => schemas.find(s => s.name == ('Orders' as ActivityName))),
                             bOps.activityIndicators.getAll().then(a => a.find(ind => (config.activityIndicators.includes(ind.name))))
                         ]);
 
@@ -327,7 +324,7 @@ export function createBoilerplate(sdk: CDP) {
                         const appOps = bOps.applications.for(remoteApplicationId)
 
                         const [remoteSchemas, remoteDirectEvents, bUnitPurposes] = await Promise.all([
-                            bOps.ucpschemas.getAll(),
+                            bOps.customerschemas.getAll(),
                             appOps.dataevents.getAll(),
                             bOps.purposes.getAll()
                         ]);
@@ -455,7 +452,7 @@ export function createBoilerplate(sdk: CDP) {
 
                     async alignCloudStorage() {
                         const [remoteSchemas, bUnitPurposes] = await Promise.all([
-                            bOps.ucpschemas.getAll(),
+                            bOps.customerschemas.getAll(),
                             bOps.purposes.getAll()
                         ]);
 
@@ -577,57 +574,41 @@ export function createBoilerplate(sdk: CDP) {
 
                         const allCloudStorageRemoteApplications = await bOps.applications.getAll().then(apps => apps.filter(app => app.type === 'CloudStorage'));
 
-
                         const remoteConnectors = await sdk.api.workspaces.for(config.workspaceId).applibrary.getAll({includePublic: true});
 
                         const boilerplateConnectorTypes: CSType[] = ['AWS S3', 'Microsoft Azure Blob', 'Google Cloud Storage', 'SFTP']
 
                         // get remote connectors that are Cloud Storage connectors
                         const remoteCloudStorageConnectors =
-                            JSON.parse(JSON.stringify(keepUnique(remoteConnectors, conn => conn.name))).filter(connector => connector.type === 'CloudStorage' && (boilerplateConnectorTypes.includes(connector.name as CSType)));
+                            keepUnique(remoteConnectors, conn => conn.name).filter((connector: Connector) => connector.type === 'CloudStorage' && connector.enabled && (boilerplateConnectorTypes.includes(connector.name as CSType)));
 
-                        function keepUnique(data, key) {
-                            return [...new Map(data.map(x => [key(x), x])).values()]
-                        }
-                        remoteCloudStorageConnectors.map(async connector => {
+                        await Promise.all(remoteCloudStorageConnectors.map(async (connector: Connector) => {
                             // get the corresponding cloud storage application
 
-                            //get cloud storage applications with the same type as connector
-                            let remoteCloudStorageApplication = allCloudStorageRemoteApplications?.find(application => (application['originConnectorId'] === connector.id))
+                            // get cloud storage applications created from connector
+                            let remoteCloudStorageApplication = allCloudStorageRemoteApplications?.find(application => (application['originConnectorId'] === connector.id || application.name === connector.name))
 
-                            let remoteCloudStorageApplicationId: ApplicationId;
+
                             //get the corresponding boilerplate application
                             const boilerplateCloudStorageApplication = boilerplateCloudStorageApplications[connector.name];
+
+                            let remoteCloudStorageApplicationId: ApplicationId;
+                            type CloudStorageApplicationPayload = Omit<CloudStorageApplication, ServerOnlyFields | keyof WithType<any> | keyof WithResources<any>>;
 
                             /**  if there is not a cloudStorageApplication of type 'azure.blob' | 'googlecloud' | 'sftp' | aws3
                              then create cloudStorageApplication
                              **/
-                            type CloudStorageApplicationPayload = Omit<CloudStorageApplication, ServerOnlyFields | keyof WithType<any> | keyof WithResources<any>>;
-
                             if (!remoteCloudStorageApplication) {
                                 const cloudStoragePayload: CloudStorageApplicationPayload = {
+                                    category: "Cloud Storage",
                                     name: connector.name,
                                     description: boilerplateCloudStorageApplication.description,
-                                    connectorId: connector.id,
+                                    originConnectorId: connector.id,
                                     configValues: boilerplateCloudStorageApplication.configValues,
                                     enabled: true
                                 };
                                 remoteCloudStorageApplication = await bOps.applications.create(cloudStoragePayload).then(app => {
-                                    if (app.name !== "Microsoft Azure Blob") {
-                                        bOps.applications.for(app.id).auth.create({
-                                            parameters: {
-                                                clientEmail: 'aa********', privateKey: 'df****'
-                                            },
-                                            schemeName: 'keys'
-                                        });
-                                    } else {
-                                        bOps.applications.for(app.id).auth.create({
-                                            parameters: {
-                                                accountName: "an*********", accountKey: "an*****"
-                                            },
-                                            schemeName: "keys"
-                                        });
-                                    }
+
                                     return bOps.applications.for(app.id).get()
                                 });
                             } else {
@@ -641,10 +622,12 @@ export function createBoilerplate(sdk: CDP) {
                                 // check if they are not equal and update to boilerplate Cloud Storage Application
                                 if (!(_.isEqual(viewModelRemoteCSApp, viewModelCSApp))) {
                                     const payload: CloudStorageApplicationPayload = {
+                                        category: "Cloud Storage",
+                                        originConnectorId: connector.id,
                                         name: connector.name,
                                         enabled: true,
                                         description: boilerplateCloudStorageApplication.description,
-                                        configValues: boilerplateCloudStorageApplication.configValues,
+                                        configValues: boilerplateCloudStorageApplication.configValues
                                     };
                                     remoteCloudStorageApplication = await bOps.applications.for(remoteCloudStorageApplication.id).update(payload);
                                 }
@@ -683,7 +666,7 @@ export function createBoilerplate(sdk: CDP) {
                             terminal.colorRgb(255, 175, 215)(`~~~~~~ aligning ${remoteCloudStorageEventForApplication.name} CloudStorage Event Mappings`);
                             terminal('\n');
                             await checkToUpdateOrCreateMappings(remoteCloudStorageEventIdForApplication, boilerplateCloudStorageEvent.mapping, remoteCloudStorageApplicationId);
-                        })
+                        }));
                     },
 
                     async alignAll() {

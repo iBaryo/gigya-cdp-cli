@@ -17,7 +17,6 @@ interface EventConfig {
 export const boilerplateCloudStorageEvent: EventConfig = {
     payload: {
         dataType: EventType.firstPartyCrmData,
-        // @ts-ignore
         resourcePath: 'read',
         description: " ",
         enabled: true,
