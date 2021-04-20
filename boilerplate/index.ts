@@ -5,7 +5,10 @@ import {
     CustomerSchema,
     SchemaType,
     Segment,
-    Application, DirectApplication, CloudStorageApplication, ApplicationId, Connector,
+    DirectApplication,
+    CloudStorageApplication,
+    ApplicationId,
+    Connector,
 } from "../gigya-cdp-sdk/entities";
 import {boilerplateDirectEvents} from "./Events/Direct";
 import {profileSchema as boilerplateProfileSchema} from "./schemas/ProfileSchema";
@@ -25,7 +28,7 @@ import {
 } from "./Applications/defaultCloudStorageApplications";
 import {boilerplateCloudStorageEvent} from "./Events/CloudStorage";
 import {terminal} from "terminal-kit";
-import {JSONSchema7, JSONSchema7Object} from "json-schema";
+import {JSONSchema7} from "json-schema";
 import {EventMapping} from "../gigya-cdp-sdk/entities/Event/EventMapping";
 import {ServerOnlyFields} from "../gigya-cdp-sdk/CDPEntitiesApi";
 import {createArray, createFakeEventForIdentifier, JSONSchemaFaker, resolveFake} from "../utils/schema";
