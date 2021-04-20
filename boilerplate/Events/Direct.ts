@@ -1,13 +1,13 @@
 import {Event, EventType} from "../../gigya-cdp-sdk/entities/Event";
 import {Payload} from "../../gigya-cdp-sdk/entities/common";
 // import {Purpose} from "../BoilerplateConfig";
-import {FieldName, Purpose, PurposeId} from "../../gigya-cdp-sdk/entities";
+import {FieldName, Purpose, PurposeId, SchemaId} from "../../gigya-cdp-sdk/entities";
 import {ActivityName} from "../schemas/ActivitiesSchemas";
 import {PurposeName} from "../purposes/purposes";
 import {DirectEventName} from "../BoilerplateConfig";
 
 interface EventConfig {
-    payload: Payload<Event>,
+    payload: Payload<Omit<Event, SchemaId>>,
     mapping: Partial<Record<ActivityName | 'Profile', Array<{
         sourceField: FieldName;
         targetField: FieldName;
