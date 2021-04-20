@@ -557,7 +557,7 @@ export function createBoilerplate(sdk: CDP) {
                                 return _(bpMappings).differenceWith(rMappings, _.isEqual).isEmpty();
                             };
 
-                            if (remoteMappings.length < 1 || !remoteMappings) {
+                            if (!remoteMappings || remoteMappings.length < 1) {
                                 return bOps.applications.for(remoteCloudStorageApplicationId).dataevents
                                     .for(remoteCloudStorageEventIdForApplication).mappings.create(
                                         adjustedBoilerplateMappings
