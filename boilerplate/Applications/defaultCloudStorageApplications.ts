@@ -1,5 +1,8 @@
 import { WithEnabled, WithType} from "../../gigya-cdp-sdk/entities/common";
-import {CloudStorageApplication} from "../../gigya-cdp-sdk/entities/Application";
+import {
+    CloudStorageApplication,
+    CloudStorageApplicationWithOnlyOneOriginConnectorOrConnector
+} from "../../gigya-cdp-sdk/entities/Application";
 import {ServerOnlyFields} from "../../gigya-cdp-sdk/CDPEntitiesApi";
 import {WithResources} from "../../gigya-cdp-sdk/entities/Application/ApplicationResource";
 import {WithConfigSchema, WithConfigValues} from "../../gigya-cdp-sdk/entities/common/config";
@@ -7,7 +10,7 @@ import {WithSecuritySchemes} from "../../gigya-cdp-sdk/entities/Connector/Auth";
 
 export type CSType = 'AWS S3' | 'Microsoft Azure Blob' | 'Google Cloud Storage' | 'SFTP';
 
-type CSApplication = Omit<CloudStorageApplication,  ServerOnlyFields | keyof WithConfigSchema | keyof WithResources<any> | keyof WithSecuritySchemes | keyof WithEnabled | keyof WithType<any>>
+type CSApplication = Omit<CloudStorageApplicationWithOnlyOneOriginConnectorOrConnector,  ServerOnlyFields | keyof WithConfigSchema | keyof WithResources<any> | keyof WithSecuritySchemes | keyof WithEnabled | keyof WithType<any>>
 
 export const cloudStorageApplications: Record<CSType, CSApplication> = {
     'AWS S3': {
