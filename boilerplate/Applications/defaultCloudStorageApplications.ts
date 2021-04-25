@@ -1,7 +1,5 @@
-import {Payload, WithEnabled, WithType} from "../../gigya-cdp-sdk/entities/common";
-import {Application, CloudStorageApplication} from "../../gigya-cdp-sdk/entities/Application";
-import {ConnectorId} from "../../gigya-cdp-sdk/entities/Connector";
-import {BusinessUnitId} from "../../gigya-cdp-sdk/entities";
+import { WithEnabled, WithType} from "../../gigya-cdp-sdk/entities/common";
+import {CloudStorageApplication} from "../../gigya-cdp-sdk/entities/Application";
 import {ServerOnlyFields} from "../../gigya-cdp-sdk/CDPEntitiesApi";
 import {WithResources} from "../../gigya-cdp-sdk/entities/Application/ApplicationResource";
 import {WithConfigSchema, WithConfigValues} from "../../gigya-cdp-sdk/entities/common/config";
@@ -13,7 +11,8 @@ type CSApplication = Omit<CloudStorageApplication,  ServerOnlyFields | keyof Wit
 
 export const cloudStorageApplications: Record<CSType, CSApplication> = {
     'AWS S3': {
-        connectorId: "" as ConnectorId,
+        category: "Cloud Storage",
+        originConnectorId: "",
         configValues: {
             writeBucketName: "boilerplate-bucket",
             readBucketName: "boilerplate-bucket",
@@ -26,7 +25,8 @@ export const cloudStorageApplications: Record<CSType, CSApplication> = {
         description: "R&D test application for amazon s3",
     },
     'Microsoft Azure Blob': {
-        connectorId: "" as ConnectorId,
+        category: "Cloud Storage",
+        originConnectorId: "",
         name: "Microsoft Azure Blob",
         description: "R&D test application for azure",
         configValues: {
@@ -39,7 +39,8 @@ export const cloudStorageApplications: Record<CSType, CSApplication> = {
         },
     },
     'Google Cloud Storage': {
-        connectorId: "" as ConnectorId,
+        category: "Cloud Storage",
+        originConnectorId: "",
         name: "Google Cloud Storage",
         description: "R&D test application for google cloud",
         configValues: {
@@ -53,7 +54,8 @@ export const cloudStorageApplications: Record<CSType, CSApplication> = {
         },
     },
     'SFTP': {
-        connectorId: "" as ConnectorId,
+        category: "Cloud Storage",
+        originConnectorId: "",
         name: "SFTP",
         description: "R&D test application for SFTP",
         configValues: {
