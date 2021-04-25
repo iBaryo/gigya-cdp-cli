@@ -82,7 +82,7 @@ export function createBoilerplate(sdk: CDP) {
                                 : bOps.customerschemas.for(profileSchemaEntity.id).update({
                                     name: "Profile",
                                     schema: {
-                                        ...profileSchemaEntity.schema as Object,
+                                        ...profileSchemaEntity.schema,
                                         properties: {...boilerplateProfileSchema.properties, ...profileSchemaEntity.schema.properties}
                                     },
                                     schemaType: SchemaType.Profile
@@ -129,7 +129,7 @@ export function createBoilerplate(sdk: CDP) {
                                     : bOps.customerschemas.for(activitySchema.id).update({
                                         name: activity,
                                         schema: {
-                                            ...remoteActivitySchema as Object,
+                                            ...remoteActivitySchema,
                                             properties: {
                                                 ...remoteActivitySchema.properties,
                                                 ...boilerplateSchema.properties
@@ -495,24 +495,20 @@ export function createBoilerplate(sdk: CDP) {
 
 
                         function createCloudStorageEvent(boilerplateEvent, remoteCloudStorageApplication) {
-                            // const conf = {};
-                            // for (const key of Object.keys(remoteCloudStorageApplication.configSchema.properties)) {
-                            //     conf[key] = 'value';
-                            // }
 
                             return bOps.applications.for(remoteCloudStorageApplication.id).dataevents.create({
                                 ...boilerplateEvent,
                                 schema: JSON.stringify(boilerplateEvent.schema),
                                 purposeIds: boilerplateEvent.purposeIds,
                                 configValues: remoteCloudStorageApplication.name === 'Microsoft Azure Blob' ?
+                                    boilerplateEvent.configValues
+                                    :
                                     {
                                         // these need to be explicitly defined and cannot be taken from the connector's or application's config schema since there is a ton of irrelevant info there
                                         readContainer: "any container",
                                         readFileNameRegex: null,
                                         readFormat: null,
                                     }
-                                    :
-                                    boilerplateEvent.configValues
                             })
                         }
 
@@ -557,7 +553,7 @@ export function createBoilerplate(sdk: CDP) {
                                 return _(bpMappings).differenceWith(rMappings, _.isEqual).isEmpty();
                             };
 
-                            if (!remoteMappings || remoteMappings.length < 1) {
+                            if (!remoteMappings || remoteMappings?.length < 1) {
                                 return bOps.applications.for(remoteCloudStorageApplicationId).dataevents
                                     .for(remoteCloudStorageEventIdForApplication).mappings.create(
                                         adjustedBoilerplateMappings
@@ -586,7 +582,7 @@ export function createBoilerplate(sdk: CDP) {
                             // get the corresponding cloud storage application
 
                             // get cloud storage applications created from connector
-                            let remoteCloudStorageApplication = allCloudStorageRemoteApplications?.find(application => (application['originConnectorId'] === connector.id || application.name === connector.name))
+                            let remoteCloudStorageApplication = allCloudStorageRemoteApplications?.find(application => (application['originConnectorId'] === connector.id))
                             //get the corresponding boilerplate application
                             const boilerplateCloudStorageApplication = boilerplateCloudStorageApplications[connector.name];
 
@@ -801,7 +797,7 @@ export function createBoilerplate(sdk: CDP) {
 
                     const identifiers = await Promise.all(createArray(customersNum).map(async () => ({
                         name: config.commonIdentifier,
-                        value: await resolveFake(identifierSchema) as object
+                        value: await resolveFake(identifierSchema)
                     })));
 
                     interface CustomersEvents {
@@ -860,6 +856,6 @@ export function createBoilerplate(sdk: CDP) {
 }
 
 
-function getSchemaObject(schema: string | JSONSchema7): JSONSchema7 {
+function getSchemaObject(schema: JSONSchema7): JSONSchema7 {
     return typeof schema == 'string' ? JSON.parse(schema) : schema;
 }
