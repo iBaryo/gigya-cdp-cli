@@ -500,7 +500,7 @@ export function createBoilerplate(sdk: CDP) {
                                 ...boilerplateEvent,
                                 schema: JSON.stringify(boilerplateEvent.schema),
                                 purposeIds: boilerplateEvent.purposeIds,
-                                configValues: remoteCloudStorageApplication.name === 'Microsoft Azure Blob' ?
+                                configValues: remoteCloudStorageApplication.name !== 'Microsoft Azure Blob' ?
                                     boilerplateEvent.configValues
                                     :
                                     {
