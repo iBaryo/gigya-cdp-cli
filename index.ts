@@ -284,6 +284,7 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
             const identifiers = priorities.rules.map(mRuleId => mRules.find(mRule => mRule.id == mRuleId)?.attributeName).filter(Boolean);
 
             // match all matching rules to their field (fields have different matching rules)
+            // @ts-ignore
             const profileSchema = await buOps.ucpschemas.getAll().then(
                 schemas => schemas.find(s => s.schemaType == SchemaType.Profile));
 
@@ -367,6 +368,7 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
             let ingestResponses: Array<Partial<CDPErrorResponse>>;
             if (!context.delay) {
                 terminal.cyan(`Ingesting ${context.eventsNum * (Math.max(1, context.customersNum))} fake events\n`);
+                // @ts-ignore
                 ingestResponses = await Promise.all(fakeEvents.map(ingest));
             } else {
                 const progressBar = terminal.progressBar({
@@ -378,6 +380,7 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
                 });
 
                 let i = 1;
+                // @ts-ignore
                 ingestResponses = await asyncBulkMap(fakeEvents, context.batchSize, {
                     beforeBulk: (bulk, bulkIndex) => {
                         progressBar.startItem(`batch #${i}`);

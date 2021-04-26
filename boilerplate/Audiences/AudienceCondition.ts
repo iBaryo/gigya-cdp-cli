@@ -2,6 +2,7 @@ import {Audience} from "../../gigya-cdp-sdk/entities/Audience";
 import {Payload} from "../../gigya-cdp-sdk/entities/common";
 import {PurposeName} from "../purposes/purposes";
 
+// @ts-ignore
 export const CampaignAudience: Payload<Audience> = {
     name: "My Campaign Audience",
     enabled: true,

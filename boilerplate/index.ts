@@ -592,10 +592,12 @@ export function createBoilerplate(sdk: CDP) {
                              then create cloudStorageApplication
                              **/
                             if (!remoteCloudStorageApplication) {
+
                                 const cloudStoragePayload: CloudStorageApplicationPayload = {
                                     category: "Cloud Storage",
                                     name: connector.name,
                                     description: boilerplateCloudStorageApplication.description,
+                                    // @ts-ignore
                                     connectorId: connector.id,
                                     configValues: boilerplateCloudStorageApplication.configValues,
                                     enabled: true,
@@ -615,6 +617,7 @@ export function createBoilerplate(sdk: CDP) {
                                 if (!(_.isEqual(viewModelRemoteCSApp, viewModelCSApp))) {
                                     const payload: CloudStorageApplicationPayload = {
                                         category: "Cloud Storage",
+                                        // @ts-ignore
                                         connectorId: connector.id,
                                         name: connector.name,
                                         enabled: true,

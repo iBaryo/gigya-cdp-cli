@@ -4,6 +4,7 @@ import {SchemaId} from "../../gigya-cdp-sdk/entities";
 
 export type ActivityIndicatorName = 'purchaseSum'
 
+// @ts-ignore
 export const purchaseSum: Payload<ActivityIndicator> = {
     calculationMethod: {
         field: "price",
