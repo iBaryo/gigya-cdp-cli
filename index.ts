@@ -284,8 +284,7 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
             const identifiers = priorities.rules.map(mRuleId => mRules.find(mRule => mRule.id == mRuleId)?.attributeName).filter(Boolean);
 
             // match all matching rules to their field (fields have different matching rules)
-            // @ts-ignore
-            const profileSchema = await buOps.ucpschemas.getAll().then(
+            const profileSchema = await buOps.customerschemas.getAll().then(
                 schemas => schemas.find(s => s.schemaType == SchemaType.Profile));
 
 
