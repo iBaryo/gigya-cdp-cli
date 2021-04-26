@@ -95,12 +95,10 @@ export function createBoilerplate(sdk: CDP) {
                         terminal('\n');
                         console.log(alignedProfile)
                         terminal('\n');
-
                     },
 
 
                     async alignActivities() {
-
                         terminal.colorRgb(215, 95, 175)(`~~~~~~~~~ aligning Activities Schema`);
                         terminal('\n');
 
@@ -571,6 +569,7 @@ export function createBoilerplate(sdk: CDP) {
 
                         const allCloudStorageRemoteApplications = await bOps.applications.getAll().then(apps => apps.filter(app => app.type === 'CloudStorage'));
 
+
                         const remoteConnectors = await sdk.api.workspaces.for(config.workspaceId).applibrary.getAll({includePublic: true});
 
                         const boilerplateConnectorTypes: CSType[] = ['AWS S3', 'Microsoft Azure Blob', 'Google Cloud Storage', 'SFTP']
@@ -611,6 +610,7 @@ export function createBoilerplate(sdk: CDP) {
                                 // adjust the model so that we can work with it
                                 const viewModelRemoteCSApp = getAppViewModel(remoteCloudStorageApplication);
                                 const viewModelCSApp = getAppViewModel(connector);
+                                const boilerplateCloudStorageApplication = boilerplateCloudStorageApplications[connector.name];
                                 // check if they are not equal and update to boilerplate Cloud Storage Application
                                 if (!(_.isEqual(viewModelRemoteCSApp, viewModelCSApp))) {
                                     const payload: CloudStorageApplicationPayload = {
