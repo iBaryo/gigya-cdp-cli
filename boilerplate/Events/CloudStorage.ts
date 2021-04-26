@@ -15,8 +15,8 @@ interface EventConfig {
 //TODO: fix CloudStorage Type (schemaId---> make a 'WithSchemaId' in entities so that we can omit it here from Event)
 
 export const boilerplateCloudStorageEvent: EventConfig = {
-    //@ts-ignore
     payload: {
+        schemaId: '',
         dataType: EventType.firstPartyCrmData,
         description: " ",
         enabled: true,
