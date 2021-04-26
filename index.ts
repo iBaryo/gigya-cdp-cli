@@ -40,6 +40,7 @@ import {
 import FakerStatic = Faker.FakerStatic;
 import {detectProxy} from "./utils/proxy";
 import {EventMapping} from "./gigya-cdp-sdk/entities/Event/EventMapping";
+import {WithHeaders} from "./gigya-cdp-sdk/ts-rest-client/interfaces/EntityApiTypes";
 
 interface AppContext {
     dataCenter: DataCenter;
@@ -364,10 +365,9 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
                 return eventApi.create(event).catch(asCDPError);
             }
 
-            let ingestResponses: Array<Partial<CDPErrorResponse>>;
+            let ingestResponses: Array<CDPErrorResponse | (object & WithHeaders)>;
             if (!context.delay) {
                 terminal.cyan(`Ingesting ${context.eventsNum * (Math.max(1, context.customersNum))} fake events\n`);
-                // @ts-ignore
                 ingestResponses = await Promise.all(fakeEvents.map(ingest));
             } else {
                 const progressBar = terminal.progressBar({
@@ -379,7 +379,6 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
                 });
 
                 let i = 1;
-                // @ts-ignore
                 ingestResponses = await asyncBulkMap(fakeEvents, context.batchSize, {
                     beforeBulk: (bulk, bulkIndex) => {
                         progressBar.startItem(`batch #${i}`);
