@@ -592,6 +592,7 @@ export function createBoilerplate(sdk: CDP) {
                              then create cloudStorageApplication
                              **/
                             if (!remoteCloudStorageApplication) {
+
                                 const cloudStoragePayload: CloudStorageApplicationPayload = {
                                     category: "Cloud Storage",
                                     name: connector.name,

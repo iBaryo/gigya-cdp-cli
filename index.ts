@@ -40,6 +40,7 @@ import {
 import FakerStatic = Faker.FakerStatic;
 import {detectProxy} from "./utils/proxy";
 import {EventMapping} from "./gigya-cdp-sdk/entities/Event/EventMapping";
+import {WithHeaders} from "./gigya-cdp-sdk/ts-rest-client/interfaces/EntityApiTypes";
 
 interface AppContext {
     dataCenter: DataCenter;
@@ -284,7 +285,7 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
             const identifiers = priorities.rules.map(mRuleId => mRules.find(mRule => mRule.id == mRuleId)?.attributeName).filter(Boolean);
 
             // match all matching rules to their field (fields have different matching rules)
-            const profileSchema = await buOps.ucpschemas.getAll().then(
+            const profileSchema = await buOps.customerschemas.getAll().then(
                 schemas => schemas.find(s => s.schemaType == SchemaType.Profile));
 
 
@@ -364,7 +365,7 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
                 return eventApi.create(event).catch(asCDPError);
             }
 
-            let ingestResponses: Array<Partial<CDPErrorResponse>>;
+            let ingestResponses: Array<CDPErrorResponse | (object & WithHeaders)>;
             if (!context.delay) {
                 terminal.cyan(`Ingesting ${context.eventsNum * (Math.max(1, context.customersNum))} fake events\n`);
                 ingestResponses = await Promise.all(fakeEvents.map(ingest));

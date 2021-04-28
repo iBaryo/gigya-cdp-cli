@@ -17,5 +17,4 @@ export const purchaseSum: Payload<ActivityIndicator> = {
     schemaId: "" as SchemaId,
     condition: {},
     description: 'Sum of Purchases'
-}
-
+} as Payload<ActivityIndicator>
