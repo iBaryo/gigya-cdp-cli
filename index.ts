@@ -394,7 +394,7 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
                 });
             }
 
-            const failed = ingestResponses.filter(r => r.errorCode);
+            const failed = ingestResponses.filter(r => r['errorCode']);
 
             if (!failed.length) {
                 terminal.green(`all ingest requests passed successfully!\n`);
