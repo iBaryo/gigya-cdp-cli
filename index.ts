@@ -365,7 +365,7 @@ const sdkOptions: Partial<typeof CDP.DefaultOptions> = {
                 return eventApi.create(event).catch(asCDPError);
             }
 
-            let ingestResponses: Array<CDPErrorResponse | (object & WithHeaders)>;
+            let ingestResponses: Array<CDPErrorResponse>;
             if (!context.delay) {
                 terminal.cyan(`Ingesting ${context.eventsNum * (Math.max(1, context.customersNum))} fake events\n`);
                 ingestResponses = await Promise.all(fakeEvents.map(ingest));
