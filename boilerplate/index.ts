@@ -583,7 +583,6 @@ export function createBoilerplate(sdk: CDP) {
                              then create cloudStorageApplication
                              **/
 
-                            console.log('remoteCloudStorageApplication', remoteCloudStorageApplication, boilerplateCloudStorageApplication)
                             if (!remoteCloudStorageApplication?.id) {
 
                                 const cloudStoragePayload: CloudStorageApplicationPayload = {
