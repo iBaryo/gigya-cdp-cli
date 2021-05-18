@@ -26,7 +26,7 @@ import {
     cloudStorageApplications as boilerplateCloudStorageApplications,
     CSType
 } from "./Applications/defaultCloudStorageApplications";
-import {boilerplateCloudStorageEvent} from "./Events/CloudStorage";
+import {boilerplateCloudStorageEvent, dataeventConfigurationValues} from "./Events/CloudStorage";
 import {terminal} from "terminal-kit";
 import {JSONSchema7} from "json-schema";
 import {EventMapping} from "../gigya-cdp-sdk/entities/Event/EventMapping";
@@ -473,8 +473,9 @@ export function createBoilerplate(sdk: CDP) {
                             return {
                                 payload: {
                                     ...boilerplateCloudStorageEvent.payload,
-                                    name: `${boilerplateCloudStorageEvent.payload.name} ${remoteEvent.name}`,
-                                    purposeIds: eventPurposeIds
+                                    name: `New Customers from ${remoteEvent.name}`,
+                                    purposeIds: eventPurposeIds,
+                                    configValues: dataeventConfigurationValues[remoteEvent.name]
                                 }
                             }
                         }
@@ -498,16 +499,7 @@ export function createBoilerplate(sdk: CDP) {
                                 ...boilerplateEvent,
                                 schema: JSON.stringify(boilerplateEvent.schema),
                                 purposeIds: boilerplateEvent.purposeIds,
-                                configValues: remoteCloudStorageApplication.name !== 'Microsoft Azure Blob' ?
-                                    boilerplateEvent.configValues
-                                    :
-                                    {
-                                        // these need to be explicitly defined and cannot be taken from the connector's or application's config schema since there is a ton of irrelevant info there
-                                        readContainer: "any container",
-                                        readFileNameRegex: null,
-                                        readFormat: null,
-                                    }
-                            })
+                            });
                         }
 
                         function adjustRemoteEventForComparisonWithAdjustedBpEvent(boilerplateEvent, remoteEvent) {
@@ -569,7 +561,6 @@ export function createBoilerplate(sdk: CDP) {
 
                         const allCloudStorageRemoteApplications = await bOps.applications.getAll().then(apps => apps.filter(app => app.type === 'CloudStorage'));
 
-
                         const remoteConnectors = await sdk.api.workspaces.for(config.workspaceId).applibrary.getAll({includePublic: true});
 
                         const boilerplateConnectorTypes: CSType[] = ['AWS S3', 'Microsoft Azure Blob', 'Google Cloud Storage', 'SFTP']
@@ -591,7 +582,9 @@ export function createBoilerplate(sdk: CDP) {
                             /**  if there is not a cloudStorageApplication of type 'azure.blob' | 'googlecloud' | 'sftp' | aws3
                              then create cloudStorageApplication
                              **/
-                            if (!remoteCloudStorageApplication) {
+
+                            console.log('remoteCloudStorageApplication', remoteCloudStorageApplication, boilerplateCloudStorageApplication)
+                            if (!remoteCloudStorageApplication?.id) {
 
                                 const cloudStoragePayload: CloudStorageApplicationPayload = {
                                     category: "Cloud Storage",
@@ -622,7 +615,7 @@ export function createBoilerplate(sdk: CDP) {
                                         description: boilerplateCloudStorageApplication.description,
                                         configValues: boilerplateCloudStorageApplication.configValues,
                                     };
-                                    remoteCloudStorageApplication = await bOps.applications.for(remoteCloudStorageApplication.id).update(payload);
+                                    remoteCloudStorageApplication = await bOps.applications.for(remoteCloudStorageApplication.id).update(payload)
                                 }
                             }
 
@@ -631,16 +624,15 @@ export function createBoilerplate(sdk: CDP) {
                             remoteCloudStorageApplicationId = remoteCloudStorageApplication.id;
                             const remoteCloudStorageEvents = await bOps.applications.for(remoteCloudStorageApplicationId).dataevents.getAll();
 
-                            let remoteCloudStorageEventIdForApplication = remoteCloudStorageEvents.length > 0 && (remoteCloudStorageEvents?.find(event =>
+                            let remoteCloudStorageEventIdForApplication = remoteCloudStorageEvents?.find(event =>
                                 event.name === `${boilerplateCloudStorageEvent.payload.name} ${remoteCloudStorageApplication.name}`
-                            ))?.id;
+                            )?.id;
 
                             const adjustedBoilerplateEventRecord = adjustBoilerplateEventForPurposeIdsAndName(remoteCloudStorageApplication);
                             const adjustedBoilerplateEvent = adjustedBoilerplateEventRecord.payload;
 
                             // if there is no id for the remote cloud storage event, create it
                             if (!remoteCloudStorageEventIdForApplication) {
-
                                 const createdCloudStorageEvent = await createCloudStorageEvent(adjustedBoilerplateEvent, remoteCloudStorageApplication);
                                 remoteCloudStorageEventIdForApplication = createdCloudStorageEvent.id;
                             }

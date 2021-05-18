@@ -12,6 +12,27 @@ interface EventConfig {
     }>>;
 }
 
+export const dataeventConfigurationValues = {
+    'New Customers from  Microsoft Azure Blob': {
+        readContainer: "any container",
+        readFileNameRegex: null,
+        readFormat: null,
+    },
+    'New Customers from  Google Cloud Storage': {
+        readFileNameRegex: "mock",
+        readFilePath: "mock",
+        readBucketName: 'boilerplate-mock'
+    },
+    'New Customers from  SFTP': {
+        readFileNameRegex: "mock",
+        readFilePath: "mock"
+    },
+    'New Customers from  AWS S3': {
+        readFileNameRegex: "mock",
+        readFilePath: "mock"
+    }
+}
+
 //TODO: fix CloudStorage Type (schemaId---> make a 'WithSchemaId' in entities so that we can omit it here from Event)
 
 export const boilerplateCloudStorageEvent: EventConfig = {
@@ -21,10 +42,7 @@ export const boilerplateCloudStorageEvent: EventConfig = {
         description: " ",
         enabled: true,
         name: "New Customers from ",
-        configValues: {
-            readFileNameRegex: "mock",
-            readFilePath: "mock"
-        },
+        configValues: {},
         purposeIds: ["basic"] as Array<PurposeName>,
         schema: {
             type: 'object',
@@ -45,7 +63,7 @@ export const boilerplateCloudStorageEvent: EventConfig = {
                     type: 'string'
                 },
                 masterDataId: {
-                        type: 'string'
+                    type: 'string'
                 },
                 birthdate: {
                     type: "string",
