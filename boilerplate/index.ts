@@ -518,7 +518,7 @@ export function createBoilerplate(sdk: CDP) {
                                     schema: JSON.stringify(adjustedBoilerplateEvent.schema),
                                     purposeIds: adjustedBoilerplateEvent.purposeIds
                                 })
-                                .then((updatedEvent) =>{
+                                .then((updatedEvent) => {
                                     console.log(`updated ${updatedEvent.name}:`, updatedEvent)
                                 });
                         }
