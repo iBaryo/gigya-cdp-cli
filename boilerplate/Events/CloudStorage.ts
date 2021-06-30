@@ -14,14 +14,14 @@ interface EventConfig {
 
 export const dataeventConfigurationValues = {
     'New Customers from Microsoft Azure Blob': {
-        readContainer: "any container",
+        // readContainer: "any container",
         readFileNameRegex: null,
         readFormat: null,
     },
     'New Customers from Google Cloud Storage': {
         readFileNameRegex: "mock",
         readFilePath: "mock",
-        readBucketName: 'boilerplate-mock'
+        // readBucketName: 'boilerplate-mock'
     },
     'New Customers from SFTP': {
         readFileNameRegex: "mock",
