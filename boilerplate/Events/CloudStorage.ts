@@ -1,5 +1,5 @@
 import {Payload} from "../../gigya-cdp-sdk/entities/common";
-import {Event, EventType} from "../../gigya-cdp-sdk/entities/Event";
+import {Event, EventDataType} from "../../gigya-cdp-sdk/entities/Event";
 import {PurposeName} from "../purposes/purposes";
 import {FieldName} from "../../gigya-cdp-sdk/entities";
 
@@ -35,7 +35,8 @@ export const dataeventConfigurationValues = {
 
 export const boilerplateCloudStorageEvent: EventConfig = {
     payload: {
-        dataType: EventType.firstPartyCrmData,
+        type: 'Scheduled',
+        dataType: EventDataType.firstPartyCrmData,
         description: " ",
         enabled: true,
         name: "New Customers from",
