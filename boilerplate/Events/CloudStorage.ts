@@ -1,5 +1,5 @@
 import {Payload} from "../../gigya-cdp-sdk/entities/common";
-import {Event, EventType} from "../../gigya-cdp-sdk/entities/Event";
+import {Event, EventDataType} from "../../gigya-cdp-sdk/entities/Event";
 import {PurposeName} from "../purposes/purposes";
 import {FieldName} from "../../gigya-cdp-sdk/entities";
 
@@ -14,14 +14,14 @@ interface EventConfig {
 
 export const dataeventConfigurationValues = {
     'New Customers from Microsoft Azure Blob': {
-        readContainer: "any container",
+        // readContainer: "any container",
         readFileNameRegex: null,
         readFormat: null,
     },
     'New Customers from Google Cloud Storage': {
         readFileNameRegex: "mock",
         readFilePath: "mock",
-        readBucketName: 'boilerplate-mock'
+        // readBucketName: 'boilerplate-mock'
     },
     'New Customers from SFTP': {
         readFileNameRegex: "mock",
@@ -35,7 +35,8 @@ export const dataeventConfigurationValues = {
 
 export const boilerplateCloudStorageEvent: EventConfig = {
     payload: {
-        dataType: EventType.firstPartyCrmData,
+        type: 'Scheduled',
+        dataType: EventDataType.firstPartyCrmData,
         description: " ",
         enabled: true,
         name: "New Customers from",

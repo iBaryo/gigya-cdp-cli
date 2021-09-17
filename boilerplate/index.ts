@@ -5,10 +5,8 @@ import {
     CustomerSchema,
     SchemaType,
     Segment,
-    DirectApplication,
-    CloudStorageApplication,
     ApplicationId,
-    Connector,
+    Connector, Application, ApplicationType,
 } from "../gigya-cdp-sdk/entities";
 import {boilerplateDirectEvents} from "./Events/Direct";
 import {profileSchema as boilerplateProfileSchema} from "./schemas/ProfileSchema";
@@ -19,7 +17,7 @@ import {config, DirectEventName} from "./BoilerplateConfig";
 import {CampaignAudience as boilerplateAudience} from "./Audiences/AudienceCondition";
 import {Audience} from "../gigya-cdp-sdk/entities/Audience";
 import {defaultDirectApplication as boilerplateDirectApplication} from "./Applications/defaultDirectApplication";
-import {WithType} from "../gigya-cdp-sdk/entities/common";
+import {Payload, WithType} from "../gigya-cdp-sdk/entities/common";
 import {Purposes as boilerplatePurposes} from "./purposes/purposes";
 import {matchingRule} from "./MatchRules/matchRules";
 import {
@@ -36,6 +34,7 @@ import {defaultSchemaPropFakers, fakify} from "json-schema-fakify";
 import {initStore} from "../secure-store";
 import {WithResources} from "../gigya-cdp-sdk/entities/Application/ApplicationResource";
 import {keepUnique} from "./utils/helper-functions";
+import {CloudStorageApplication} from "../gigya-cdp-sdk/entities/Application/CloudStorageApplication";
 
 
 const isEqual = require('lodash/isEqual');
@@ -48,7 +47,8 @@ const _ = require('lodash')
        4. override users config if it does not make sense to keep it.
  */
 
-export function createBoilerplate(sdk: CDP) {
+export function createBoilerplate(sdk: CDP, workspaceId: string = config.workspaceId) {
+    // sdk.api.businessunits.getAll().then(r => console.log('got into createBP, all bus = ', r))
     return {
         for(bUnitId: BusinessUnitId) {
             const bOps = sdk.api.businessunits.for(bUnitId);
@@ -66,7 +66,7 @@ export function createBoilerplate(sdk: CDP) {
                             .then(schemas => schemas.find(s => s.schemaType == SchemaType.Profile));
 
                         let alignProfilePromise: Promise<CustomerSchema>;
-                        if (!profileSchemaEntity) {
+                        if (!profileSchemaEntity?.id) {
                             alignProfilePromise = bOps.customerschemas.create({
                                 name: "Profile",
                                 schema: boilerplateProfileSchema,
@@ -93,7 +93,7 @@ export function createBoilerplate(sdk: CDP) {
                         terminal('\n');
                         terminal.colorRgb(255, 192, 203)('~~~~~ aligned Profile Schema:');
                         terminal('\n');
-                        console.log(alignedProfile)
+                        console.log('aligned profile:', alignedProfile)
                         terminal('\n');
                     },
 
@@ -303,7 +303,7 @@ export function createBoilerplate(sdk: CDP) {
                         let remoteApplication = remoteApplications?.find(app =>
                             app.type === ('Direct') && app.name === boilerplateDirectApplication.name);
 
-                        type DirectApplicationPayload = Omit<DirectApplication, ServerOnlyFields>;
+                        type DirectApplicationPayload = Omit<Application, ServerOnlyFields>;
 
                         const remoteDirectApplicationPayload: DirectApplicationPayload = {
                             type: 'Direct',
@@ -563,7 +563,7 @@ export function createBoilerplate(sdk: CDP) {
 
                         const allCloudStorageRemoteApplications = await bOps.applications.getAll().then(apps => apps.filter(app => app.type === 'CloudStorage'));
 
-                        const remoteConnectors = await sdk.api.workspaces.for(config.workspaceId).applibrary.getAll({includePublic: true});
+                        const remoteConnectors = await sdk.api.workspaces.for(workspaceId).applibrary.getAll({includePublic: true});
 
                         const boilerplateConnectorTypes: CSType[] = ['AWS S3', 'Microsoft Azure Blob', 'Google Cloud Storage', 'SFTP']
 

@@ -10,77 +10,69 @@ export const VIPSegment: Payload<Segment> = {
     values: [
         {
             condition: {
-                field: {
-                    name: 'Purchase Sum',
-                    type: 'activityIndicator'
-                },
-                operator: 'greaterThan',
-                operand: {
-                    type: 'long',
-                    value: 1000
+                type: "activityIndicator",
+                field: "Purchase Sum",
+                condition: {
+                    operand: {
+                        type: "double",
+                        value: 1000.0
+                    },
+                    operator: "greaterThan"
                 }
             },
-            value: 'Gold'
+            value: "Gold"
         },
         {
             condition: {
-                operator: 'and',
-                conditions: [
-                    {
-                        field: {
-                            name: 'Purchase Sum',
-                            type: 'activityIndicator'
+                type: "activityIndicator",
+                field: "Purchase Sum",
+                condition: {
+                    conditions: [
+                        {
+                            operand: {
+                                type: "double",
+                                value: 500.0
+                            },
+                            operator: "greaterThan"
                         },
-                        operator: 'greaterThan',
-                        operand: {
-                            type: 'long',
-                            value: 500
+                        {
+                            operand: {
+                                type: "double",
+                                value: 1000.0
+                            },
+                            operator: "lessThan"
                         }
-                    },
-                    {
-                        field: {
-                            name: 'Purchase Sum',
-                            type: 'activityIndicator'
-                        },
-                        operator: 'lessThan',
-                        operand: {
-                            type: 'long',
-                            value: 1000
-                        }
-                    },
-                ],
+                    ],
+                    operator: "and"
+                }
             },
-            value: 'Silver'
+            value: "Silver"
         },
         {
             condition: {
-                operator: 'and',
-                conditions: [
-                    {
-                        field: {
-                            name: 'Purchase Sum',
-                            type: 'activityIndicator'
+                type: "activityIndicator",
+                field: "Purchase Sum",
+                condition: {
+                    conditions: [
+                        {
+                            operand: {
+                                type: "double",
+                                value: 300.0
+                            },
+                            operator: "greaterThan"
                         },
-                        operator: 'greaterThan',
-                        operand: {
-                            type: 'long',
-                            value: 300
+                        {
+                            operand: {
+                                type: "double",
+                                value: 500.0
+                            },
+                            operator: "lessThan"
                         }
-                    },
-                    {
-                        field: {
-                            name: 'Purchase Sum',
-                            type: 'activityIndicator'
-                        },
-                        operator: 'lessThan',
-                        operand: {
-                            type: 'long',
-                            value: 500
-                        }
-                    },
-                ],
+                    ],
+                    operator: "and"
+                }
             },
-            value: 'Bronze'
+            value: "Bronze"
         }
     ]
 }
