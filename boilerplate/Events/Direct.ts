@@ -1,4 +1,4 @@
-import {Event, EventType} from "../../gigya-cdp-sdk/entities/Event";
+import {Event, EventDataType, EventType} from "../../gigya-cdp-sdk/entities/Event";
 import {Payload} from "../../gigya-cdp-sdk/entities/common";
 // import {Purpose} from "../BoilerplateConfig";
 import {FieldName, Purpose, PurposeId, SchemaId} from "../../gigya-cdp-sdk/entities";
@@ -21,8 +21,9 @@ export const boilerplateDirectEvents: Record<DirectEventName, EventConfig> = {
             purposeIds: ["basic", "marketing"] as Array<PurposeName>,
             enabled: true,
             name: 'onPurchase' as DirectEventName,
+            type: 'Direct' as EventType,
             description: 'money money money',
-            dataType: EventType.firstPartyCrmData,
+            dataType: EventDataType.firstPartyCrmData,
             schema: {
                 type: 'object',
                 properties: {
@@ -106,7 +107,8 @@ export const boilerplateDirectEvents: Record<DirectEventName, EventConfig> = {
             name: 'onPageView' as DirectEventName,
             description: 'see that',
             purposeIds: ["basic", "marketing"] as Array<PurposeName>,
-            dataType: EventType.offlineData,
+            dataType: EventDataType.offlineData,
+            type: 'Direct' as EventType,
             schema: {
                 type: 'object',
                 properties: {
