@@ -6,7 +6,8 @@ import {
     SchemaType,
     Segment,
     ApplicationId,
-    Connector, Application, ApplicationType,
+    Connector,
+    Application
 } from "../gigya-cdp-sdk/entities";
 import {boilerplateDirectEvents} from "./Events/Direct";
 import {profileSchema as boilerplateProfileSchema} from "./schemas/ProfileSchema";
@@ -32,7 +33,7 @@ import {ServerOnlyFields} from "../gigya-cdp-sdk/CDPEntitiesApi";
 import {createArray, createFakeEventForIdentifier, JSONSchemaFaker, resolveFake} from "../utils/schema";
 import {defaultSchemaPropFakers, fakify} from "json-schema-fakify";
 import {initStore} from "../secure-store";
-import {WithResources} from "../gigya-cdp-sdk/entities/Application/ApplicationResource";
+import {WithCloudStorageResources} from "../gigya-cdp-sdk/entities/Application/ApplicationResource";
 import {keepUnique} from "./utils/helper-functions";
 import {CloudStorageApplication} from "../gigya-cdp-sdk/entities/Application/CloudStorageApplication";
 
@@ -579,7 +580,7 @@ export function createBoilerplate(sdk: CDP, workspaceId: string = config.workspa
                             const boilerplateCloudStorageApplication = boilerplateCloudStorageApplications[connector.name];
 
                             let remoteCloudStorageApplicationId: ApplicationId;
-                            type CloudStorageApplicationPayload = Omit<CloudStorageApplication, ServerOnlyFields | keyof WithType<any> | keyof WithResources<any>>;
+                            type CloudStorageApplicationPayload = Omit<CloudStorageApplication, ServerOnlyFields | keyof WithType<any> | keyof WithCloudStorageResources>;
 
                             const cloudStoragePayload: CloudStorageApplicationPayload = {
                                 category: "Cloud Storage",
